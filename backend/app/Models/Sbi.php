@@ -2,28 +2,30 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable([
-    'parent_id',
-    'is_positive',
-    'writer_id',
-    'receiver_id',
-    'situation',
-    'behavior',
-    'impact',
-    'suggestion',
-    'written_at',
-    'answered_at',
-])]
 class Sbi extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $table = 'sbis';
+
+    protected $fillable = [
+        'parent_id',
+        'is_positive',
+        'writer_id',
+        'receiver_id',
+        'situation',
+        'behavior',
+        'impact',
+        'suggestion',
+        'written_at',
+        'answered_at',
+    ];
 
     protected function casts(): array
     {
@@ -35,23 +37,23 @@ class Sbi extends Model
     }
 
     /**
-     * SBI principale a cui questa risposta appartiene.
+     * Sbi padre, se questa Sbi è una risposta.
      */
     public function parent(): BelongsTo
     {
-        return $this->belongsTo(Sbi::class, 'parent_id');
+        return $this->belongsTo(self::class, 'parent_id');
     }
 
     /**
-     * Risposte collegate a questo SBI.
+     * Risposte o Sbi figlie.
      */
-    public function replies(): HasMany
+    public function children(): HasMany
     {
-        return $this->hasMany(Sbi::class, 'parent_id');
+        return $this->hasMany(self::class, 'parent_id');
     }
 
     /**
-     * Utente che ha scritto l'SBI.
+     * Utente che ha scritto la Sbi.
      */
     public function writer(): BelongsTo
     {
@@ -59,7 +61,7 @@ class Sbi extends Model
     }
 
     /**
-     * Utente che riceve l'SBI.
+     * Utente che riceve la Sbi.
      */
     public function receiver(): BelongsTo
     {

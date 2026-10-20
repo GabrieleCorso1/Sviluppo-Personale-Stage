@@ -11,9 +11,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('calendar_typology', function (Blueprint $table) {
+        Schema::create('assignmentroles', function (Blueprint $table) {
             $table->id();
-            $table->string('alias');
+            $table->enum('alias', ['Sviluppatore Full-stack','Sviluppatore Front-end', 'Sviluppatore Back-end', 'UX-UI Designer', 'Scrum Master','Project Manager', 'Team Leader']);
+            $table->string('description')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
@@ -25,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('calendar_typology');
+        Schema::dropIfExists('assignmentroles');
     }
 };

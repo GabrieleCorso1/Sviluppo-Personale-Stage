@@ -11,13 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('assignmentroles', function (Blueprint $table) {
+        Schema::create('assignmentrole_user', function (Blueprint $table) {
             $table->id();
-            $table->string('alias');
-            $table->string('description')->nullable();
+        $table->foreignId('user_id')
+            ->constrained()
+            ->cascadeOnDelete();
 
+        $table->foreignId('assignmentrole_id')
+            ->constrained()
+            ->cascadeOnDelete();
+
+            $table->enum('expertise',['junior', 'senior']);
             $table->timestamps();
-            $table->softDeletes();
         });
     }
 
@@ -26,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('assignmentroles');
+        Schema::dropIfExists('assignmentrole_user');
     }
 };

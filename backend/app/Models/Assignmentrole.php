@@ -2,24 +2,31 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
-#[Fillable([
-    'alias',
-    'description',
-])]
 class AssignmentRole extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $table = 'assignmentroles';
 
-    public function projectUsers(): HasMany
+    protected $fillable = [
+        'alias',
+        'description',
+    ];
+
+        public function users(): BelongsToMany
     {
-        return $this->hasMany(ProjectUser::class, 'assignmentrole_id');
+        return $this->belongsToMany(
+            User::class,
+            'assignmentrole_user',
+            'assignmentrole_id',
+            'user_id'
+        )
+        ->withPivot('expertise')
+        ->withTimestamps();
     }
 }

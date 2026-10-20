@@ -11,14 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('roles', function (Blueprint $table) {
+        Schema::create("hours_distribution", function (Blueprint $table) {
             $table->id();
-            $table->string('name');
-            $table->string('display_name');
-            $table->string('description')->nullable();
-            
+            $table->foreignId('user_id')
+                ->constrained('users')
+                ->cascadeOnDelete();
+            $table->string("alias");
+            $table->time("start_hour");
+            $table->time("end_hour");
+            $table->boolean("is_holiday");
+
             $table->timestamps();
-        });
+    });
     }
 
     /**
@@ -26,6 +30,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('roles');
+        Schema::dropIfExists('hours_distribution');
     }
 };

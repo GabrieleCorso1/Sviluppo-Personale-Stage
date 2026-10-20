@@ -25,7 +25,6 @@ return new class extends Migration
             ->constrained('assignmentroles')
             ->cascadeOnDelete();
             
-            $table->unique(['user_id', 'project_id']);
             $table->date('startwork_date');
             $table->date('endwork_date')->nullable();
             $table->integer('work_allocation');

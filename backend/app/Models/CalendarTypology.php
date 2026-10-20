@@ -2,23 +2,26 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable([
-    'alias',
-])]
 class CalendarTypology extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $table = 'calendar_typology';
 
-    public function calendar(): HasMany
+    protected $fillable = [
+        'alias',
+    ];
+
+    public function calendarEntries(): HasMany
     {
-        return $this->hasMany(Calendar::class, 'typology_id');
+        return $this->hasMany(
+            Calendar::class,
+            'typology_id'
+        );
     }
 }

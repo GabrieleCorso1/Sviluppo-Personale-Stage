@@ -11,13 +11,19 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('projects', function (Blueprint $table) {
+        Schema::create('contracts', function (Blueprint $table) {
             $table->id();
-            $table->string('alias');
-            $table->string('description')->nullable();
-            $table->enum('status', ['in corso', 'manutenzione', 'sospeso']);
-            $table->date('start_date');
-            $table->date('end_date')->nullable();
+
+            $table->foreignId('user_id')
+                ->constrained()
+                ->restrictOnDelete();
+
+            $table->date('contract_start_date');
+            $table->date('contract_end_date')->nullable();
+
+            $table->unsignedInteger('weekly_hours');
+
+            $table->string('contract_type')->nullable();
 
             $table->timestamps();
             $table->softDeletes();
@@ -29,6 +35,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('projects');
+        Schema::dropIfExists('contracts');
     }
 };

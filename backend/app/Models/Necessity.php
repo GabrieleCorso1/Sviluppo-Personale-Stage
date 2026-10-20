@@ -2,25 +2,24 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable([
-    'user_id',
-    'assignmentrole_id',
-    'expertise',
-])]
-class AssignmentRoleUser extends Model
+class Necessity extends Model
 {
     use HasFactory;
 
-    protected $table = 'assignmentrole_user';
+    protected $table = 'necessities';
 
-    public function user(): BelongsTo
+    protected $fillable = [
+        'project_id',
+        'assignmentrole_id',
+    ];
+
+    public function project(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(Project::class);
     }
 
     public function assignmentRole(): BelongsTo
