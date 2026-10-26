@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             AssignmentRoleSeeder::class,
             UserSeeder::class,
             ContractSeeder::class,
+            ContractWorkingDaySeeder::class,
             TeamCategorySeeder::class,
             ProjectSeeder::class,
             SprintSeeder::class,
