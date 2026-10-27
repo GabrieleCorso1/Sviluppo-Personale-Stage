@@ -25,19 +25,21 @@ Route::post('/login', [AuthenticatedSessionController::class, 'store'])
     ->middleware('guest')
     ->name('login');
 
+//
+
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthenticatedSessionController::class, 'destroy']);
     
-    // --- NUOVE ROTTE PER LA GESTIONE UTENTI ---
-    Route::get('/users', [UserController::class, 'index']);          // Lista di tutti gli utenti
-    Route::get('/user/profile', [UserController::class, 'profile']); // Profilo utente loggato
-    Route::delete('/users/{id}', [UserController::class, 'destroy']); // Cancella un utente per ID
-});
-
-Route::middleware('auth:sanctum')->group(function () {
+    // Gestione Utenti Completa (Figma Sync)
     Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::get('/user/profile', [UserController::class, 'profile']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::post('/users/{id}/disable', [UserController::class, 'disable']);
+    Route::post('/users/{id}/restore', [UserController::class, 'restore']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
 });
 
-Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/users', [UserController::class, 'store']);
-});
+// Gestione Ferie, Permessi e R.O.L. (Modale Figma)
+Route::get('/users/{id}/leaves', [UserController::class, 'getLeaves']);
+Route::put('/users/{id}/leaves', [UserController::class, 'updateLeaves']);

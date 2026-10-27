@@ -36,7 +36,17 @@ class StoreUserRequest extends FormRequest
         'filestorage_id' => ['required', 'exists:filestorage,id'],
         'is_intern' => ['nullable', 'boolean'],                  // <-- Aggiunto
         'isAllocation_visible' => ['nullable', 'boolean'],      // <-- Aggiunto
-        'remember_me' => ['nullable', 'boolean'],                // <-- Aggiunto
+        'remember_me' => ['nullable', 'boolean'],
+        'contract_start_date' => ['required', 'date'],
+        'weekly_hours' => ['required', 'integer', 'min:1', 'max:168'],
+        'contract_type' => ['nullable', 'string', 'max:255'],      
+        
+        // --- NUOVI CAMPI PER LA DISTRIBUZIONE ORARIA (Figma) ---
+        'working_days' => ['nullable', 'array'],
+        'working_days.*.day_of_week' => ['required', 'string', 'max:10'],
+        'working_days.*.start_time' => ['nullable', 'date_format:H:i'],
+        'working_days.*.end_time' => ['nullable', 'date_format:H:i'],
+        'working_days.*.is_working_day' => ['boolean'],// <-- Aggiunto
     ];
     }
 }
