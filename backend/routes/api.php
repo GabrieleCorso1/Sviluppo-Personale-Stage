@@ -33,3 +33,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/user/profile', [UserController::class, 'profile']); // Profilo utente loggato
     Route::delete('/users/{id}', [UserController::class, 'destroy']); // Cancella un utente per ID
 });
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/users', [UserController::class, 'index']);
+});
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/users', [UserController::class, 'store']);
+});
