@@ -114,4 +114,7 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    // Only honored in local environment with debug enabled.
+    'expose_reset_url' => (bool) env('AUTH_EXPOSE_RESET_URL', false),
+
 ];

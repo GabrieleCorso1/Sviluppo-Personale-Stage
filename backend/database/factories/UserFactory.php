@@ -4,42 +4,40 @@ namespace Database\Factories;
 
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
 
-/**
- * @extends Factory<User>
- */
+/** @extends Factory<User> */
 class UserFactory extends Factory
 {
-    /**
-     * The current password being used by the factory.
-     */
     protected static ?string $password;
 
-    /**
-     * Define the model's default state.
-     *
-     * @return array<string, mixed>
-     */
     public function definition(): array
     {
         return [
-            'name' => fake()->name(),
+            'first_name' => fake()->firstName(),
+            'last_name' => fake()->lastName(),
+            'gender' => null,
             'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
+            'azure_email' => fake()->safeEmail(),
+            'company_email' => fake()->safeEmail(),
+            'is_intern' => false,
+            'isAllocation_visible' => true,
+            'birth_date' => '1990-01-01',
+            'hiring_date' => '2020-01-01',
+            'resignation_date' => null,
+            'remember_me' => false,
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'filestorage_id' => fn () => DB::table('filestorage')->insertGetId([
+                'path' => 'tests/avatars',
+                'name' => 'test-avatar',
+                'extension' => 'png',
+                'type' => 'image',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]),
         ];
-    }
-
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
-    {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
-        ]);
     }
 }
