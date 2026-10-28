@@ -1,0 +1,1042 @@
+{
+  "info": {
+    "name": "Gruppo 2 - Login backend - Prove complete",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Prove locali API Laravel/Sanctum Bearer. PREPARAZIONE: Laravel localhost:8000, MySQL locale e migration applicate. In .env APP_ENV=local, APP_DEBUG=true, AUTH_EXPOSE_RESET_URL=true; poi php artisan config:clear. Nelle Variables imposta password_current alla password attuale dell'utente demo. Seleziona password_new diversa. Eseguire le cartelle numerate in ordine, preferibilmente una richiesta alla volta. La cartella 02 CAMBIA la password del demo e revoca tutti i suoi token; lo script aggiorna password_current dopo il successo. Nessuna richiesta è stata eseguita durante la creazione della collezione. Non usare account reali e non esportare token o password compilate. Scadenza reale dei token, link scaduti e matrice ambiente sono coperti dalla suite PHP automatica. I test browser/CORS richiedono integrazione Angular separata."
+  },
+  "auth": {
+    "type": "noauth"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "login_email",
+      "value": "mario.rossi@example.com",
+      "type": "string"
+    },
+    {
+      "key": "password_current",
+      "value": "",
+      "type": "string",
+      "description": "Inserire localmente la password attuale dell'utente demo; non condividere il valore."
+    },
+    {
+      "key": "password_new",
+      "value": "StageDemoNuova2026!",
+      "type": "string",
+      "description": "Password dimostrativa da usare nel reset. Prima di ripetere il giro sceglierne una diversa."
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_email",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reset_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "token_before_reset",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password_old",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login, profilo, Ricordami e logout",
+      "item": [
+        {
+          "name": "01 - Login normale (200, 8 ore)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{password_current}}\",\n  \"remember\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"password_current\")) { pm.execution.skipRequest(); throw new Error(\"Imposta password_current nelle variabili della collezione con la password attuale del tuo utente demo.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset(\"access_token\");",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test(\"Risposta login\", () => { pm.expect(d.token_type).to.eql(\"Bearer\"); pm.expect(d.access_token).to.be.a(\"string\").and.not.empty; });",
+                  "    pm.test(\"Scadenza circa 8 ore\", () => { const delta = (Date.parse(d.expires_at) - Date.now()) / 3600000; pm.expect(delta).to.be.closeTo(8, 0.1); });",
+                  "    if (d.access_token) pm.collectionVariables.set(\"access_token\", d.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "02 - Utente autenticato (200, campi ridotti)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/user",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"access_token\")) { pm.execution.skipRequest(); throw new Error(\"Esegui prima una login riuscita.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test(\"Solo i campi concordati\", () => pm.expect(Object.keys(d).sort()).to.eql([\"id\",\"first_name\",\"last_name\",\"email\",\"roles\",\"permissions\"].sort()));",
+                  "    pm.test(\"Email dell'utente demo\", () => pm.expect(d.email).to.eql(pm.collectionVariables.get(\"login_email\")));",
+                  "    pm.test(\"Ruoli e permessi senza duplicati\", () => {",
+                  "        pm.expect(d.roles).to.be.an(\"array\"); pm.expect(d.permissions).to.be.an(\"array\");",
+                  "        pm.expect(new Set(d.roles).size).to.eql(d.roles.length);",
+                  "        pm.expect(new Set(d.permissions).size).to.eql(d.permissions.length);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03 - Login Ricordami (200, 30 giorni)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{password_current}}\",\n  \"remember\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"password_current\")) { pm.execution.skipRequest(); throw new Error(\"Imposta password_current nelle variabili della collezione con la password attuale del tuo utente demo.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset(\"access_token\");",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test(\"Risposta login\", () => { pm.expect(d.token_type).to.eql(\"Bearer\"); pm.expect(d.access_token).to.be.a(\"string\").and.not.empty; });",
+                  "    pm.test(\"Scadenza circa 720 ore\", () => { const delta = (Date.parse(d.expires_at) - Date.now()) / 3600000; pm.expect(delta).to.be.closeTo(720, 0.1); });",
+                  "    if (d.access_token) pm.collectionVariables.set(\"access_token\", d.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04 - Logout del token corrente (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/logout",
+            "description": "Conserva il token revocato nella variabile per la prova successiva."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"access_token\")) { pm.execution.skipRequest(); throw new Error(\"Esegui prima una login riuscita.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"Messaggio logout\", () => pm.expect(pm.response.json().message).to.eql(\"Disconnessione effettuata.\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "05 - Riuso token dopo logout (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/user",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"access_token\")) { pm.execution.skipRequest(); throw new Error(\"Esegui prima una login riuscita.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "02 - Recupero password - MODIFICA ACCOUNT DEMO",
+      "description": "Questa cartella cambia davvero la password e revoca tutti i token dell'utente indicato. Impostare password_current e password_new prima di iniziare. Eseguire in ordine; non ripetere Forgot password tra Reset e Riuso link.",
+      "item": [
+        {
+          "name": "01 - Login prima del reset (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{password_current}}\",\n  \"remember\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"password_current\")) { pm.execution.skipRequest(); throw new Error(\"Imposta password_current nelle variabili della collezione con la password attuale del tuo utente demo.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset(\"access_token\");",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test(\"Risposta login\", () => { pm.expect(d.token_type).to.eql(\"Bearer\"); pm.expect(d.access_token).to.be.a(\"string\").and.not.empty; });",
+                  "    pm.test(\"Scadenza circa 8 ore\", () => { const delta = (Date.parse(d.expires_at) - Date.now()) / 3600000; pm.expect(delta).to.be.closeTo(8, 0.1); });",
+                  "    if (d.access_token) pm.collectionVariables.set(\"access_token\", d.access_token);",
+                  "}",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"token_before_reset\", pm.response.json().access_token);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "02 - Forgot password e acquisizione automatica link (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/forgot-password",
+            "description": "Se reset_url è null attendere almeno 60 secondi dall'ultima richiesta dello stesso utente. Se manca, verificare le tre opzioni locali. Non apre Angular."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset(\"reset_email\");",
+                  "pm.collectionVariables.unset(\"reset_token\");",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test(\"Link locale disponibile\", () => pm.expect(d.reset_url).to.be.a(\"string\").and.not.empty);",
+                  "    if (typeof d.reset_url === \"string\" && d.reset_url.includes(\"?\")) {",
+                  "        const params = {};",
+                  "        d.reset_url.split(\"?\")[1].split(\"&\").forEach(part => {",
+                  "            const i = part.indexOf(\"=\");",
+                  "            if (i >= 0) params[decodeURIComponent(part.slice(0,i))] = decodeURIComponent(part.slice(i+1).replace(/\\+/g,\" \"));",
+                  "        });",
+                  "        pm.collectionVariables.set(\"reset_email\", params.email || \"\");",
+                  "        pm.collectionVariables.set(\"reset_token\", params.token || \"\");",
+                  "        pm.test(\"Email e token estratti\", () => { pm.expect(params.email).to.eql(pm.collectionVariables.get(\"login_email\")); pm.expect(params.token).to.be.a(\"string\").and.not.empty; });",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03 - Reset password (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{reset_email}}\",\n  \"token\": \"{{reset_token}}\",\n  \"password\": \"{{password_new}}\",\n  \"password_confirmation\": \"{{password_new}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/reset-password",
+            "description": "Cambia la password. Aggiorna automaticamente password_current soltanto dopo successo."
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"reset_token\") || !pm.collectionVariables.get(\"reset_email\")) { pm.execution.skipRequest(); throw new Error(\"Esegui prima Forgot password e verifica che restituisca reset_url.\"); }",
+                  "if (!pm.collectionVariables.get(\"password_new\") || pm.collectionVariables.get(\"password_new\").length < 8 || pm.collectionVariables.get(\"password_new\") === pm.collectionVariables.get(\"password_current\")) { pm.execution.skipRequest(); throw new Error(\"Imposta password_new: almeno 8 caratteri e diversa dalla password attuale.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    pm.test(\"Messaggio reset\", () => pm.expect(pm.response.json().message).to.eql(\"Password aggiornata. Accedi con la nuova password.\"));",
+                  "    pm.collectionVariables.set(\"password_old\", pm.collectionVariables.get(\"password_current\"));",
+                  "    pm.collectionVariables.set(\"password_current\", pm.collectionVariables.get(\"password_new\"));",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04 - Riuso dello stesso link (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{reset_email}}\",\n  \"token\": \"{{reset_token}}\",\n  \"password\": \"{{password_new}}\",\n  \"password_confirmation\": \"{{password_new}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/reset-password",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"reset_token\")) { pm.execution.skipRequest(); throw new Error(\"Manca il token di recupero.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Errore recupero\", () => pm.expect(pm.response.json().errors).to.have.property(\"email\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "05 - Vecchio Bearer revocato dal reset (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token_before_reset}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/user",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "06 - Vecchia password rifiutata (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{password_old}}\",\n  \"remember\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"password_old\")) { pm.execution.skipRequest(); throw new Error(\"Esegui prima il reset.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Credenziali rifiutate\", () => pm.expect(pm.response.json().errors.email[0]).to.eql(\"Email o password non corrette.\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "07 - Login con nuova password (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{login_email}}\",\n  \"password\": \"{{password_current}}\",\n  \"remember\": false\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"password_current\")) { pm.execution.skipRequest(); throw new Error(\"Imposta password_current nelle variabili della collezione con la password attuale del tuo utente demo.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.unset(\"access_token\");",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test(\"Risposta login\", () => { pm.expect(d.token_type).to.eql(\"Bearer\"); pm.expect(d.access_token).to.be.a(\"string\").and.not.empty; });",
+                  "    pm.test(\"Scadenza circa 8 ore\", () => { const delta = (Date.parse(d.expires_at) - Date.now()) / 3600000; pm.expect(delta).to.be.closeTo(8, 0.1); });",
+                  "    if (d.access_token) pm.collectionVariables.set(\"access_token\", d.access_token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "08 - Profilo con nuovo token (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/user",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"access_token\")) { pm.execution.skipRequest(); throw new Error(\"Esegui prima una login riuscita.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "if (pm.response.code === 200) {",
+                  "    const d = pm.response.json();",
+                  "    pm.test(\"Solo i campi concordati\", () => pm.expect(Object.keys(d).sort()).to.eql([\"id\",\"first_name\",\"last_name\",\"email\",\"roles\",\"permissions\"].sort()));",
+                  "    pm.test(\"Email dell'utente demo\", () => pm.expect(d.email).to.eql(pm.collectionVariables.get(\"login_email\")));",
+                  "    pm.test(\"Ruoli e permessi senza duplicati\", () => {",
+                  "        pm.expect(d.roles).to.be.an(\"array\"); pm.expect(d.permissions).to.be.an(\"array\");",
+                  "        pm.expect(new Set(d.roles).size).to.eql(d.roles.length);",
+                  "        pm.expect(new Set(d.permissions).size).to.eql(d.permissions.length);",
+                  "    });",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "09 - Logout finale (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{base_url}}/api/logout",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"access_token\")) { pm.execution.skipRequest(); throw new Error(\"Esegui prima una login riuscita.\"); }"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "03 - Validazione e accesso negato",
+      "description": "Casi negativi. Non sovrascrivono i token della collezione. Evitare ripetizioni rapide della login per non raggiungere il blocco temporaneo.",
+      "item": [
+        {
+          "name": "01 - Profilo senza token (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{base_url}}/api/user",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "02 - Logout senza token (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "url": "{{base_url}}/api/logout",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "03 - Login senza campi (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Email e password richieste\", () => { pm.expect(pm.response.json().errors).to.have.property(\"email\"); pm.expect(pm.response.json().errors).to.have.property(\"password\"); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "04 - Login con email malformata (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"non-una-email\",\n  \"password\": \"password\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/login",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Errore email\", () => pm.expect(pm.response.json().errors).to.have.property(\"email\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "05 - Forgot password senza email (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/forgot-password",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Email richiesta\", () => pm.expect(pm.response.json().errors).to.have.property(\"email\"));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "06 - Reset senza campi (422)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "url": "{{base_url}}/api/reset-password",
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"Campi reset richiesti\", () => { const errors = pm.response.json().errors; [\"email\",\"token\",\"password\"].forEach(k=>pm.expect(errors).to.have.property(k)); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    }
+  ]
+}
