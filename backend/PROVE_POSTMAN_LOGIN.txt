@@ -1,0 +1,259 @@
+PROVE POSTMAN - BACKEND LOGIN GRUPPO 2
+====================================
+Questa guida riguarda il backend Laravel con token Bearer.
+I comandi PowerShell vanno nel terminale; le richieste HTTP vanno in Postman.
+Non digitare "POST /api/login" in PowerShell.
+Usare solo account dimostrativi: il reset cambia la loro password e revoca i token.
+Non salvare token, link di recupero o credenziali personali nel repository.
+
+IMPORTAZIONE RAPIDA DELLA COLLEZIONE PRONTA
+----------------------------------------
+In Postman: Import > selezionare POSTMAN_LOGIN_GRUPPO2.postman_collection.json.
+Nome: Gruppo 2 - Login backend - Prove complete. Non eseguire ancora le richieste.
+Aprire la collezione > Variables e impostare password_current alla password
+attuale dell'utente demo e password_new a una password demo diversa.
+Le richieste e gli script sono già salvati: non occorre ricrearli dai punti seguenti.
+Eseguire le cartelle 01, 02 e 03 in ordine. La cartella 02 cambia la password
+ed aggiorna password_current automaticamente dopo il successo.
+Nessun token o password attuale è incluso nel JSON distribuito.
+Le istruzioni sotto restano come riferimento per capire e ricreare le richieste.
+
+0. PREPARAZIONE SUL PROPRIO PC
+-----------------------------
+Il progetto deve essere scaricato/aggiornato e il database MySQL locale configurato.
+Se manca .env, seguire prima README.md; non sovrascrivere un .env già configurato.
+Dalla cartella backend:
+
+composer install
+php artisan config:clear
+php artisan migrate
+
+Non usare migrate:fresh o migrate:refresh per aggiornarsi.
+Non eseguire db:seed a ogni prova: aggiorna gli utenti demo e le loro password.
+Su un database dimostrativo nuovo si possono creare i dati con db:seed come da README.
+
+Per ricevere il link di recupero nel JSON, impostare nel proprio .env:
+
+APP_ENV=local
+APP_DEBUG=true
+AUTH_EXPOSE_RESET_URL=true
+FRONTEND_URL=http://localhost:4200
+CACHE_STORE=file
+MAIL_MAILER=log
+
+Poi eseguire:
+php artisan config:clear
+
+Se Laravel non è già aperto, avviarlo in un terminale dedicato:
+php artisan serve --host=localhost --port=8000
+
+Lasciare quel terminale aperto. Non avviare una seconda copia sulla stessa porta.
+Angular non è necessario per queste prove: tutte le richieste vanno alla porta 8000.
+Il link sulla porta 4200 serve alla futura pagina Angular, non si invia come GET in Postman.
+localhost indica il proprio PC; ogni collega usa il proprio database.
+
+1. PREPARARE LA COLLEZIONE POSTMAN
+--------------------------------
+Creare/usare la collezione "Sviluppo Personale - API".
+Salvare OGNI richiesta nella STESSA collezione prima di inviarla.
+Nella collezione, Variables, impostare questi valori locali:
+
+base_url          http://localhost:8000
+login_email       mario.rossi@example.com
+password_current  LA_PASSWORD_ATTUALE_DEL_PROPRIO_UTENTE_DEMO
+password_new      UNA_NUOVA_PASSWORD_DEMO_DI_ALMENO_8_CARATTERI
+
+Usare due password diverse, senza riutilizzare password personali.
+Dopo il seeder originale la password demo è Password123!.
+Se è già stata cambiata, password_current deve contenere quella attuale.
+Non è possibile leggere la password dal database, perché è salvata come hash.
+
+Le variabili seguenti saranno compilate dagli script:
+access_token, reset_email, reset_token.
+Le variabili della collezione non si scaricano automaticamente con Git.
+Non esportare/condividere valori segreti salvati in Postman.
+
+Impostazioni comuni:
+- Header Accept: application/json.
+- Per le richieste con body: Body > raw > JSON (Content-Type application/json).
+- Richieste pubbliche: Authorization > No Auth.
+- Richieste protette: Authorization > Bearer Token, valore {{access_token}}.
+  Non scrivere anche "Bearer" nel campo Token: Postman lo aggiunge.
+- Nessun X-XSRF-TOKEN e nessuna richiesta Cookie CSRF sono necessari.
+
+2. LOGIN NORMALE
+----------------
+Metodo: POST
+URL: {{base_url}}/api/login
+Authorization: No Auth
+Body raw JSON:
+
+{
+  "email": "{{login_email}}",
+  "password": "{{password_current}}",
+  "remember": false
+}
+
+Scripts > Post-response (salvare):
+
+pm.collectionVariables.unset("access_token");
+if (pm.response.code === 200) {
+    const data = pm.response.json();
+    if (data.access_token) {
+        pm.collectionVariables.set("access_token", data.access_token);
+    }
+}
+
+Premere Send.
+Atteso: 200 OK, message "Accesso effettuato.", token_type "Bearer",
+access_token valorizzato, expires_at circa 8 ore dopo l'accesso.
+Lo script conserva automaticamente il Bearer per le richieste successive.
+Non condividere il valore del token in screenshot o chat.
+
+3. UTENTE AUTENTICATO
+--------------------
+Metodo: GET
+URL: {{base_url}}/api/user
+Authorization: Bearer Token, valore {{access_token}}
+Body: none
+
+Atteso: 200 OK con SOLO id, first_name, last_name, email, roles, permissions.
+Ruoli e permessi dipendono dai dati locali; non devono esserci duplicati.
+Non devono comparire password, remember_token o l'intera anagrafica.
+
+4. LOGOUT E REVOCA DEL TOKEN
+---------------------------
+Metodo: POST
+URL: {{base_url}}/api/logout
+Authorization: Bearer Token, valore {{access_token}}
+Body: none
+
+Atteso: 200 OK e "Disconnessione effettuata.".
+Senza cambiare il token, ripetere GET /api/user del punto 3.
+Atteso: 401 Unauthorized. Anche ripetere logout con quel token deve dare 401.
+Non cancellare access_token prima di questa verifica.
+
+5. ACCESSO SENZA TOKEN E INPUT NON VALIDI
+---------------------------------------
+Duplicare la richiesta GET /api/user, scegliere No Auth e inviare.
+Atteso: 401 Unauthorized. Ripristinare Bearer nella richiesta originale.
+
+Duplicare la login senza lo script di salvataggio del token, con una password errata.
+Atteso: 422 e "Email o password non corrette.".
+Body vuoto {} sulla login: atteso 422 con errori email e password.
+Non superare cinque tentativi falliti se si vuole continuare subito con la login.
+Se compare 429, attendere i secondi indicati in Retry-After.
+
+6. RICORDAMI E TOKEN DA REVOCARE CON IL RESET
+-------------------------------------------
+Ripetere la login del punto 2 con password_current corretta e remember: true.
+Atteso: 200 OK ed expires_at circa 30 giorni dopo l'accesso.
+Questo conferma la durata assegnata dal backend; la persistenza nel browser
+sarà gestita dal frontend Angular.
+Lo script aggiorna access_token. NON fare logout: useremo questo token
+per controllare la revoca automatica dopo il recupero password.
+
+7. RICHIESTA RECUPERO PASSWORD
+-----------------------------
+Metodo: POST
+URL: {{base_url}}/api/forgot-password
+Authorization: No Auth
+Body raw JSON:
+
+{
+  "email": "{{login_email}}"
+}
+
+Scripts > Post-response (salvare su QUESTA richiesta):
+
+pm.collectionVariables.unset("reset_email");
+pm.collectionVariables.unset("reset_token");
+const data = pm.response.json();
+if (pm.response.code === 200 && data.reset_url) {
+    const query = data.reset_url.split("?")[1];
+    const params = {};
+    query.split("&").forEach(function (part) {
+        const index = part.indexOf("=");
+        const key = decodeURIComponent(part.slice(0, index));
+        const value = decodeURIComponent(part.slice(index + 1).replace(/\+/g, " "));
+        params[key] = value;
+    });
+    pm.collectionVariables.set("reset_email", params.email);
+    pm.collectionVariables.set("reset_token", params.token);
+}
+
+Atteso: 200 OK, messaggio generico e reset_url valorizzato per l'utente esistente,
+con tutte e tre le condizioni locali del punto 0 attive.
+Il token di recupero NON è il Bearer. Lo script lo estrae automaticamente.
+Se reset_url è null, verificare l'email e attendere almeno 60 secondi prima di riprovare.
+Se reset_url manca del tutto, controllare ambiente, debug e AUTH_EXPOSE_RESET_URL.
+Il messaggio 200 generico da solo non conferma l'esistenza dell'utente.
+Non occorre aprire il link o copiare manualmente i parametri.
+
+8. SALVARE LA NUOVA PASSWORD
+---------------------------
+Metodo: POST
+URL: {{base_url}}/api/reset-password
+Authorization: No Auth
+Body raw JSON:
+
+{
+  "email": "{{reset_email}}",
+  "token": "{{reset_token}}",
+  "password": "{{password_new}}",
+  "password_confirmation": "{{password_new}}"
+}
+
+Atteso: 200 OK e "Password aggiornata. Accedi con la nuova password.".
+Questa richiesta MODIFICA la password dell'utente demo e revoca tutti i suoi Bearer.
+Non richiedere un altro link tra questa prova e la successiva.
+
+9. VERIFICARE LE CONSEGUENZE DEL RESET
+------------------------------------
+A) Ripetere identica la richiesta del punto 8 con lo stesso token di recupero.
+   Atteso: 422, "Link di recupero non valido o scaduto. Richiedine uno nuovo.".
+   Il link è monouso. Dura 60 minuti se non viene usato.
+
+B) Ripetere GET /api/user con access_token ottenuto al punto 6.
+   Atteso: 401. Il reset ha revocato anche gli accessi che erano ancora aperti.
+
+C) Ripetere login con la VECCHIA password (password_current).
+   Atteso: 422. Il tuo script login elimina access_token se la login fallisce.
+
+D) Impostare password_current al valore scelto in password_new, poi eseguire login.
+   Atteso: 200. Ripetere /api/user con il nuovo token: atteso 200.
+
+Conservare localmente la nuova password demo per la prossima prova.
+Per ripetere l'intero giro, scegliere un altro password_new, diverso da password_current.
+Non rieseguire il seeder per verificare il cambio: reimposterebbe la password demo.
+
+10. PROBLEMI COMUNI
+------------------
+- Variabili {{...}} rosse/non valorizzate: salvare richieste nella stessa collezione,
+  verificare i nomi e inviare prima la richiesta che valorizza la variabile.
+- 401: token assente, scaduto o revocato. Fare login e usare il nuovo access_token.
+- 422 email non valida: variabile non risolta oppure email copiata con %40 anziché @.
+- 422 recupero non valido: token errato, scaduto, consumato o non associato all'email.
+- 429: limite richieste raggiunto. Attendere; non disabilitare i controlli.
+- Invalid character in Authorization: token copiato con ritorni a capo o testo extra.
+- ECONNREFUSED porta 8000: verificare che php artisan serve sia aperto.
+- ECONNREFUSED porta 4200: si sta aprendo il link frontend, non un endpoint backend.
+- 500: conservare il messaggio tecnico per la diagnosi, senza condividere segreti.
+
+11. ESITI DEL GIRO MANUALE
+-------------------------
+Compilare una copia personale, senza aggiungere password/token:
+[ ] Login normale 200 e durata circa 8 ore
+[ ] Profilo 200 con i soli campi previsti
+[ ] Logout 200, riuso Bearer 401
+[ ] Assenza di token 401, input errato 422
+[ ] Ricordami: durata circa 30 giorni
+[ ] Recupero: link generato e variabili valorizzate
+[ ] Reset 200, stesso link poi rifiutato con 422
+[ ] Vecchi Bearer revocati con 401
+[ ] Vecchia password rifiutata, nuova password accettata
+
+I test automatici, inclusi scadenza e limiti, si eseguono separatamente con:
+php vendor/bin/pest
+Usano SQLite in memoria, non il database MySQL di queste prove Postman.
+Questa guida non significa che il giro manuale sia già stato eseguito sul proprio PC.

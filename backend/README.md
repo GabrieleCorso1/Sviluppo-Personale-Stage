@@ -1,58 +1,160 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Backend - Sviluppo Personale, gruppo 2
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+API Laravel con autenticazione Sanctum tramite token Bearer. Il frontend Angular si trova nella cartella `frontend` del repository.
 
-## About Laravel
+## Prerequisiti
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- PHP 8.5.0 per allinearsi all'ambiente del gruppo. I requisiti effettivi sono verificati dal lock di Composer.
+- Composer e MySQL avviato.
+- Estensioni PHP: pdo_mysql, mbstring, openssl, curl e fileinfo; intl e zip abilitate nell'ambiente del gruppo.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+I comandi seguenti vanno eseguiti in PowerShell dalla cartella `backend`.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Prima configurazione sul proprio PC
 
-## Learning Laravel
+1. Installare le dipendenze dalle versioni del lock:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+   ```powershell
+   composer install
+   composer check-platform-reqs --lock
+   ```
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+2. Creare il file personale di configurazione solo se non esiste:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+   ```powershell
+   if (!(Test-Path .env)) { Copy-Item .env.example .env }
+   ```
 
-## Agentic Development
+3. Modificare `.env`: inserire database, utente e password MySQL locali. L'esempio usa `sviluppo_personale_stage`, ma il database deve essere creato prima in MySQL Workbench. Non condividere il proprio `.env`.
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+4. Solo alla prima configurazione, se `APP_KEY` è vuota:
 
-```bash
-composer require laravel/boost --dev
+   ```powershell
+   php artisan key:generate
+   ```
 
-php artisan boost:install
+   Non rigenerare la chiave di un ambiente già configurato per un normale aggiornamento.
+
+5. Caricare la configurazione e controllare le migration:
+
+   ```powershell
+   php artisan config:clear
+   php artisan migrate:status
+   ```
+
+   Su un database nuovo e vuoto, `Migration table not found` è atteso. Applicare le migration:
+
+   ```powershell
+   php artisan migrate
+   ```
+
+   Se il database contiene già tabelle ma manca lo storico delle migration, fermarsi e verificare la situazione. Non usare `migrate:fresh` o `migrate:refresh` per aggiornare il progetto: ricreano le tabelle e possono cancellare dati.
+
+6. Facoltativo, solo per popolare un database locale dimostrativo:
+
+   ```powershell
+   php artisan db:seed
+   ```
+
+   I seeder inseriscono dati e aggiornano record esistenti: UserSeeder reimposta le password degli utenti dimostrativi e FileStorageSeeder inserisce nuovi record a ogni esecuzione. Non rieseguirli automaticamente dopo ogni pull.
+
+7. Avviare il backend, lasciando aperto il terminale:
+
+   ```powershell
+   php artisan serve --host=localhost --port=8000
+   ```
+
+## Configurazione locale condivisa
+
+`.env.example` non contiene credenziali reali né APP_KEY. Prevede:
+
+- MySQL come database.
+- `APP_URL=http://localhost:8000` e `FRONTEND_URL=http://localhost:4200`.
+- `SESSION_DRIVER=file`, `CACHE_STORE=file` e `QUEUE_CONNECTION=sync`: non richiedono tabelle aggiuntive per questi servizi. La cache viene usata anche dal limite ai tentativi di login.
+- `MAIL_MAILER=log`: non consegna email reali.
+- `AUTH_EXPOSE_RESET_URL=false` per impostazione predefinita. Per le prove locali Postman impostarlo a `true` nel proprio `.env`, poi eseguire `php artisan config:clear`.
+
+CORS è configurato in `config/cors.php` per le sole rotte `api/*` e per `http://localhost:4200`, senza credenziali cookie. Il Bearer viene inviato tramite Authorization e Retry-After è leggibile dal frontend. Se il frontend cambia indirizzo, va aggiornato anche quello; cambiare soltanto FRONTEND_URL modifica la destinazione dei link di recupero, non CORS.
+
+La login attuale usa Bearer, non cookie di sessione: non richiede il passaggio `/sanctum/csrf-cookie` né `X-XSRF-TOKEN`.
+
+## Aggiornamenti successivi
+
+Salvare prima il proprio lavoro e aggiornare il branch secondo gli accordi del gruppo. Dopo il pull, dalla cartella backend:
+
+```powershell
+composer install
+php artisan config:clear
+php artisan migrate
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Non sovrascrivere `.env`, non rigenerare APP_KEY e non eseguire i seeder per un normale aggiornamento. Confrontare `.env.example` per eventuali nuove impostazioni da riportare nel proprio `.env`.
 
-## Contributing
+## Prove backend con Postman
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Guida passo passo, con richieste e script da copiare: [PROVE_POSTMAN_LOGIN.txt](PROVE_POSTMAN_LOGIN.txt).
 
-## Code of Conduct
+Impostare `Accept: application/json`. Per i POST scegliere Body > raw > JSON. Base URL: `http://localhost:8000`.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Metodo e percorso | Autenticazione | Scopo |
+| --- | --- | --- |
+| POST /api/login | No Auth | Email, password e remember opzionale |
+| GET /api/user | Bearer Token | Utente autenticato |
+| POST /api/logout | Bearer Token | Revoca del token corrente |
+| POST /api/forgot-password | No Auth | Richiesta recupero password |
+| POST /api/reset-password | No Auth | Impostazione nuova password |
 
-## Security Vulnerabilities
+Login con i dati dimostrativi, se il seeder non è stato modificato:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+```json
+{
+  "email": "mario.rossi@example.com",
+  "password": "Password123!",
+  "remember": false
+}
+```
 
-## License
+La risposta contiene `access_token`: copiarlo in Authorization > Bearer Token per user e logout, senza aggiungere manualmente la parola Bearer. La durata è 8 ore oppure 30 giorni con `remember: true`. Dopo il logout, lo stesso token deve ricevere 401 su `/api/user`.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Per richiedere il recupero:
+
+```json
+{
+  "email": "mario.rossi@example.com"
+}
+```
+
+Solo con `AUTH_EXPOSE_RESET_URL=true`, `APP_ENV=local` e `APP_DEBUG=true`, la risposta contiene `reset_url` al posto dell'invio della notifica email. Il link punta alla futura pagina Angular, non all'endpoint API. Non occorre aprire la porta 4200 per provare il backend: utilizzare email e token del link nel body seguente su POST `/api/reset-password`:
+
+```json
+{
+  "email": "mario.rossi@example.com",
+  "token": "TOKEN_DI_RECUPERO_DAL_LINK",
+  "password": "NuovaPassword123!",
+  "password_confirmation": "NuovaPassword123!"
+}
+```
+
+Usare il token di recupero, non il Bearer della login; l'email nel JSON va scritta con @, non %40. Il token scade dopo 60 minuti ed è utilizzabile una sola volta. Un nuovo link è soggetto a un intervallo minimo di 60 secondi; le rotte di recupero hanno anche un limite di 5 richieste al minuto per IP.
+
+Dopo il reset, usare la nuova password per la login. Tutti i token Bearer precedenti dell'utente vengono revocati. Non eseguire di nuovo il seeder per verificare il risultato, perché reimposterebbe la password dimostrativa.
+
+Collezione pronta: [POSTMAN_LOGIN_GRUPPO2.postman_collection.json](POSTMAN_LOGIN_GRUPPO2.postman_collection.json). In Postman selezionare Import e scegliere il file. Si ottiene una nuova collezione con 20 richieste, script di acquisizione token e controlli delle risposte. Non eseguire subito Run: nelle Variables impostare prima password_current alla password attuale del proprio utente dimostrativo e scegliere password_new diversa. I token e password_current sono vuoti nel file condiviso. Eseguire le cartelle numerate in ordine: la cartella 02 cambia davvero la password demo e revoca tutti i suoi token. Dopo un reset riuscito lo script aggiorna password_current. Non esportare i valori compilati. La collezione contiene le prove principali e negative; scadenze temporali e matrice di configurazione sono coperte dalla suite PHP. L'importazione non esegue le richieste. Una prova Postman non sostituisce l'integrazione Angular nel browser.
+
+## Test automatici
+
+Dalla cartella backend:
+
+```powershell
+php vendor/bin/pest
+```
+
+La suite usa SQLite `:memory:` con cache e sessioni in memoria e notifiche simulate per il recupero. Non richiede utenti dimostrativi né seeder e non invia email reali. `Tests\TestCase` interrompe l'avvio se la configurazione effettiva punta a MySQL o a un database su file, prima dell'esecuzione delle migration di test. Se si ferma per configurazione errata, verificare `phpunit.xml` ed eventuale configurazione Laravel in cache; non rimuovere il controllo di isolamento.
+
+I test di autenticazione coprono login, validazione, tentativi eccessivi, scadenze, risposta del profilo, logout e recupero password (inclusi revoca dei vecchi accessi e limiti della scorciatoia locale). La factory utenti è allineata allo schema del progetto e prepara i record necessari ai test; i seeder restano separati.
+
+## Invio email e pubblicazione
+
+Se manca una delle tre condizioni (opzione attiva, ambiente local, debug attivo), il link non viene restituito nella risposta: viene usato il mailer configurato. Con `MAIL_MAILER=log` il messaggio finisce in `storage/logs/laravel.log`; per consegnarlo a una casella reale occorre configurare un servizio email.
+
+L'esempio è per sviluppo locale. Prima di pubblicare online servono configurazione di produzione (`APP_ENV=production`, `APP_DEBUG=false`), HTTPS, servizio email e indirizzi corretti. Non condividere token, link di recupero, password, APP_KEY o credenziali SMTP.
