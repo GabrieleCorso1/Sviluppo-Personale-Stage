@@ -38,8 +38,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/users/{id}/disable', [UserController::class, 'disable']);
     Route::post('/users/{id}/restore', [UserController::class, 'restore']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    // Gestione Ferie, Permessi e R.O.L. (Modale Figma)
+    Route::get('/users/{id}/leaves', [UserController::class, 'getLeaves']);
+    Route::put('/users/{id}/leaves', [UserController::class, 'updateLeaves']);
 });
 
-// Gestione Ferie, Permessi e R.O.L. (Modale Figma)
-Route::get('/users/{id}/leaves', [UserController::class, 'getLeaves']);
-Route::put('/users/{id}/leaves', [UserController::class, 'updateLeaves']);
