@@ -11,31 +11,17 @@ class FileStorageSeeder extends Seeder
     {
         $now = now();
 
-        DB::table('filestorage')->insert([
-            [
-                'path' => 'seed/avatars',
-                'name' => 'default-avatar',
-                'extension' => 'png',
-                'type' => 'image',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'path' => 'seed/projects',
-                'name' => 'default-project',
-                'extension' => 'png',
-                'type' => 'image',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-            [
-                'path' => 'seed/teamcategories',
-                'name' => 'default-team',
-                'extension' => 'png',
-                'type' => 'image',
-                'created_at' => $now,
-                'updated_at' => $now,
-            ],
-        ]);
+        foreach (['default-avatar', 'default-project', 'default-team'] as $name) {
+            DB::table('filestorage')->updateOrInsert(
+                ['name' => $name],
+                [
+                    'path' => 'images/defaults',
+                    'extension' => 'svg',
+                    'type' => 'image',
+                    'created_at' => $now,
+                    'updated_at' => $now,
+                ]
+            );
+        }
     }
 }

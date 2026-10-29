@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\ProjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -45,3 +46,30 @@ Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
 
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->middleware('throttle:5,1');
+
+Route::post('/projects', [ProjectController::class, 'store'])
+    ->middleware('auth:sanctum');
+Route::get('/projects', [ProjectController::class, 'index'])
+    ->middleware('auth:sanctum');
+
+Route::get('/projects/{project}', [ProjectController::class, 'show'])
+    ->middleware('auth:sanctum');
+
+Route::patch('/projects/{project}', [ProjectController::class, 'update'])
+    ->middleware('auth:sanctum');
+
+Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])
+    ->middleware('auth:sanctum');
+
+Route::patch('/projects/{project}/note', [ProjectController::class, 'updateNote'])
+    ->middleware('auth:sanctum');
+
+Route::get('/projects/{project}/users', [ProjectController::class, 'users'])
+    ->middleware('auth:sanctum');
+
+Route::post('/projects/{project}/logo', [ProjectController::class, 'uploadLogo'])
+    ->middleware('auth:sanctum');
+
+Route::get('/projects/{project}/logo', [ProjectController::class, 'logo'])
+    ->middleware('auth:sanctum')
+    ->name('projects.logo');
