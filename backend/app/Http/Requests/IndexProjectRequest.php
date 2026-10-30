@@ -25,8 +25,11 @@ class IndexProjectRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $isTimesheet = $this->boolean('is_timesheet');
+
+        $rules = [
             'is_timesheet' => ['required', 'boolean'],
+            'is_course' => ['missing'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -42,5 +45,18 @@ class IndexProjectRequest extends FormRequest
                 Rule::in(['bassa', 'media', 'alta']),
             ],
         ];
+
+        foreach (['project_manager_id', 'team_leader_id', 'scrum_master_id'] as $field) {
+            $rules[$field] = $isTimesheet
+                ? ['missing']
+                : ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->whereNull('deleted_at')];
+        }
+
+        if ($isTimesheet) {
+            $rules['status'] = ['missing'];
+            $rules['priority'] = ['missing'];
+        }
+
+        return $rules;
     }
 }

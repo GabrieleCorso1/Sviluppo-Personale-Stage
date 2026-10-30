@@ -2,11 +2,12 @@
 
 namespace App\Models;
 
+use App\Support\ProjectFiles;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Sprint extends Model
 {
@@ -24,6 +25,7 @@ class Sprint extends Model
         'is_pilot',
         'is_billing',
         'has_csv',
+        'csv_path',
         'is_planningdone',
         'is_estimatedone',
         'is_reviewdone',
@@ -43,6 +45,20 @@ class Sprint extends Model
             'is_estimatedone' => 'boolean',
             'is_reviewdone' => 'boolean',
         ];
+    }
+
+    public function hasCsvFile(): bool
+    {
+        return ProjectFiles::exists($this->csv_path, 'sprints/csv');
+    }
+
+    public function csvStatus(): string
+    {
+        if ($this->hasCsvFile()) {
+            return 'uploaded';
+        }
+
+        return $this->is_billing ? 'not_required' : ($this->is_concluded ? 'missing' : 'pending');
     }
 
     public function project(): BelongsTo

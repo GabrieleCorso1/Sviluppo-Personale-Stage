@@ -26,36 +26,36 @@ class UpdateProjectRequest extends FormRequest
     public function rules(): array
     {
         $isTimesheet = $this->route('project')->is_timesheet;
-        $requiredOrNullable = $isTimesheet ? 'nullable' : 'required';
 
-        return [
+        $rules = [
             'is_timesheet' => ['missing'],
+            'is_course' => ['missing'],
 
-            'alias' => ['sometimes', 'required', 'string', 'max:255'],
+            'alias' => [
+                'sometimes', 'required', 'string', 'max:255',
+                Rule::unique('projects', 'alias')->where(fn ($query) => $query
+                    ->where('is_course', false)->where('is_timesheet', $isTimesheet))
+                    ->ignore($this->route('project')->id),
+            ],
             'description' => ['sometimes', 'nullable', 'string', 'max:250'],
 
-            'project_manager_id' => [
-                'sometimes',
-                $requiredOrNullable,
-                'integer',
-                Rule::exists('users', 'id')->whereNull('deleted_at'),
-            ],
+            'project_manager_id' => ['missing'],
 
             'start_date' => [
                 'sometimes',
-                $requiredOrNullable,
+                'required',
                 'date_format:Y-m-d',
             ],
 
             'status' => [
                 'sometimes',
-                $requiredOrNullable,
+                'required',
                 Rule::in(['in corso', 'manutenzione', 'sospeso', 'concluso']),
             ],
 
             'priority' => [
                 'sometimes',
-                $requiredOrNullable,
+                'required',
                 Rule::in(['bassa', 'media', 'alta']),
             ],
 
@@ -70,5 +70,17 @@ class UpdateProjectRequest extends FormRequest
             'pbi_without_feature_url' => ['sometimes', 'nullable', 'url:http,https', 'max:255'],
             'pbi_past_feature_url' => ['sometimes', 'nullable', 'url:http,https', 'max:255'],
         ];
+
+        if ($isTimesheet) {
+            foreach ([
+                'project_manager_id', 'team_leader_id', 'scrum_master_id',
+                'start_date', 'end_date', 'status', 'priority',
+                'is_daily', 'is_azure', 'is_ux_ui', 'is_course', 'delivery_plan',
+            ] as $field) {
+                $rules[$field] = ['missing'];
+            }
+        }
+
+        return $rules;
     }
 }

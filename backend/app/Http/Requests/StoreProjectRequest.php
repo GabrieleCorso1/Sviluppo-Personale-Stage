@@ -25,10 +25,17 @@ class StoreProjectRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
-            'is_timesheet' => ['required', 'boolean'],
+        $isTimesheet = $this->boolean('is_timesheet');
 
-            'alias' => ['required', 'string', 'max:255'],
+        $rules = [
+            'is_timesheet' => ['required', 'boolean'],
+            'is_course' => ['missing'],
+
+            'alias' => [
+                'required', 'string', 'max:255',
+                Rule::unique('projects', 'alias')->where(fn ($query) => $query
+                    ->where('is_course', false)->where('is_timesheet', $isTimesheet)),
+            ],
             'description' => ['nullable', 'string', 'max:250'],
 
             'project_manager_id' => [
@@ -67,5 +74,17 @@ class StoreProjectRequest extends FormRequest
             'pbi_without_feature_url' => ['nullable', 'url:http,https', 'max:255'],
             'pbi_past_feature_url' => ['nullable', 'url:http,https', 'max:255'],
         ];
+
+        if ($isTimesheet) {
+            foreach ([
+                'project_manager_id', 'team_leader_id', 'scrum_master_id',
+                'start_date', 'end_date', 'status', 'priority',
+                'is_daily', 'is_azure', 'is_ux_ui', 'is_course', 'delivery_plan',
+            ] as $field) {
+                $rules[$field] = ['missing'];
+            }
+        }
+
+        return $rules;
     }
 }
