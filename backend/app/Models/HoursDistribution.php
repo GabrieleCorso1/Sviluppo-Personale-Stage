@@ -23,8 +23,8 @@ class HoursDistribution extends Model
     protected function casts(): array
     {
         return [
-            'start_hour' => 'time',
-            'end_hour' => 'time',
+            //'start_hour' => 'time',
+            //'end_hour' => 'time',
             'is_holiday' => 'boolean',
         ];
     }
