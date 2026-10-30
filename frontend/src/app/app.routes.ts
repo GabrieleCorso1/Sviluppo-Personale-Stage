@@ -13,11 +13,13 @@ export const routes: Routes = [
     component: Home,
     canActivate: [authGuardGuard]
   },
+
   {
     path: '',
     redirectTo: 'login',
     pathMatch: 'full'
   },
+  
   {
     path: '**',
     redirectTo: 'login'

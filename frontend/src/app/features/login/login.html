@@ -32,19 +32,19 @@
             </div>
 
             <div class="ricordami">
-                <input type="checkbox" id="ricordami-btn">
+                <input type="checkbox" id="ricordami-btn" name="remember" [(ngModel)]="remember">
                 <label for="ricordami-btn">Ricordami</label>
             </div>
             
-                <button type="submit" class="login-btn">LOGIN</button>
+                <button type="submit" class="login-btn" [disabled]="caricamento">{{ caricamento ? 'Accesso in corso...' : 'LOGIN' }}</button>
             
             <div>
                 <a href="#">Password dimenticata?</a>
             </div>
 
-            <p class="errore" *ngIf="errore">
+            <!--<p class="errore" *ngIf="errore">
             {{ errore }}
-            </p>
+            </p>-->
         </form>
     </div>
 </div>
