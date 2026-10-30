@@ -6,6 +6,7 @@ import { RouterOutlet } from '@angular/router';
   selector: 'app-root',
   styleUrl: './app.css',
   templateUrl: './app.html',
+  standalone: true,
 })
 export class App {
   protected readonly title = signal('frontend');

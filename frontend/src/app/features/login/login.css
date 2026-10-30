@@ -1,0 +1,142 @@
+/* IMPOSTAZIONI GENERALI */
+
+:host {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f7f7f7;
+}
+
+/* CONTENITORE PRINCIPALE */
+.login-box {
+    display: flex;
+    flex-direction: row;
+    background-color: #ffffff;
+    width: 900px;
+    max-width: 95%;
+    border-radius: 8px;
+    box-shadow: -3px 5px 12px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+}
+
+/* SEZIONE LOGO E SEZIONE LOGIN */
+
+.login-img {
+    flex: 0 0 50%;
+    box-sizing: border-box;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    padding-left: 40px;
+}
+
+/* LOGO */
+.login-img img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* CONTENITORE DEL FORM */
+
+.login-container {
+    flex: 0 0 50%;
+    box-sizing: border-box;
+    padding: 130px 60px;
+    padding-right: 90px;
+    display: flex;
+    flex-direction: column;
+    text-align: center;
+}
+
+.login-card h2 {
+    font-size: 36px;
+    color: #555555;
+    margin-bottom: 30px;
+    font-weight: 600;
+}
+
+/* CAMPI EMAIL E PASSWORD */
+
+.form-group {
+    margin-bottom: 0;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px 15px;
+    background-color: #f7f7f7;
+    border: none;
+    border-bottom: 1px solid #ff4d4f;
+    font-size: 14px;
+    box-sizing: border-box;
+    outline: none;
+}
+
+.form-group input::placeholder {
+    color: #bdbdbd;
+    opacity: 1;
+}
+
+.form-group input:focus {
+    border-bottom: 1px solid #ff4b55;
+    background-color: #f2f2f2;
+}
+
+/* RICORDAMI */
+
+.ricordami {
+    display: flex;
+    align-items: center;
+    margin-top: 15px;
+    margin-bottom: 15px;
+    margin-left: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.ricordami input {
+    width: 17px;
+    height: 17px;
+    margin-right: 8px;
+    cursor: pointer;
+    accent-color: #ffad68;
+}
+
+.ricordami label {
+    cursor: pointer;
+}
+
+/* PULSANTE LOGIN */
+
+button[type='submit'] {
+    width: 100%;
+    padding: 18px;
+    background-color: #ffb26c;
+    color: #ffffff;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+button[type='submit']:hover {
+    background-color: #ff9d4b;
+}
+
+/* PASSWORD DIMENTICATA */
+.login-card a{
+    display: block;
+    text-align: center;
+    margin-top: 13px;
+    color: #ffb26c;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.login-card a:hover {
+    color: #ed8531;
+}

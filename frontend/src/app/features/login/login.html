@@ -1,0 +1,51 @@
+
+<div class="login-box">
+    <div class="login-img">
+        <img src="/img/logo-sviluppo-personale.png" alt="Immagine del logo del sito Sviluppo personale, che ha la forma di un cammello fuso a delle palme, in stile minimalista vettoriale su sfondo bianco e di colore blu scuro, con sotto la scritta 'Sviluppo Personale'">
+    </div>
+
+    <div class="login-container">
+        <form class="login-card" (ngSubmit)="accedi()">
+            
+            <h2>Benvenuto</h2>
+
+            <div class="form-group">
+                <input
+                id="email"
+                type="email"
+                name="email"
+                [(ngModel)]="email"
+                placeholder="Email"
+                required
+                />
+            </div>
+            
+            <div class="form-group">
+                <input
+                id="password"
+                type="password"
+                name="password"
+                [(ngModel)]="password"
+                placeholder="Password"
+                required
+                />
+            </div>
+
+            <div class="ricordami">
+                <input type="checkbox" id="ricordami-btn">
+                <label for="ricordami-btn">Ricordami</label>
+            </div>
+            
+                <button type="submit" class="login-btn">LOGIN</button>
+            
+            <div>
+                <a href="#">Password dimenticata?</a>
+            </div>
+
+            <p class="errore" *ngIf="errore">
+            {{ errore }}
+            </p>
+        </form>
+    </div>
+</div>
+
