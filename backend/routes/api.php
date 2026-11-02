@@ -3,9 +3,10 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserLeaveController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\UserController;
 
 Route::get('/user', function (Request $request) {
     $user = $request->user();
@@ -36,27 +37,24 @@ Route::get('/test', function () {
     ]);
 });
 
-// Rotta di test utente base
-Route::middleware(['auth:sanctum'])->get('/user', function (Request $request) {
-    return $request->user();
-});
-
-
-
 Route::middleware('auth:sanctum')->group(function () {
-    
+
     // Gestione Utenti Completa (Figma Sync)
+    Route::get('/users/options', [UserController::class, 'options']);
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     Route::get('/user/profile', [UserController::class, 'profile']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
     Route::put('/users/{user}', [UserController::class, 'update']);
     Route::post('/users/{id}/disable', [UserController::class, 'disable']);
     Route::post('/users/{id}/restore', [UserController::class, 'restore']);
     Route::delete('/users/{id}', [UserController::class, 'destroy']);
 
     // Gestione Ferie, Permessi e R.O.L. (Modale Figma)
-    Route::get('/users/{id}/leaves', [UserController::class, 'getLeaves']);
-    Route::put('/users/{id}/leaves', [UserController::class, 'updateLeaves']);
+    Route::get('/users/{user}/leaves', [UserLeaveController::class, 'index']);
+    Route::put('/users/{user}/leaves', [UserLeaveController::class, 'update']);
+    Route::get('/users/{user}/leaves/history', [UserLeaveController::class, 'history']);
+    Route::get('/users/{user}/leaves/conversion', [UserLeaveController::class, 'conversion']);
 });
 
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
