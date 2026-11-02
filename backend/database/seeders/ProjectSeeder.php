@@ -27,7 +27,7 @@ class ProjectSeeder extends Seeder
             ->where('name', 'default-project')
             ->value('id');
 
-        if (!$fileStorageId) {
+        if (! $fileStorageId) {
             throw new \RuntimeException(
                 'File default-project non trovato. Esegui prima FileStorageSeeder.'
             );
@@ -39,7 +39,7 @@ class ProjectSeeder extends Seeder
             'luca.verdi@example.com',
             'giulia.neri@example.com',
         ] as $email) {
-            if (!$userIds->has($email)) {
+            if (! $userIds->has($email)) {
                 throw new \RuntimeException(
                     "Utente {$email} non trovato. Esegui prima UserSeeder."
                 );
@@ -59,14 +59,14 @@ class ProjectSeeder extends Seeder
                 'project_manager_email' => 'laura.bianchi@example.com',
                 'team_leader_email' => 'luca.verdi@example.com',
                 'scrum_master_email' => 'luca.verdi@example.com',
-                'delivery_plan' => 'Rilascio incrementale mensile',
+                'delivery_plan' => null,
                 'azure_team_name' => 'Team Portale',
                 'bug_count_url' => 'https://example.com/portale/bugs',
                 'note' => 'Progetto dimostrativo',
                 'priority' => 'alta',
                 'pbi_without_feature_url' => null,
                 'pbi_past_feature_url' => null,
-                'is_timesheet' => true,
+                'is_timesheet' => false,
                 'is_course' => false,
                 'start_date' => '2026-01-12',
                 'end_date' => null,
@@ -82,14 +82,14 @@ class ProjectSeeder extends Seeder
                 'project_manager_email' => 'laura.bianchi@example.com',
                 'team_leader_email' => 'luca.verdi@example.com',
                 'scrum_master_email' => 'luca.verdi@example.com',
-                'delivery_plan' => 'Rilascio per sprint',
+                'delivery_plan' => null,
                 'azure_team_name' => 'Team API',
                 'bug_count_url' => 'https://example.com/api/bugs',
                 'note' => 'Progetto dimostrativo',
                 'priority' => 'media',
                 'pbi_without_feature_url' => null,
                 'pbi_past_feature_url' => null,
-                'is_timesheet' => true,
+                'is_timesheet' => false,
                 'is_course' => false,
                 'start_date' => '2026-02-02',
                 'end_date' => null,
@@ -112,7 +112,7 @@ class ProjectSeeder extends Seeder
             $alias = $projectData['alias'];
 
             DB::table('projects')->updateOrInsert(
-                ['alias' => $alias],
+                ['alias' => $alias, 'is_timesheet' => false, 'is_course' => false],
                 array_merge($projectData, [
                     'project_manager_id' => $managerId,
                     'team_leader_id' => $leaderId,
@@ -124,9 +124,33 @@ class ProjectSeeder extends Seeder
             );
 
             $projectIds[$alias] = DB::table('projects')
-                ->where('alias', $alias)
+                ->where('alias', $alias)->where('is_timesheet', false)->where('is_course', false)
                 ->value('id');
         }
+
+        // Progetto timesheet: soltanto i dati previsti dal modulo ridotto.
+        DB::table('projects')->updateOrInsert(
+            ['alias' => 'Attivita interne', 'is_timesheet' => true, 'is_course' => false],
+            [
+                'description' => 'Progetto timesheet dimostrativo per attivita interne.',
+                'is_daily' => false,
+                'is_azure' => false,
+                'is_ux_ui' => false,
+                'project_manager_id' => null,
+                'team_leader_id' => null,
+                'scrum_master_id' => null,
+                'status' => null,
+                'priority' => null,
+                'start_date' => null,
+                'end_date' => null,
+                'delivery_plan' => null,
+                'filestorage_id' => $fileStorageId,
+                'created_at' => $now,
+                'updated_at' => $now,
+            ]
+        );
+        $projectIds['Attivita interne'] = DB::table('projects')->where('alias', 'Attivita interne')
+            ->where('is_timesheet', true)->where('is_course', false)->value('id');
 
         // 2. Necessità di competenze per progetto
         $necessities = [
@@ -147,7 +171,7 @@ class ProjectSeeder extends Seeder
                     ->where('alias', $assignmentAlias)
                     ->value('id');
 
-                if (!$assignmentRoleId) {
+                if (! $assignmentRoleId) {
                     throw new \RuntimeException(
                         "Competenza '{$assignmentAlias}' non trovata."
                     );
@@ -202,10 +226,44 @@ class ProjectSeeder extends Seeder
             ],
         ];
 
+        // Incarico aggiuntivo: allocazione provvisoria a zero per non duplicare quella da sviluppatore.
+        foreach (['Portale Clienti' => '2026-01-12', 'API Aziendali' => '2026-02-02'] as $project => $start) {
+            foreach (['Team Leader', 'Scrum Master'] as $role) {
+                $assignments[] = [
+                    'project' => $project,
+                    'email' => 'luca.verdi@example.com',
+                    'role' => $role,
+                    'startwork_date' => $start,
+                    'endwork_date' => null,
+                    'work_allocation' => 0,
+                ];
+            }
+        }
+
+        foreach (['Portale Clienti' => '2026-01-12', 'API Aziendali' => '2026-02-02'] as $project => $start) {
+            $assignments[] = [
+                'project' => $project,
+                'email' => 'laura.bianchi@example.com',
+                'role' => 'Project Manager',
+                'startwork_date' => $start,
+                'endwork_date' => null,
+                'work_allocation' => 0,
+            ];
+        }
+
+        $assignments[] = [
+            'project' => 'Attivita interne',
+            'email' => 'giulia.neri@example.com',
+            'role' => 'Sviluppatore Front-end',
+            'startwork_date' => '2026-01-12',
+            'endwork_date' => null,
+            'work_allocation' => 0,
+        ];
+
         foreach ($assignments as $assignment) {
             $userId = $userIds[$assignment['email']] ?? null;
 
-            if (!$userId) {
+            if (! $userId) {
                 throw new \RuntimeException(
                     "Utente {$assignment['email']} non trovato."
                 );
@@ -215,7 +273,7 @@ class ProjectSeeder extends Seeder
                 ->where('alias', $assignment['role'])
                 ->value('id');
 
-            if (!$assignmentRoleId) {
+            if (! $assignmentRoleId) {
                 throw new \RuntimeException(
                     "Competenza '{$assignment['role']}' non trovata."
                 );
@@ -225,10 +283,10 @@ class ProjectSeeder extends Seeder
                 [
                     'project_id' => $projectIds[$assignment['project']],
                     'user_id' => $userId,
-                ],
-                [
                     'assignmentrole_id' => $assignmentRoleId,
                     'startwork_date' => $assignment['startwork_date'],
+                ],
+                [
                     'endwork_date' => $assignment['endwork_date'],
                     'work_allocation' => $assignment['work_allocation'],
                     'updated_at' => $now,

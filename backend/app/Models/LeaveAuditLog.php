@@ -12,6 +12,8 @@ class LeaveAuditLog extends Model
         'admin_id',
         'leave_type',
         'reference_month',
+        'reference_date',
+        'previous_reference_date',
         'field_name',
         'old_value',
         'new_value',
@@ -21,6 +23,8 @@ class LeaveAuditLog extends Model
     {
         return [
             'reference_month' => 'date',
+            'reference_date' => 'date:Y-m-d',
+            'previous_reference_date' => 'date:Y-m-d',
             'old_value' => 'decimal:2',
             'new_value' => 'decimal:2',
         ];

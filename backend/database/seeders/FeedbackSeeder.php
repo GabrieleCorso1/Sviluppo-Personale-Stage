@@ -141,6 +141,7 @@ class FeedbackSeeder extends Seeder
             $userId = $users[$balance['email']];
 
             unset($balance['email']);
+            $balance['reference_date'] = $balance['leave_type'] === 'ferie' ? null : $balance['reference_month'];
 
             DB::table('user_leave_balances')->updateOrInsert(
                 [

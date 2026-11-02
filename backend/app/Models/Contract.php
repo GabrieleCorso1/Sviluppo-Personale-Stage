@@ -4,9 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Contract extends Model
 {
@@ -20,6 +20,7 @@ class Contract extends Model
         'contract_end_date',
         'weekly_hours',
         'contract_type',
+        'has_rol',
     ];
 
     protected function casts(): array
@@ -28,6 +29,7 @@ class Contract extends Model
             'contract_start_date' => 'date',
             'contract_end_date' => 'date',
             'weekly_hours' => 'integer',
+            'has_rol' => 'boolean',
         ];
     }
 
@@ -38,6 +40,6 @@ class Contract extends Model
 
     public function workingDays(): HasMany
     {
-    return $this->hasMany(ContractWorkingDay::class, 'contract_id');
+        return $this->hasMany(ContractWorkingDay::class, 'contract_id')->orderBy('id');
     }
 }

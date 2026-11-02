@@ -16,6 +16,8 @@ return new class extends Migration
 
             $table->string('leave_type');
             $table->date('reference_month');
+            $table->date('reference_date')->nullable();
+            $table->date('previous_reference_date')->nullable();
 
             $table->string('field_name'); // 'remaining_hours' o 'monthly_accrual'
             $table->decimal('old_value', 8, 2)->nullable(); // Valore precedente
