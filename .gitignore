@@ -41,3 +41,5 @@ Thumbs.db
 /frontend/.env
 /frontend/.env.*
 !/frontend/.env.example
+# Dipendenze Node.js nella cartella principale
+/node_modules/
