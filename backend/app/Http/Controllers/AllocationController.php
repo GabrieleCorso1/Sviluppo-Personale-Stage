@@ -9,10 +9,15 @@ use App\Models\Necessity;
 use App\Models\Project;
 use App\Models\ProjectUser;
 use App\Models\User;
+use App\Support\ProjectCalendar;
+use App\Support\ProjectFiles;
+use App\Support\ProjectParticipantAvatar;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AllocationController extends Controller
 {
@@ -22,6 +27,7 @@ class AllocationController extends Controller
     {
         return response()->json(['data' => [
             'types' => AllocationOverview::TYPES,
+            'summary_type' => 'project',
             'statuses' => AllocationOverview::STATUSES,
             'roles' => AssignmentRole::whereIn('alias', array_keys(AllocationOverview::ROLES))->get()
                 ->map(fn ($role) => $this->overview->role($role)),
@@ -30,7 +36,7 @@ class AllocationController extends Controller
 
     public function summary(AllocationRequest $request): JsonResponse
     {
-        return response()->json(['data' => $this->overview->summary($request->validated('type', 'project'))]);
+        return response()->json(['data' => $this->overview->summary()]);
     }
 
     public function index(AllocationRequest $request): JsonResponse
@@ -67,19 +73,19 @@ class AllocationController extends Controller
             ->paginate($filters['per_page'] ?? 50)->withQueryString();
         $rows = (clone $allAssignments)->whereIn('user_id', $users->getCollection()->pluck('id'))
             ->with(['project', 'assignmentRole'])->orderBy('id')->get()->groupBy('user_id');
-        $users->setCollection($users->getCollection()->map(function ($user) use ($rows, $projects) {
+        $users->setCollection($users->getCollection()->map(function ($user) use ($rows, $projects, $type) {
             $assignments = $rows->get($user->id, collect());
 
-            return array_merge($this->overview->resource($user), $this->overview->indicators($assignments), [
+            return array_merge($this->overview->resource($user), $this->overview->indicators($assignments, $type), [
                 'allocations' => $assignments->whereIn('project_id', $projects->pluck('id'))
                     ->map(fn ($row) => $this->overview->assignment($row))->values(),
             ]);
         }));
         $counts = (clone $allAssignments)->whereIn('project_id', $projects->pluck('id'))->with('project')->get()->groupBy('project_id');
-        $needs = Necessity::whereIn('project_id', $projects->pluck('id'))->get()->groupBy('project_id');
+        $needs = $this->overview->necessityQuery()->whereIn('project_id', $projects->pluck('id'))->get()->groupBy('project_id');
 
         return response()->json(['data' => [
-            'type' => $type, 'as_of' => today()->toDateString(), 'selected_project_id' => $filters['selected_project_id'] ?? null,
+            'type' => $type, 'as_of' => ProjectCalendar::today(), 'selected_project_id' => $filters['selected_project_id'] ?? null,
             'projects' => $projects->map(fn ($project) => array_merge($this->overview->project($project), [
                 'resources_count' => $counts->get($project->id, collect())->pluck('user_id')->unique()->count(),
                 'has_difficulty' => $counts->get($project->id, collect())->contains(fn ($row) => $row->is_difficult),
@@ -115,7 +121,7 @@ class AllocationController extends Controller
 
         return response()->json(['data' => array_merge(
             $this->overview->resource($user->load('filestorage')),
-            $this->overview->indicators($current),
+            $this->overview->indicators($current, $type),
             ['allocations' => $rows->map(fn ($row) => array_merge($this->overview->assignment($row), [
                 'project' => $this->overview->project($row->project),
             ]))],
@@ -206,7 +212,7 @@ class AllocationController extends Controller
         $roles = $request->validated('assignment_role_ids');
         DB::transaction(function () use ($project, $roles) {
             Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
-            $query = Necessity::where('project_id', $project->id);
+            $query = $this->overview->necessityQuery()->where('project_id', $project->id);
             (clone $query)->whereNotIn('assignmentrole_id', $roles)->delete();
             foreach ($roles as $role) {
                 Necessity::firstOrCreate(['project_id' => $project->id, 'assignmentrole_id' => $role]);
@@ -217,12 +223,31 @@ class AllocationController extends Controller
         return response()->json(['data' => $this->overview->necessities($project)]);
     }
 
+    public function logo(AllocationRequest $request, Project $project): BinaryFileResponse
+    {
+        $path = ProjectFiles::logoPath($project->filestorage);
+
+        return response()->file($path ? Storage::disk('local')->path($path) : public_path('images/defaults/default-project.svg'), [
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
+    public function avatar(AllocationRequest $request, User $user): BinaryFileResponse
+    {
+        abort_unless($user->isAllocation_visible, 404);
+        $path = ProjectParticipantAvatar::privatePath($user);
+
+        return response()->file($path ? Storage::disk('local')->path($path) : public_path('images/defaults/default-avatar.svg'), [
+            'Cache-Control' => 'private, no-store',
+        ]);
+    }
+
     private function mutate(ProjectUser $allocation, callable $callback): void
     {
         DB::transaction(function () use ($allocation, $callback) {
             $this->overview->projects($allocation->allocation_type)->whereKey($allocation->project_id)->lockForUpdate()->firstOrFail();
             $this->overview->resources()->whereKey($allocation->user_id)->lockForUpdate()->firstOrFail();
-            $callback(ProjectUser::whereKey($allocation->id)->lockForUpdate()->firstOrFail());
+            $callback($this->overview->assignments($allocation->allocation_type, false)->whereKey($allocation->id)->lockForUpdate()->firstOrFail());
         });
     }
 
@@ -232,7 +257,7 @@ class AllocationController extends Controller
         $end = isset($attributes['endwork_date']) ? Carbon::parse($attributes['endwork_date'])->toDateString() : null;
         $query = ProjectUser::where('project_id', $attributes['project_id'])->where('user_id', $attributes['user_id'])
             ->where('allocation_type', $attributes['allocation_type'])
-            ->where('assignmentrole_id', $attributes['assignmentrole_id'])
+            ->when($attributes['allocation_type'] === 'project', fn ($query) => $query->where('assignmentrole_id', $attributes['assignmentrole_id']))
             ->when($ignore, fn ($query) => $query->where('id', '!=', $ignore))
             ->where(fn ($query) => $query->whereNull('endwork_date')->orWhereDate('endwork_date', '>=', $start));
         if ($end !== null) {

@@ -18,32 +18,36 @@ return new class extends Migration
             $table->boolean('is_daily');
             $table->boolean('is_azure');
             $table->boolean('is_ux_ui');
-            $table->enum('status', ['in corso', 'manutenzione', 'sospeso', 'concluso']);
+            $table->enum('status', ['in corso', 'manutenzione', 'sospeso', 'concluso'])->nullable();
             $table->string('azure_project_name')->nullable();
             $table->foreignId('project_manager_id')
+                ->nullable()
                 ->constrained('users')
                 ->restrictOnDelete();
             $table->foreignId('team_leader_id')
+                ->nullable()
                 ->constrained('users')
                 ->restrictOnDelete();
             $table->foreignId('scrum_master_id')
+                ->nullable()
                 ->constrained('users')
                 ->restrictOnDelete();
             $table->string('delivery_plan')->nullable();
-            $table->string('azure_team_name');
-            $table->string('bug_count_url');
-            $table->string('note');
-            $table->enum('priority', ['bassa','media','alta']);
+            $table->string('azure_team_name')->nullable();
+            $table->string('bug_count_url')->nullable();
+            $table->string('note')->nullable();
+            $table->enum('priority', ['bassa', 'media', 'alta'])->nullable();
             $table->string('pbi_without_feature_url')->nullable();
             $table->string('pbi_past_feature_url')->nullable();
             $table->boolean('is_timesheet');
             $table->boolean('is_course');
-            $table->date('start_date');
+            $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
 
             $table->foreignId('filestorage_id')
-            ->constrained('filestorage')
-            ->restrictOnDelete();
+                ->nullable()
+                ->constrained('filestorage')
+                ->restrictOnDelete();
 
             $table->timestamps();
             $table->softDeletes();

@@ -44,6 +44,7 @@ function allocationRow(Project $project, User $user, array $attributes = []): Pr
 dataset('allocation routes', [
     ['GET', '/api/allocations'], ['GET', '/api/allocations/options'], ['GET', '/api/allocations/summary'],
     ['GET', '/api/allocations/projects/%p'], ['GET', '/api/allocations/resources/%u'],
+    ['GET', '/api/allocations/projects/%p/logo'], ['GET', '/api/allocations/resources/%u/avatar'],
     ['POST', '/api/allocations'], ['PUT', '/api/allocations/%a'],
     ['PATCH', '/api/allocations/%a/difficulty'], ['POST', '/api/allocations/%a/conclude'],
     ['DELETE', '/api/allocations/%a'], ['PUT', '/api/allocations/projects/%p/necessities'],
@@ -81,7 +82,8 @@ test('one resource has independent project timesheet and course assignments', fu
     $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
     $admin = allocationAdmin();
     $user = User::factory()->create();
-    $project = allocationProject($admin, ['is_timesheet' => true]);
+    $project = allocationProject($admin);
+    $timesheet = allocationProject($admin, ['is_timesheet' => true, 'alias' => $project->alias, 'status' => null]);
     $course = allocationProject($admin, ['is_course' => true]);
     $role = allocationRole();
     $this->withToken($admin->createToken('test')->plainTextToken);
@@ -91,7 +93,7 @@ test('one resource has independent project timesheet and course assignments', fu
         'assignment_role_id' => $role->id, 'start_date' => '2026-10-01',
     ])->assertCreated()->assertJsonPath('data.role.code', 'B')->assertJsonPath('data.is_difficult', false)->json('data.id');
     $timesheetId = $this->postJson('/api/allocations', [
-        'type' => 'timesheet', 'project_id' => $project->id, 'user_id' => $user->id, 'start_date' => '2026-10-01',
+        'type' => 'timesheet', 'project_id' => $timesheet->id, 'user_id' => $user->id, 'start_date' => '2026-10-01',
     ])->assertCreated()->assertJsonPath('data.role', null)->json('data.id');
     $this->postJson('/api/allocations', [
         'type' => 'course', 'project_id' => $course->id, 'user_id' => $user->id, 'start_date' => '2026-10-01',

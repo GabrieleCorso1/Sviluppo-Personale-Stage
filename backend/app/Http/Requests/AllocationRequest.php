@@ -15,6 +15,7 @@ class AllocationRequest extends FormRequest
 
     public function rules(): array
     {
+        $type = $this->input('type', 'project');
         $role = Rule::exists('assignmentroles', 'id')->whereNull('deleted_at')
             ->whereIn('alias', array_keys(AllocationOverview::ROLES));
 
@@ -40,8 +41,8 @@ class AllocationRequest extends FormRequest
             default => [
                 'type' => ['sometimes', Rule::in(AllocationOverview::TYPES)],
                 'search' => ['nullable', 'string', 'max:255'],
-                'assignment_role_id' => ['sometimes', 'integer', $role],
-                'status' => ['sometimes', Rule::in(AllocationOverview::STATUSES)],
+                'assignment_role_id' => $type === 'project' ? ['sometimes', 'integer', $role] : ['prohibited'],
+                'status' => $type === 'project' ? ['sometimes', Rule::in(AllocationOverview::STATUSES)] : ['prohibited'],
                 'selected_project_id' => ['sometimes', 'integer', Rule::exists('projects', 'id')->whereNull('deleted_at')],
                 'page' => ['sometimes', 'integer', 'min:1'],
                 'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
