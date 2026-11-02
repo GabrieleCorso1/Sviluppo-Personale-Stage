@@ -1,11 +1,11 @@
 
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Auth } from '../../core/services/auth';
 
 @Component({
-  imports: [FormsModule],
+  imports: [FormsModule, RouterLink],
   standalone: true,
   selector: 'app-login',
   styleUrl: './login.css',
@@ -15,21 +15,37 @@ export class Login {
   email = '';
   password = '';
   remember = false;
-  errore = '';
-  caricamento = false;
+  private route = inject(ActivatedRoute);
+  errore = signal(this.initialError());
+  caricamento = signal(false);
+  messaggio = signal(this.route.snapshot.queryParamMap.get('passwordReset') === 'success'
+    ? 'Password aggiornata. Accedi con la nuova password.' : '');
 
   private auth = inject(Auth);
   private router = inject(Router);
 
+  private initialError(): string {
+    switch (this.route.snapshot.queryParamMap.get('reason')) {
+      case 'session-expired':
+        return 'Sessione scaduta o non più valida. Accedi nuovamente.';
+      case 'verification-unavailable':
+        return 'Impossibile verificare la sessione. Riprova tra poco: puoi riaprire la pagina richiesta.';
+      default:
+        return '';
+    }
+  }
+
   accedi(): void {
-    this.errore = '';
+    if (this.caricamento()) return;
+    this.errore.set('');
+    this.messaggio.set('');
 
     if (!this.email.trim() || !this.password) {
-      this.errore = 'Inserisci email e password.';
+      this.errore.set('Inserisci email e password.');
       return;
     }
 
-    this.caricamento = true;
+    this.caricamento.set(true);
 
     this.auth.login(
       this.email.trim(),
@@ -37,24 +53,21 @@ export class Login {
       this.remember
     ).subscribe({
       next: () => {
-        this.caricamento = false;
+        this.caricamento.set(false);
         this.router.navigate(['/home']);
       },
       error: (err) => {
-        this.caricamento = false;
+        this.caricamento.set(false);
 
         if (err.status === 422) {
-          this.errore =
+          this.errore.set(err.error?.errors?.email?.[0] ||
             err.error?.message ||
-            err.error?.errors?.email?.[0] ||
-            'Email o password non corrette.';
+            'Email o password non corrette.');
         } else if (err.status === 429) {
-          this.errore =
-            err.error?.message ||
-            'Troppi tentativi. Riprova più tardi.';
+          this.errore.set(err.error?.message ||
+            'Troppi tentativi. Riprova più tardi.');
         } else {
-          this.errore =
-            'Errore di connessione al server. Riprova.';
+          this.errore.set('Errore di connessione al server. Riprova.');
         }
       }
     });

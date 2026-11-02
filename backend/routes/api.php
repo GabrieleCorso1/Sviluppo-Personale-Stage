@@ -3,6 +3,13 @@
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectManagerOptionController;
+use App\Http\Controllers\ProjectParticipantAvatarController;
+use App\Http\Controllers\SprintCsvController;
+use App\Http\Middleware\EnsureManagedProject;
+use App\Http\Controllers\UserController;
+use App\Http\Controllers\UserLeaveController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -35,6 +42,26 @@ Route::get('/test', function () {
     ]);
 });
 
+Route::middleware('auth:sanctum')->group(function () {
+
+    // Gestione Utenti Completa (Figma Sync)
+    Route::get('/users/options', [UserController::class, 'options']);
+    Route::get('/users', [UserController::class, 'index']);
+    Route::post('/users', [UserController::class, 'store']);
+    Route::get('/user/profile', [UserController::class, 'profile']);
+    Route::get('/users/{user}', [UserController::class, 'show']);
+    Route::put('/users/{user}', [UserController::class, 'update']);
+    Route::post('/users/{id}/disable', [UserController::class, 'disable']);
+    Route::post('/users/{id}/restore', [UserController::class, 'restore']);
+    Route::delete('/users/{id}', [UserController::class, 'destroy']);
+
+    // Gestione Ferie, Permessi e R.O.L. (Modale Figma)
+    Route::get('/users/{user}/leaves', [UserLeaveController::class, 'index']);
+    Route::put('/users/{user}/leaves', [UserLeaveController::class, 'update']);
+    Route::get('/users/{user}/leaves/history', [UserLeaveController::class, 'history']);
+    Route::get('/users/{user}/leaves/conversion', [UserLeaveController::class, 'conversion']);
+});
+
 Route::post('/login', [AuthenticatedSessionController::class, 'store']);
 
 Route::post('/logout', [AuthenticatedSessionController::class, 'destroy'])
@@ -45,3 +72,52 @@ Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
 
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->middleware('throttle:5,1');
+
+Route::post('/projects', [ProjectController::class, 'store'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+Route::get('/projects', [ProjectController::class, 'index'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::get('/projects/{project}', [ProjectController::class, 'show'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::patch('/projects/{project}', [ProjectController::class, 'update'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::delete('/projects/{project}', [ProjectController::class, 'destroy'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::patch('/projects/{project}/note', [ProjectController::class, 'updateNote'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::get('/projects/{project}/users', [ProjectController::class, 'users'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::post('/projects/{project}/logo', [ProjectController::class, 'uploadLogo'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::get('/projects/{project}/logo', [ProjectController::class, 'logo'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class])
+    ->name('projects.logo');
+
+Route::post('/projects/{project}/delivery-plan', [ProjectController::class, 'uploadDeliveryPlan'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class]);
+
+Route::get('/projects/{project}/delivery-plan', [ProjectController::class, 'deliveryPlan'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class])
+    ->name('projects.delivery-plan');
+
+Route::middleware(['auth:sanctum', EnsureManagedProject::class])->group(function () {
+    Route::get('/projects/{project}/csv', [SprintCsvController::class, 'index']);
+    Route::post('/projects/{project}/sprints/{sprint}/csv', [SprintCsvController::class, 'upload']);
+    Route::get('/projects/{project}/sprints/{sprint}/csv', [SprintCsvController::class, 'download'])
+        ->name('projects.sprints.csv');
+    Route::patch('/projects/{project}/sprints/{sprint}/csv-type', [SprintCsvController::class, 'updateType']);
+});
+
+Route::get('/project-options/users', [ProjectManagerOptionController::class, 'index'])
+    ->middleware('auth:sanctum');
+
+Route::get('/projects/{project}/users/{user}/avatar', [ProjectParticipantAvatarController::class, 'show'])
+    ->middleware(['auth:sanctum', EnsureManagedProject::class])
+    ->name('projects.users.avatar');

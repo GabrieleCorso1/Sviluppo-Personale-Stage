@@ -5,6 +5,8 @@ import { authGuardGuard } from './core/guards/auth-guard-guard';
 import { Users } from './features/users/users';
 
 export const routes: Routes = [
+  { path: 'forgot-password', loadComponent: () => import('./features/password-recovery/forgot-password').then(m => m.ForgotPassword) },
+  { path: 'reset-password', loadComponent: () => import('./features/password-recovery/reset-password').then(m => m.ResetPassword) },
     {
     path: 'login',
     component: Login
