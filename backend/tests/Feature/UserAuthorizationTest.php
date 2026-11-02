@@ -58,10 +58,10 @@ test('user administration returns 403 without permission and preserves data', fu
     $this->assertDatabaseCount('user_leave_balances', 0);
 })->with('user administration endpoints');
 
-test('a viewer can list users but cannot update them', function () {
+test('an HR viewer without management permission can list but cannot update users', function () {
     $actor = User::factory()->create();
     $target = User::factory()->create();
-    $role = Role::create(['alias' => 'Project Manager']);
+    $role = Role::create(['alias' => 'HR Manager']);
     $role->permissions()->attach(Permission::create(['name' => 'users.view', 'description' => 'View users']));
     $actor->roles()->attach($role);
     $this->withToken($actor->createToken('test')->plainTextToken);
@@ -143,7 +143,7 @@ test('the legacy delete endpoint also revokes tokens while preserving the user r
     $target->createToken('existing');
 
     $this->withToken($actor->createToken('test')->plainTextToken)
-        ->deleteJson('/api/users/'.$target->id)->assertOk();
+        ->deleteJson('/api/users/'.$target->id, ['resignation_date' => now()->toDateString()])->assertOk();
 
     $this->assertSoftDeleted($target);
     expect($target->tokens()->count())->toBe(0);

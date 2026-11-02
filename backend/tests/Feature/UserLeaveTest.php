@@ -60,6 +60,7 @@ test('updates normalize months preserve omitted amounts and record only actual c
 test('new partial counters initialize omitted values and keep leave types separate', function () {
     $actor = leaveAdministrator();
     $user = User::factory()->create();
+    $user->contracts()->create(['contract_start_date' => '2026-01-01', 'weekly_hours' => 40, 'has_rol' => true]);
     $this->withToken($actor->createToken('test')->plainTextToken)->putJson('/api/users/'.$user->id.'/leaves', ['leaves' => [
         ['leave_type' => 'permesso', 'reference_month' => '2026-01-01', 'remaining_hours' => 4],
         ['leave_type' => 'rol', 'reference_month' => '2026-01-01', 'remaining_hours' => 5, 'accrued_hours' => 10],

@@ -8,33 +8,52 @@ class UserPolicy
 {
     public function viewAny(User $authenticatedUser): bool
     {
-        return $this->hasPermission($authenticatedUser, 'users.view');
+        return $this->isAdministratorOrHr($authenticatedUser)
+            && $this->hasPermission($authenticatedUser, 'users.view');
+    }
+
+    public function view(User $authenticatedUser, User $targetUser): bool
+    {
+        return $this->viewAny($authenticatedUser);
     }
 
     public function create(User $authenticatedUser): bool
     {
-        return $this->hasPermission($authenticatedUser, 'users.manage');
+        return $this->isAdministratorOrHr($authenticatedUser)
+            && $this->hasPermission($authenticatedUser, 'users.manage');
     }
 
     public function update(User $authenticatedUser, User $targetUser): bool
     {
-        return $this->hasPermission($authenticatedUser, 'users.manage');
+        return $this->create($authenticatedUser)
+            && ($this->isAdministrator($authenticatedUser) || ! $this->isAdministratorOrHr($targetUser));
     }
 
     public function delete(User $authenticatedUser, User $targetUser): bool
     {
         return $authenticatedUser->id !== $targetUser->id
-            && $this->hasPermission($authenticatedUser, 'users.manage');
+            && $this->update($authenticatedUser, $targetUser);
     }
 
     public function restore(User $authenticatedUser, User $targetUser): bool
     {
-        return $this->hasPermission($authenticatedUser, 'users.manage');
+        return $this->update($authenticatedUser, $targetUser);
     }
 
     public function manageLeaves(User $authenticatedUser, User $targetUser): bool
     {
-        return $this->hasPermission($authenticatedUser, 'users.leaves.manage');
+        return $this->isAdministratorOrHr($authenticatedUser)
+            && $this->hasPermission($authenticatedUser, 'users.leaves.manage');
+    }
+
+    private function isAdministrator(User $user): bool
+    {
+        return $user->roles()->where('alias', 'Admin')->exists();
+    }
+
+    private function isAdministratorOrHr(User $user): bool
+    {
+        return $user->roles()->whereIn('alias', ['Admin', 'HR Manager'])->exists();
     }
 
     private function hasPermission(User $user, string $permission): bool

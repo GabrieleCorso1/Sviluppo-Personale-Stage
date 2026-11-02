@@ -671,7 +671,7 @@
             "description": "Crea il demo senza password. La notifica di invito viene registrata nel log con MAIL_MAILER=log. Richiede debug locale completo per acquisire automaticamente il link in Postman.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"first_name\": \"Postman\",\n  \"last_name\": \"ProvaStage\",\n  \"gender\": \"male\",\n  \"email\": \"{{test_email}}\",\n  \"azure_email\": \"{{test_email}}\",\n  \"company_email\": \"{{test_email}}\",\n  \"birth_date\": \"1995-01-01\",\n  \"hiring_date\": \"{{contract_start}}\",\n  \"filestorage_id\": {{filestorage_id}},\n  \"role_id\": {{role_user_id}},\n  \"assignment_role_id\": {{assignment_role_id}},\n  \"expertise\": \"junior\",\n  \"is_intern\": true,\n  \"isAllocation_visible\": false,\n  \"remember_me\": false,\n  \"contract_start_date\": \"{{contract_start}}\",\n  \"weekly_hours\": 40,\n  \"contract_type\": \"postman-demo\"\n}",
+              "raw": "{\n  \"first_name\": \"Postman\",\n  \"last_name\": \"ProvaStage\",\n  \"gender\": \"male\",\n  \"email\": \"{{test_email}}\",\n  \"azure_email\": \"{{test_email}}\",\n  \"company_email\": \"{{test_email}}\",\n  \"birth_date\": \"1995-01-01\",\n  \"hiring_date\": \"{{contract_start}}\",\n  \"filestorage_id\": {{filestorage_id}},\n  \"role_id\": {{role_user_id}},\n  \"assignment_role_id\": {{assignment_role_id}},\n  \"expertise\": \"junior\",\n  \"is_intern\": true,\n  \"isAllocation_visible\": false,\n  \"remember_me\": false,\n  \"contract_start_date\": \"{{contract_start}}\",\n  \"weekly_hours\": 40,\n  \"has_rol\": true,\n  \"contract_type\": \"postman-demo\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -694,6 +694,7 @@
                   "",
                   "",
                   "const bodyTemplate = {\"first_name\":\"Postman\",\"last_name\":\"ProvaStage\",\"gender\":\"male\",\"email\":\"{{test_email}}\",\"azure_email\":\"{{test_email}}\",\"company_email\":\"{{test_email}}\",\"birth_date\":\"1995-01-01\",\"hiring_date\":\"{{contract_start}}\",\"filestorage_id\":\"{{filestorage_id}}\",\"role_id\":\"{{role_user_id}}\",\"assignment_role_id\":\"{{assignment_role_id}}\",\"expertise\":\"junior\",\"is_intern\":true,\"isAllocation_visible\":false,\"remember_me\":false,\"contract_start_date\":\"{{contract_start}}\",\"weekly_hours\":40,\"contract_type\":\"postman-demo\"};",
+                  "bodyTemplate.has_rol = true;",
                   "function resolveBody(value) {",
                   "    if (Array.isArray(value)) return value.map(resolveBody);",
                   "    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, resolveBody(val)]));",
@@ -1196,6 +1197,210 @@
                   "const j = pm.response.json();",
                   "pm.test(\"Ruolo validato\", () => { pm.expect(j.errors).to.have.property('role_id') });",
                   "pm.test('Errori di validazione presenti', () => pm.expect(j.errors).to.be.an('object'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "13a - Dimissioni vietate nella modifica generica: 422",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/users/{{test_user_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Verifica delle regole concordate; usa solo il demo creato dalla collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resignation_date\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "if (pm.response.code !== 422) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Campo rifiutato', () => pm.expect(pm.response.json().errors).to.have.property('resignation_date'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "13b - Data nascita futura: 422",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/users/{{test_user_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Verifica delle regole concordate; usa solo il demo creato dalla collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"birth_date\": \"2999-01-01\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "if (pm.response.code !== 422) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Campo rifiutato', () => pm.expect(pm.response.json().errors).to.have.property('birth_date'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "13c - Ore oltre il limite: 422",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/users/{{test_user_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Verifica delle regole concordate; usa solo il demo creato dalla collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"weekly_hours\": 41\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "if (pm.response.code !== 422) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Campo rifiutato', () => pm.expect(pm.response.json().errors).to.have.property('weekly_hours'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "13d - Email secondarie facoltative: 200",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/users/{{test_user_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{admin_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "description": "Verifica delle regole concordate; usa solo il demo creato dalla collection.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"azure_email\": null,\n  \"company_email\": null\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Email vuote conservate a null', () => { const j = pm.response.json(); pm.expect(j.data.azure_email).to.eql(null); pm.expect(j.data.company_email).to.eql(null); });"
                 ]
               }
             }

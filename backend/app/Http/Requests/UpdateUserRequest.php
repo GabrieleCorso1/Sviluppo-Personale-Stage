@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Support\Carbon;
 use Illuminate\Validation\Rule;
 
 class UpdateUserRequest extends FormRequest
@@ -17,10 +18,21 @@ class UpdateUserRequest extends FormRequest
         // Recuperiamo l'ID dell'utente dalla rotta (es. /api/users/{user})
         $userId = $this->route('user');
 
+        $roleRule = Rule::exists('roles', 'id');
+        if (! $this->user()->roles()->where('alias', 'Admin')->exists()) {
+            $roleRule->whereNotIn('alias', ['Admin', 'HR Manager']);
+        }
+
         return [
-            'role_id' => ['sometimes', 'required', 'integer', 'exists:roles,id'],
-            'assignment_role_id' => ['present_with:expertise', 'nullable', 'required_with:expertise', 'integer', Rule::exists('assignmentroles', 'id')->whereNull('deleted_at')],
-            'expertise' => ['present_with:assignment_role_id', 'nullable', 'required_with:assignment_role_id', Rule::in(['junior', 'senior'])],
+            'role_id' => ['sometimes', 'required', 'integer', $roleRule],
+            'assignment_role_id' => ['sometimes', 'nullable', 'integer', Rule::exists('assignmentroles', 'id')->whereNull('deleted_at')],
+            'expertise' => [
+                'present_with:assignment_role_id',
+                'nullable',
+                Rule::requiredIf(fn () => $this->filled('assignment_role_id')
+                    || (! $this->exists('assignment_role_id') && $this->exists('expertise'))),
+                Rule::in(['junior', 'senior']),
+            ],
             'first_name' => ['sometimes', 'required', 'string', 'max:255'],
             'last_name' => ['sometimes', 'required', 'string', 'max:255'],
             'email' => [
@@ -31,13 +43,13 @@ class UpdateUserRequest extends FormRequest
                 'max:255',
                 Rule::unique('users')->ignore($userId),
             ],
-            'azure_email' => ['sometimes', 'required', 'string', 'email', 'max:255'],
-            'company_email' => ['sometimes', 'required', 'string', 'email', 'max:255'],
+            'azure_email' => ['sometimes', 'nullable', 'string', 'email', 'max:255'],
+            'company_email' => ['sometimes', 'nullable', 'string', 'email', 'max:255'],
             'password' => ['nullable', 'string', 'min:8'],
             'gender' => ['nullable', 'in:male,female'],
-            'birth_date' => ['sometimes', 'required', 'date'],
-            'hiring_date' => ['sometimes', 'required', 'date'],
-            'resignation_date' => ['nullable', 'date'],
+            'birth_date' => ['sometimes', 'required', 'date_format:Y-m-d', 'before_or_equal:'.Carbon::now('Europe/Rome')->toDateString()],
+            'hiring_date' => ['sometimes', 'required', 'date_format:Y-m-d'],
+            'resignation_date' => ['missing'],
             'filestorage_id' => ['sometimes', 'required', 'exists:filestorage,id'],
             'is_intern' => ['sometimes', 'boolean'],
             'isAllocation_visible' => ['sometimes', 'boolean'],
@@ -45,12 +57,13 @@ class UpdateUserRequest extends FormRequest
 
             // Campi Contratto
             'contract_id' => ['sometimes', 'required', 'integer', Rule::exists('contracts', 'id')->where('user_id', $this->route('user')->getKey())->whereNull('deleted_at')],
-            'contract_end_date' => ['nullable', 'date'],
-            'contract_start_date' => ['sometimes', 'required', 'date'],
-            'weekly_hours' => ['sometimes', 'required', 'integer', 'min:1', 'max:168'],
+            'contract_end_date' => ['nullable', 'date_format:Y-m-d'],
+            'contract_start_date' => ['sometimes', 'required', 'date_format:Y-m-d'],
+            'weekly_hours' => ['sometimes', 'required', 'integer', 'min:1', 'max:40'],
             'contract_type' => ['nullable', 'string', 'max:255'],
 
             // --- NUOVI CAMPI PER LA DISTRIBUZIONE ORARIA (Figma) ---
+            'has_rol' => ['sometimes', 'boolean'],
             'working_days' => ['sometimes', 'required', 'array', 'max:7'],
             'working_days.*.day_of_week' => ['required', 'distinct', Rule::in(['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'])],
             'working_days.*.start_time' => ['nullable', 'date_format:H:i'],

@@ -116,7 +116,7 @@ class ProjectController extends Controller
 
         return response()->json([
             'message' => 'Progetto creato con successo.',
-            'data' => (new ProjectResource($project))->resolve($request),
+            'data' => (new ProjectResource($project->refresh()))->resolve($request),
         ], 201);
     }
 

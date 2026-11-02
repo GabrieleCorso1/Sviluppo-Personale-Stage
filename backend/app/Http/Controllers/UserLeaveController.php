@@ -47,17 +47,42 @@ class UserLeaveController extends Controller
             $months[] = ['reference_month' => $date, 'balances' => $values, 'full_time_vacation_days' => $days];
         }
 
-        return response()->json(['success' => true, 'year' => $year, 'unit' => 'hours', 'data' => $balances, 'months' => $months]);
+        return response()->json([
+            'success' => true, 'year' => $year, 'unit' => 'hours', 'data' => $balances, 'months' => $months,
+            'rol_entitlements' => $contracts->map(fn ($contract) => [
+                'contract_id' => $contract->id,
+                'contract_start_date' => $contract->contract_start_date->toDateString(),
+                'contract_end_date' => $contract->contract_end_date?->toDateString(),
+                'has_rol' => $contract->has_rol,
+            ])->values(),
+        ]);
     }
 
     public function update(UpdateUserLeavesRequest $request, User $user): JsonResponse
     {
         DB::transaction(function () use ($request, $user) {
             User::query()->lockForUpdate()->findOrFail($user->id);
-            foreach ($request->validated('leaves') as $entry) {
+            foreach ($request->validated('leaves') as $index => $entry) {
+                $referenceDate = $entry['leave_type'] === 'ferie'
+                    ? null
+                    : ($entry['reference_date'] ?? $entry['reference_month']);
+                if ($entry['leave_type'] === 'rol') {
+                    $contracts = $user->contracts()
+                        ->whereDate('contract_start_date', '<=', $referenceDate)
+                        ->where(fn ($query) => $query->whereNull('contract_end_date')
+                            ->orWhereDate('contract_end_date', '>=', $referenceDate))
+                        ->lockForUpdate()->get();
+                    if ($contracts->count() !== 1 || ! $contracts->first()->has_rol) {
+                        throw ValidationException::withMessages([
+                            'leaves.'.$index.'.leave_type' => 'Per aggiornare i R.O.L. serve un unico contratto valido alla data di riferimento con diritto ai R.O.L.',
+                        ]);
+                    }
+                }
                 $month = Carbon::parse($entry['reference_month'])->startOfMonth()->toDateString();
                 $balance = $user->leaveBalances()->where('leave_type', $entry['leave_type'])->whereDate('reference_month', $month)->first()
                     ?? $user->leaveBalances()->make(['leave_type' => $entry['leave_type'], 'reference_month' => $month]);
+                $previousReferenceDate = $balance->reference_date?->toDateString();
+                $balance->reference_date = $referenceDate;
                 $changes = [];
                 foreach (['remaining_hours', 'accrued_hours', 'monthly_accrual'] as $field) {
                     $old = $balance->exists ? $balance->getAttribute($field) : null;
@@ -71,11 +96,15 @@ class UserLeaveController extends Controller
                         $changes[] = ['field_name' => $field, 'old_value' => $old, 'new_value' => $new];
                     }
                 }
+                if ($changes === [] && $previousReferenceDate !== $referenceDate) {
+                    $changes[] = ['field_name' => 'reference_date', 'old_value' => null, 'new_value' => null];
+                }
                 $balance->save();
                 foreach ($changes as $change) {
                     LeaveAuditLog::create($change + [
                         'user_id' => $user->id, 'admin_id' => $request->user()->id,
                         'leave_type' => $entry['leave_type'], 'reference_month' => $month,
+                        'reference_date' => $referenceDate, 'previous_reference_date' => $previousReferenceDate,
                     ]);
                 }
             }
