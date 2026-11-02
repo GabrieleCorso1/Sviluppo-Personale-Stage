@@ -27,6 +27,8 @@ class AllocationOverview
         'Sviluppatore Full-stack' => 'FB',
         'UX-UI Designer' => 'D',
         'Team Leader' => 'TL',
+        'Project Manager' => 'PM',
+        'Scrum Master' => 'SM',
     ];
 
     public function projects(string $type): Builder

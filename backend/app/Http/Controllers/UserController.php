@@ -223,22 +223,28 @@ class UserController extends Controller
      */
     public function disable(Request $request, $id): JsonResponse
     {
-        $user = User::findOrFail($id);
+        DB::transaction(function () use ($request, $id) {
+            $user = User::query()->lockForUpdate()->findOrFail($id);
+            $this->authorize('delete', $user);
 
-        $this->authorize('delete', $user);
+            $validated = $request->validate([
+                'resignation_date' => [
+                    'required',
+                    'date_format:Y-m-d',
+                    'after_or_equal:'.$user->hiring_date->toDateString(),
+                    'before_or_equal:'.Carbon::now('Europe/Rome')->toDateString(),
+                ],
+            ]);
+            $date = $validated['resignation_date'];
 
-        $request->validate([
-            'resignation_date' => [
-                'required',
-                'date_format:Y-m-d',
-                'after_or_equal:'.$user->hiring_date->toDateString(),
-                'before_or_equal:'.Carbon::now('Europe/Rome')->toDateString(),
-            ],
-        ]);
+            // Allocation writes lock this user too. Cancelling or shortening periods cannot introduce new role overlaps, so no project locks are needed here.
+            $user->projectUsers()->whereDate('startwork_date', '>', $date)->delete();
+            $user->projectUsers()->whereDate('startwork_date', '<=', $date)
+                ->where(fn ($query) => $query->whereNull('endwork_date')->orWhereDate('endwork_date', '>', $date))
+                ->update(['endwork_date' => Carbon::parse($date)->startOfDay()]);
 
-        DB::transaction(function () use ($user, $request) {
             $user->update([
-                'resignation_date' => $request->input('resignation_date'),
+                'resignation_date' => $date,
             ]);
             $user->tokens()->delete();
             $user->delete();

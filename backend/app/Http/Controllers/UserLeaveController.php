@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\UpdateUserLeavesRequest;
 use App\Models\LeaveAuditLog;
 use App\Models\User;
+use App\Support\ProjectCalendar;
 use App\WorkSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,8 +18,9 @@ class UserLeaveController extends Controller
     public function index(Request $request, User $user): JsonResponse
     {
         $this->authorize('manageLeaves', $user);
-        $query = $request->validate(['year' => ['sometimes', 'integer', 'min:1900', 'max:'.now()->year]]);
-        $year = (int) ($query['year'] ?? now()->year);
+        $currentYear = Carbon::parse(ProjectCalendar::today())->year;
+        $query = $request->validate(['year' => ['sometimes', 'integer', 'min:1900', 'max:'.$currentYear]]);
+        $year = (int) ($query['year'] ?? $currentYear);
         $balances = $user->leaveBalances()->whereBetween('reference_month', [$year.'-01-01', $year.'-12-31'])
             ->orderBy('reference_month')->orderBy('leave_type')->get();
         $contracts = $user->contracts()->whereDate('contract_start_date', '<=', $year.'-12-31')
@@ -63,9 +65,13 @@ class UserLeaveController extends Controller
         DB::transaction(function () use ($request, $user) {
             User::query()->lockForUpdate()->findOrFail($user->id);
             foreach ($request->validated('leaves') as $index => $entry) {
+                $month = Carbon::parse($entry['reference_month'])->startOfMonth()->toDateString();
+                $balance = $user->leaveBalances()->where('leave_type', $entry['leave_type'])->whereDate('reference_month', $month)->first()
+                    ?? $user->leaveBalances()->make(['leave_type' => $entry['leave_type'], 'reference_month' => $month]);
+                $previousReferenceDate = $balance->reference_date?->toDateString();
                 $referenceDate = $entry['leave_type'] === 'ferie'
                     ? null
-                    : ($entry['reference_date'] ?? $entry['reference_month']);
+                    : ($entry['reference_date'] ?? $previousReferenceDate ?? $entry['reference_month']);
                 if ($entry['leave_type'] === 'rol') {
                     $contracts = $user->contracts()
                         ->whereDate('contract_start_date', '<=', $referenceDate)
@@ -78,10 +84,6 @@ class UserLeaveController extends Controller
                         ]);
                     }
                 }
-                $month = Carbon::parse($entry['reference_month'])->startOfMonth()->toDateString();
-                $balance = $user->leaveBalances()->where('leave_type', $entry['leave_type'])->whereDate('reference_month', $month)->first()
-                    ?? $user->leaveBalances()->make(['leave_type' => $entry['leave_type'], 'reference_month' => $month]);
-                $previousReferenceDate = $balance->reference_date?->toDateString();
                 $balance->reference_date = $referenceDate;
                 $changes = [];
                 foreach (['remaining_hours', 'accrued_hours', 'monthly_accrual'] as $field) {
@@ -116,8 +118,9 @@ class UserLeaveController extends Controller
     public function history(Request $request, User $user): JsonResponse
     {
         $this->authorize('manageLeaves', $user);
+        $currentYear = Carbon::parse(ProjectCalendar::today())->year;
         $filters = $request->validate([
-            'year' => ['sometimes', 'integer', 'min:1900', 'max:'.now()->year],
+            'year' => ['sometimes', 'integer', 'min:1900', 'max:'.$currentYear],
             'leave_type' => ['sometimes', 'in:ferie,permesso,rol'],
             'page' => ['sometimes', 'integer', 'min:1'],
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],

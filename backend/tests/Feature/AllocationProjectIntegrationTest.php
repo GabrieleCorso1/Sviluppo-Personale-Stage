@@ -88,7 +88,7 @@ test('both modules use the same business day at midnight in Rome in winter and s
     'summer' => ['2026-06-01 22:30:00', '2026-06-02'],
 ]);
 
-test('PM and scrum master assignments remain outside allocation views and cannot be changed through those endpoints', function () {
+test('existing PM and scrum master assignments can be viewed and managed through allocation by an admin', function () {
     $this->travelTo(Carbon::parse('2026-11-02 12:00:00', 'UTC'));
     $actor = integratedAllocationAdmin();
     $actor->update(['isAllocation_visible' => true]);
@@ -101,15 +101,16 @@ test('PM and scrum master assignments remain outside allocation views and cannot
         'startwork_date' => '2026-01-01', 'work_allocation' => 0]);
 
     $this->getJson('/api/projects/'.$id.'/users')->assertOk()->assertJsonPath('total', 2);
-    $this->getJson('/api/allocations/projects/'.$id)->assertOk()->assertJsonPath('data.resources_count', 0);
+    $this->getJson('/api/allocations/projects/'.$id)->assertOk()->assertJsonPath('data.resources_count', 2);
     foreach ([$pmRow, $scrumRow] as $row) {
-        $before = $row->fresh()->getAttributes();
-        $this->getJson('/api/allocations/resources/'.$row->user_id)->assertOk()->assertJsonCount(0, 'data.allocations');
-        $this->putJson('/api/allocations/'.$row->id, ['start_date' => '2026-02-01'])->assertNotFound();
-        $this->patchJson('/api/allocations/'.$row->id.'/difficulty', ['is_difficult' => true])->assertNotFound();
-        $this->postJson('/api/allocations/'.$row->id.'/conclude', ['end_date' => '2026-10-31'])->assertNotFound();
-        $this->deleteJson('/api/allocations/'.$row->id)->assertNotFound();
-        expect($row->fresh()->getAttributes())->toBe($before);
+        $this->getJson('/api/allocations/resources/'.$row->user_id)->assertOk()->assertJsonCount(1, 'data.allocations');
+        $this->putJson('/api/allocations/'.$row->id, ['start_date' => '2026-02-01'])->assertOk();
+        $this->patchJson('/api/allocations/'.$row->id.'/difficulty', ['is_difficult' => true])->assertOk();
+        $this->postJson('/api/allocations/'.$row->id.'/conclude', ['end_date' => '2026-10-31'])->assertOk();
+        expect($row->fresh()->endwork_date->toDateString())->toBe('2026-10-31');
+        expect($row->fresh()->is_difficult)->toBeTrue();
+        $this->deleteJson('/api/allocations/'.$row->id)->assertOk();
+        $this->assertSoftDeleted($row);
     }
 });
 
@@ -231,7 +232,7 @@ test('legacy responsibility conflicts stop the transfer without overwriting or p
     $this->assertDatabaseHas('project_user', ['id' => $row->id, 'work_allocation' => 80]);
 });
 
-test('saving Figma necessities preserves existing needs for roles belonging to project management', function () {
+test('PM needs are included and can be removed through allocation', function () {
     $actor = integratedAllocationAdmin();
     $project = Project::factory()->create(['project_manager_id' => $actor->id]);
     $pm = AssignmentRole::where('alias', 'Project Manager')->firstOrFail();
@@ -240,7 +241,55 @@ test('saving Figma necessities preserves existing needs for roles belonging to p
     $this->withToken($actor->createToken('test')->plainTextToken)
         ->putJson('/api/allocations/projects/'.$project->id.'/necessities', ['assignment_role_ids' => []])->assertOk()->assertJsonCount(0, 'data');
 
-    $this->assertDatabaseHas('necessities', ['project_id' => $project->id, 'assignmentrole_id' => $pm->id]);
+    $this->assertDatabaseMissing('necessities', ['project_id' => $project->id, 'assignmentrole_id' => $pm->id]);
+});
+
+test('allocation adds multiple PMs and replaces a scrum master while project management preserves their history', function () {
+    $this->travelTo(Carbon::parse('2026-11-02 12:00:00', 'UTC'));
+    $actor = integratedAllocationAdmin();
+    $otherPm = User::factory()->create();
+    $ordinaryRole = Role::firstOrCreate(['alias' => 'User']);
+    $otherPm->roles()->attach($ordinaryRole);
+    $firstScrum = User::factory()->create();
+    $nextScrum = User::factory()->create();
+    $pm = AssignmentRole::where('alias', 'Project Manager')->firstOrFail();
+    $scrum = AssignmentRole::create(['alias' => 'Scrum Master']);
+    $this->withToken($actor->createToken('test')->plainTextToken);
+    $id = $this->postJson('/api/projects', integratedNormalProjectPayload($actor))->assertCreated()->json('data.id');
+
+    $pmId = $this->postJson('/api/allocations', ['type' => 'project', 'project_id' => $id, 'user_id' => $otherPm->id,
+        'assignment_role_id' => $pm->id, 'start_date' => '2026-01-01'])->assertCreated()->assertJsonPath('data.role.code', 'PM')->json('data.id');
+    $this->getJson('/api/projects/'.$id)->assertOk()->assertJsonCount(2, 'data.project_managers');
+    expect($otherPm->roles()->sole()->id)->toBe($ordinaryRole->id);
+    $scrumPayload = ['type' => 'project', 'project_id' => $id, 'user_id' => $firstScrum->id,
+        'assignment_role_id' => $scrum->id, 'start_date' => '2026-01-01'];
+    $firstId = $this->postJson('/api/allocations', $scrumPayload)->assertCreated()->assertJsonPath('data.role.code', 'SM')->json('data.id');
+    $this->getJson('/api/projects/'.$id)->assertOk()->assertJsonPath('data.scrum_master_id', $firstScrum->id);
+    $this->postJson('/api/allocations', array_merge($scrumPayload, ['user_id' => $nextScrum->id]))->assertUnprocessable();
+    $this->postJson('/api/allocations/'.$firstId.'/conclude', ['end_date' => '2026-10-31'])->assertOk();
+    $this->postJson('/api/allocations', array_merge($scrumPayload, ['user_id' => $nextScrum->id, 'start_date' => '2026-11-01']))->assertCreated();
+    $this->getJson('/api/projects/'.$id)->assertOk()->assertJsonPath('data.scrum_master_id', $nextScrum->id);
+    $this->postJson('/api/allocations/'.$pmId.'/conclude', ['end_date' => '2026-10-31'])->assertOk();
+    $this->getJson('/api/projects/'.$id)->assertOk()->assertJsonCount(1, 'data.project_managers')
+        ->assertJsonPath('data.project_managers.0.id', $actor->id);
+    $this->getJson('/api/allocations/resources/'.$otherPm->id)->assertOk()
+        ->assertJsonPath('data.projects_count', 0)->assertJsonPath('data.allocations.0.role.code', 'PM');
+    $this->assertDatabaseHas('project_user', ['id' => $firstId, 'deleted_at' => null]);
+    $this->assertDatabaseHas('project_user', ['id' => $pmId, 'deleted_at' => null]);
+});
+
+test('all seven missing roles including PM and scrum master can be saved together', function () {
+    $actor = integratedAllocationAdmin();
+    $roles = collect(['Sviluppatore Front-end', 'Sviluppatore Back-end', 'Sviluppatore Full-stack', 'UX-UI Designer',
+        'Team Leader', 'Project Manager', 'Scrum Master'])
+        ->map(fn ($alias) => AssignmentRole::firstOrCreate(['alias' => $alias]));
+    $project = Project::factory()->create(['project_manager_id' => $actor->id]);
+
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->putJson('/api/allocations/projects/'.$project->id.'/necessities', ['assignment_role_ids' => $roles->pluck('id')->all()])
+        ->assertOk()->assertJsonCount(7, 'data');
+
+    $this->assertDatabaseCount('necessities', 7);
 });
 
 test('full seed creates timesheet assignments visible in allocation without putting them in the project tab', function () {

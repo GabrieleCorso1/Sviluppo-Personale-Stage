@@ -68,14 +68,14 @@ test('allocation endpoints return 403 for HR and preserve assignments', function
     expect($row->fresh()->getAttributes())->toBe($before);
 })->with('allocation routes');
 
-test('options expose only the five allocation roles and separate project types', function () {
+test('options expose all seven allocation roles including PM and scrum master and separate project types', function () {
     $admin = allocationAdmin();
-    foreach (['Sviluppatore Front-end', 'Sviluppatore Back-end', 'Sviluppatore Full-stack', 'UX-UI Designer', 'Team Leader', 'Scrum Master'] as $alias) {
+    foreach (['Sviluppatore Front-end', 'Sviluppatore Back-end', 'Sviluppatore Full-stack', 'UX-UI Designer', 'Team Leader', 'Scrum Master', 'Project Manager'] as $alias) {
         allocationRole($alias);
     }
 
     $this->withToken($admin->createToken('test')->plainTextToken)->getJson('/api/allocations/options')->assertOk()
-        ->assertJsonCount(5, 'data.roles')->assertJsonPath('data.types', ['project', 'timesheet', 'course']);
+        ->assertJsonCount(7, 'data.roles')->assertJsonPath('data.types', ['project', 'timesheet', 'course']);
 });
 
 test('one resource has independent project timesheet and course assignments', function () {
@@ -253,7 +253,7 @@ test('necessities support an atomic multi-select replacement including clearing 
     $this->assertDatabaseCount('necessities', 0);
 });
 
-test('invalid dates wrong project types hidden users and unsupported roles return 422 without creating assignments', function () {
+test('invalid dates wrong project types hidden users and unavailable roles return 422 without creating assignments', function () {
     $admin = allocationAdmin();
     $user = User::factory()->create();
     $project = allocationProject($admin);
@@ -266,7 +266,7 @@ test('invalid dates wrong project types hidden users and unsupported roles retur
         ['type' => 'timesheet', 'assignment_role_id' => null],
         ['type' => 'course', 'assignment_role_id' => null],
         ['start_date' => '2026-02-30'], ['assignment_role_id' => null],
-        ['assignment_role_id' => allocationRole('Scrum Master')->id], ['user_id' => $admin->id],
+        ['assignment_role_id' => 999999], ['user_id' => $admin->id],
     ] as $invalid) {
         $this->postJson('/api/allocations', array_merge($payload, $invalid))->assertUnprocessable();
     }

@@ -35,7 +35,7 @@ class AllocationRequest extends FormRequest
             'difficulty' => ['is_difficult' => ['required', 'boolean']],
             'conclude' => ['end_date' => ['required', 'date_format:Y-m-d']],
             'saveNecessities' => [
-                'assignment_role_ids' => ['present', 'array', 'max:5'],
+                'assignment_role_ids' => ['present', 'array', 'max:'.count(AllocationOverview::ROLES)],
                 'assignment_role_ids.*' => ['required', 'integer', 'distinct', $role],
             ],
             default => [
