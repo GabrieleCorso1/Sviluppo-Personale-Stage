@@ -31,6 +31,8 @@ class AccessControlSeeder extends Seeder
             ],
         ];
 
+        $roles[] = ['alias' => 'HR Manager', 'description' => 'Gestisce ferie, permessi e ROL.'];
+
         foreach ($roles as $role) {
             DB::table('roles')->updateOrInsert(
                 ['alias' => $role['alias']],
@@ -79,6 +81,8 @@ class AccessControlSeeder extends Seeder
             ],
         ];
 
+        $permissions[] = ['name' => 'users.leaves.manage', 'description' => 'Gestire ferie, permessi e ROL.'];
+
         foreach ($permissions as $permission) {
             DB::table('permissions')->updateOrInsert(
                 ['name' => $permission['name']],
@@ -126,6 +130,9 @@ class AccessControlSeeder extends Seeder
                 'calendar.manage',
             ],
         ];
+
+        $permissionsByRole['Admin'][] = 'users.leaves.manage';
+        $permissionsByRole['HR Manager'] = ['users.view', 'users.leaves.manage'];
 
         foreach ($permissionsByRole as $roleAlias => $permissionNames) {
             foreach ($permissionNames as $permissionName) {

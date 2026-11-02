@@ -158,3 +158,20 @@ I test di autenticazione coprono login, validazione, tentativi eccessivi, scaden
 Se manca una delle tre condizioni (opzione attiva, ambiente local, debug attivo), il link non viene restituito nella risposta: viene usato il mailer configurato. Con `MAIL_MAILER=log` il messaggio finisce in `storage/logs/laravel.log`; per consegnarlo a una casella reale occorre configurare un servizio email.
 
 L'esempio è per sviluppo locale. Prima di pubblicare online servono configurazione di produzione (`APP_ENV=production`, `APP_DEBUG=false`), HTTPS, servizio email e indirizzi corretti. Non condividere token, link di recupero, password, APP_KEY o credenziali SMTP.
+
+## Creazione utenti e primo accesso
+
+POST `/api/users` richiede `users.manage` e crea l’account senza password nel modulo: il campo `password` non va inviato. Laravel salva una password casuale non comunicata e, dopo il salvataggio di utente e contratto, invia l’invito per impostare la propria password.
+
+La risposta 201 contiene `invitation.status`: `sent` se la notifica è stata accettata dal mailer, `failed` se l’invio non è riuscito. Con `failed` l’account esiste già: non ricrearlo; usare `/api/forgot-password` per richiedere un nuovo link (il broker applica un intervallo minimo di 60 secondi). Con MAIL_MAILER=log il messaggio resta nel log, senza consegna reale.
+
+Il link punta alla pagina Angular `/reset-password` e si completa con POST `/api/reset-password`, inviando email, token, password e password_confirmation. Il token scade dopo 60 minuti e si usa una sola volta. Per gli inviti la notifica viene sempre inviata al mailer; solo se APP_ENV=local, APP_DEBUG=true e AUTH_EXPOSE_RESET_URL=true la risposta include anche `invitation.reset_url`. Non abilitare questa scorciatoia in produzione.
+
+La collezione [Gestione utenti](GESTIONE_UTENTI_GRUPPO2.postman_collection.json) contiene 56 richieste e include creazione senza password, primo accesso e link già usato. Per il giro automatico locale servono le tre opzioni di debug indicate sopra e MAIL_MAILER=log; dopo le modifiche al proprio .env eseguire `php artisan config:clear`. Impostare soltanto admin_email e admin_password nelle Variables della collezione; gli altri valori sono acquisiti automaticamente. Le nuove credenziali appartengono esclusivamente al demo creato dalla collezione.
+## Permessi HR
+
+La migration `2026_11_02_101136_add_hr_manager_role_and_leave_permission` aggiunge HR Manager e users.leaves.manage, assegna questo permesso agli Admin esistenti e assegna users.view + users.leaves.manage al nuovo ruolo HR. Eseguire `php artisan migrate` per aggiornare il proprio database; non rieseguire UserSeeder. Nessun utente viene automaticamente trasformato in HR: un Admin deve assegnare il ruolo dal modulo utenti.
+
+HR può consultare l’elenco e gestire i contatori, ma non creare, modificare o disabilitare account. users.manage da solo non autorizza più i contatori. La collezione Postman verifica anche il permesso dedicato sul profilo Admin.
+
+Il collegamento delle schermate Angular alle API è affidato ai colleghi frontend. Il backend espone gli endpoint e la collezione Postman necessari per il collegamento.
