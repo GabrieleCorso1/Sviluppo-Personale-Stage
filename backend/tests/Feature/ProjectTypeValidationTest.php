@@ -53,6 +53,29 @@ test('a timesheet accepts its form fields and defaults normal project fields', f
         ->assertOk()->assertJsonPath('data.description', 'Aggiornata');
 });
 
+test('timesheet creation includes database null defaults consistently with its detail', function () {
+    $response = $this->postJson('/api/projects', [
+        'alias' => 'Timesheet risposta completa',
+        'is_timesheet' => true,
+    ])->assertCreated();
+
+    $nullableFields = [
+        'status', 'priority', 'start_date', 'end_date', 'description',
+        'azure_project_name', 'azure_team_name', 'bug_count_url',
+        'pbi_without_feature_url', 'pbi_past_feature_url', 'note', 'delivery_plan',
+    ];
+    $response->assertJsonStructure(['data' => $nullableFields]);
+    foreach ($nullableFields as $field) {
+        $response->assertJsonPath('data.'.$field, null);
+    }
+    $response->assertJsonPath('data.project_managers', [])
+        ->assertJsonPath('data.is_daily', false);
+
+    $detail = $this->getJson('/api/projects/'.$response->json('data.id'))->assertOk();
+    foreach ($nullableFields as $field) {
+        expect($detail->json('data.'.$field))->toBe($response->json('data.'.$field));
+    }
+});
 test('timesheets reject normal project fields even when empty or false', function ($field, $value) {
     $this->postJson('/api/projects', [
         'alias' => 'Timesheet', 'is_timesheet' => true, $field => $value,
