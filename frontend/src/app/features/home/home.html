@@ -3,8 +3,11 @@
     <h1>Benvenuto nella Home!</h1>
     <p>Hai effettuato l'accesso al frontend.</p>
 
-    <button type="button" (click)="logout()">
+    <button type="button" (click)="logout()" [disabled]="caricamento()">
       Esci
     </button>
+    @if (errore()) {
+      <p role="alert">{{ errore() }}</p>
+    }
   </section>
 </main>

@@ -10,23 +10,25 @@
             <h2>Benvenuto</h2>
 
             <div class="form-group">
+                <label for="email">Email</label>
                 <input
                 id="email"
                 type="email"
                 name="email"
+                autocomplete="username"
                 [(ngModel)]="email"
-                placeholder="Email"
                 required
                 />
             </div>
             
             <div class="form-group">
+                <label for="password">Password</label>
                 <input
                 id="password"
                 type="password"
                 name="password"
+                autocomplete="current-password"
                 [(ngModel)]="password"
-                placeholder="Password"
                 required
                 />
             </div>
@@ -36,15 +38,16 @@
                 <label for="ricordami-btn">Ricordami</label>
             </div>
             
-                <button type="submit" class="login-btn" [disabled]="caricamento">{{ caricamento ? 'Accesso in corso...' : 'LOGIN' }}</button>
+                <button type="submit" class="login-btn" [disabled]="caricamento()">{{ caricamento() ? 'Accesso in corso...' : 'LOGIN' }}</button>
             
             <div>
-                <a href="#">Password dimenticata?</a>
+                <a routerLink="/forgot-password">Password dimenticata?</a>
             </div>
 
-            <!--<p class="errore" *ngIf="errore">
-            {{ errore }}
-            </p>-->
+            @if (messaggio()) { <p class="successo" role="status">{{ messaggio() }}</p> }
+            @if (errore()) {
+                <p class="errore" role="alert">{{ errore() }}</p>
+            }
         </form>
     </div>
 </div>
