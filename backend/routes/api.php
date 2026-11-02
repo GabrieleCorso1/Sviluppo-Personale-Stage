@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AllocationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -67,3 +68,17 @@ Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
 
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->middleware('throttle:5,1');
+
+Route::middleware('auth:sanctum')->prefix('allocations')->controller(AllocationController::class)->group(function () {
+    Route::get('/options', 'options');
+    Route::get('/summary', 'summary');
+    Route::get('/', 'index');
+    Route::get('/projects/{project}', 'project');
+    Route::get('/resources/{user}', 'resource');
+    Route::put('/projects/{project}/necessities', 'saveNecessities');
+    Route::post('/', 'store');
+    Route::put('/{allocation}', 'update');
+    Route::patch('/{allocation}/difficulty', 'difficulty');
+    Route::post('/{allocation}/conclude', 'conclude');
+    Route::delete('/{allocation}', 'destroy');
+});

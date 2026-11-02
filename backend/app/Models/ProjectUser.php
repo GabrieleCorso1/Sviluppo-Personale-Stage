@@ -4,14 +4,19 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ProjectUser extends Model
 {
     use HasFactory, SoftDeletes;
 
     protected $table = 'project_user';
+
+    protected $attributes = [
+        'allocation_type' => 'project',
+        'is_difficult' => false,
+    ];
 
     protected $fillable = [
         'project_id',
@@ -20,6 +25,8 @@ class ProjectUser extends Model
         'startwork_date',
         'endwork_date',
         'work_allocation',
+        'allocation_type',
+        'is_difficult',
     ];
 
     protected function casts(): array
@@ -28,6 +35,7 @@ class ProjectUser extends Model
             'startwork_date' => 'date',
             'endwork_date' => 'date',
             'work_allocation' => 'integer',
+            'is_difficult' => 'boolean',
         ];
     }
 
@@ -43,9 +51,6 @@ class ProjectUser extends Model
 
     public function assignmentRole(): BelongsTo
     {
-        return $this->belongsTo(
-            AssignmentRole::class,
-            'assignmentrole_id'
-        );
+        return $this->belongsTo(AssignmentRole::class, 'assignmentrole_id');
     }
 }
