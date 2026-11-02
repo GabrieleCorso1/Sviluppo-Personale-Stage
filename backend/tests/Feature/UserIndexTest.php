@@ -11,7 +11,7 @@ uses(LazilyRefreshDatabase::class);
 function userListViewer(): User
 {
     $actor = User::factory()->create(['first_name' => 'Viewer', 'last_name' => 'Tester', 'email' => 'viewer@fixture.test']);
-    $role = Role::create(['alias' => 'Team Leader']);
+    $role = Role::create(['alias' => 'Admin']);
     $role->permissions()->attach(Permission::create(['name' => 'users.view', 'description' => 'View users']));
     $actor->roles()->attach($role);
 
@@ -160,7 +160,7 @@ test('filter options expose roles and active assignments with expertise values',
     $deleted->delete();
     $this->withToken($actor->createToken('test')->plainTextToken)
         ->getJson('/api/users/options')->assertOk()
-        ->assertJsonFragment(['alias' => 'Team Leader'])
+        ->assertJsonFragment(['alias' => 'Admin'])
         ->assertJsonCount(1, 'data.assignment_roles')
         ->assertJsonPath('data.assignment_roles.0.id', $active->id)
         ->assertJsonPath('data.expertise', ['junior', 'senior']);

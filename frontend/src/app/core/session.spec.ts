@@ -66,6 +66,48 @@ describe('Session lifecycle', () => {
     expect(router.navigate).toHaveBeenCalled();
   });
 
+
+  it('redirects when the token expires while an authenticated request is in flight', async () => {
+    seed();
+    const result = firstValueFrom(auth.getUser());
+    const rejected = expect(result).rejects.toMatchObject({ status: 401 });
+    const request = http.expectOne(`${API_URL}/api/user`);
+    expect(request.request.headers.get('Authorization')).toBe('Bearer test-token');
+    localStorage.setItem('expires_at', '2000-01-01T00:00:00Z');
+    request.flush({}, { status: 401, statusText: 'Unauthorized' });
+    await rejected;
+    expect(localStorage.getItem('access_token')).toBeNull();
+    expect(localStorage.getItem('expires_at')).toBeNull();
+    expect(router.navigate).toHaveBeenCalledWith(['/login'], {
+      queryParams: { reason: 'session-expired' }
+    });
+  });
+
+  it('preserves a newer login when an older request returns 401', async () => {
+    seed();
+    const result = firstValueFrom(auth.getUser());
+    const rejected = expect(result).rejects.toMatchObject({ status: 401 });
+    const request = http.expectOne(`${API_URL}/api/user`);
+    localStorage.setItem('access_token', 'new-login-token');
+    localStorage.setItem('expires_at', future());
+    request.flush({}, { status: 401, statusText: 'Unauthorized' });
+    await rejected;
+    expect(auth.getToken()).toBe('new-login-token');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  it('cancels stale guard navigation without clearing a newer login', async () => {
+    seed();
+    const result = firstValueFrom(guard() as import('rxjs').Observable<unknown>);
+    const request = http.expectOne(API_URL + '/api/user');
+    localStorage.setItem('access_token', 'new-login-token');
+    localStorage.setItem('expires_at', future());
+    request.flush({}, { status: 401, statusText: 'Unauthorized' });
+    expect(await result).toBe(false);
+    expect(auth.getToken()).toBe('new-login-token');
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
   it('does not attach credentials to another origin', async () => {
     seed();
     const result = firstValueFrom(client.get('https://example.com/api/users'));

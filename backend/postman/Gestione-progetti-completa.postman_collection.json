@@ -2,7 +2,7 @@
   "info": {
     "name": "Gruppo 2 - Gestione progetti - Verifica completa",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Leggere postman/README.md prima di eseguire. Eseguire le cartelle in ordine su database locale con seeder. Crea e soft-elimina tre progetti dedicati; carica un CSV su uno sprint seed e ripristina i suoi flag originali. Usa credenziali dimostrative, nessun token reale e incluso. Impostare la Working Directory di Postman alla cartella backend per i file relativi. I controlli di date, corsi, concorrenza e assegnazioni non esposti via queste API sono coperti dalla suite Pest, non da rotte di test."
+    "description": "Eseguire le cartelle in ordine su database locale con seeder. Crea e soft-elimina tre progetti dedicati; carica un CSV su uno sprint seed e ripristina i suoi flag originali. Usa credenziali dimostrative, nessun token reale e incluso. Impostare la Working Directory di Postman alla cartella backend per i file relativi. I controlli di date, corsi, concorrenza e assegnazioni non esposti via queste API sono coperti dalla suite Pest, non da rotte di test."
   },
   "variable": [
     {

@@ -18,7 +18,7 @@ function scheduleAdministrator(): User
     return $actor;
 }
 
-test('part time counts the 09 to 18 break but uses elapsed time for other intervals', function (array $days, int $hours) {
+test('part time subtracts a one hour break only for intervals longer than six hours', function (array $days, int $hours) {
     $actor = scheduleAdministrator();
     $user = User::factory()->create();
     $response = $this->withToken($actor->createToken('test')->plainTextToken)
@@ -32,7 +32,7 @@ test('part time counts the 09 to 18 break but uses elapsed time for other interv
     'one full day in a part time week' => [[['day_of_week' => 'monday', 'start_time' => '09:00', 'end_time' => '18:00', 'is_working_day' => true]], 8],
     'morning only' => [[['day_of_week' => 'monday', 'start_time' => '09:00', 'end_time' => '13:00', 'is_working_day' => true]], 4],
     'afternoon only' => [[['day_of_week' => 'monday', 'start_time' => '14:00', 'end_time' => '18:00', 'is_working_day' => true]], 4],
-    'other interval no automatic break' => [[['day_of_week' => 'monday', 'start_time' => '10:00', 'end_time' => '18:00', 'is_working_day' => true]], 8],
+    'other long interval includes a break' => [[['day_of_week' => 'monday', 'start_time' => '10:00', 'end_time' => '18:00', 'is_working_day' => true]], 7],
     'fractional hours add precisely' => [[
         ['day_of_week' => 'monday', 'start_time' => '09:00', 'end_time' => '13:30', 'is_working_day' => true],
         ['day_of_week' => 'tuesday', 'start_time' => '09:00', 'end_time' => '12:30', 'is_working_day' => true],

@@ -20,12 +20,21 @@ class WorkSchedule
 
     public static function validate(array $days, int $weeklyHours): array
     {
+        if ($weeklyHours < 1 || $weeklyHours > 40) {
+            throw ValidationException::withMessages(['weekly_hours' => 'Le ore settimanali devono essere comprese tra 1 e 40.']);
+        }
+
         $byDay = [];
         $totalMinutes = 0;
         foreach ($days as $index => $day) {
             $working = (bool) ($day['is_working_day'] ?? false);
             $start = $working ? substr($day['start_time'] ?? '', 0, 5) : null;
             $end = $working ? substr($day['end_time'] ?? '', 0, 5) : null;
+            if ($working && in_array($day['day_of_week'], ['saturday', 'sunday'], true)) {
+                throw ValidationException::withMessages([
+                    'working_days.'.$index.'.is_working_day' => 'Sabato e domenica sono sempre non lavorativi.',
+                ]);
+            }
             if ($working) {
                 if (! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $start) || ! preg_match('/^([01]\d|2[0-3]):[0-5]\d$/', $end)) {
                     throw ValidationException::withMessages(['working_days.'.$index.'.start_time' => 'Inserisci inizio e fine per ogni giorno lavorativo.']);
@@ -60,7 +69,9 @@ class WorkSchedule
         $start = substr($start, 0, 5);
         $end = substr($end, 0, 5);
 
-        return self::minutes($end) - self::minutes($start) - ($start === '09:00' && $end === '18:00' ? 60 : 0);
+        $minutes = self::minutes($end) - self::minutes($start);
+
+        return $minutes - ($minutes > 360 ? 60 : 0);
     }
 
     private static function minutes(string $time): int

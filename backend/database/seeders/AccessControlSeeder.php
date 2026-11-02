@@ -111,7 +111,6 @@ class AccessControlSeeder extends Seeder
                 'calendar.manage',
             ],
             'Project Manager' => [
-                'users.view',
                 'projects.view',
                 'projects.manage',
                 'sprints.manage',
@@ -119,7 +118,6 @@ class AccessControlSeeder extends Seeder
                 'calendar.manage',
             ],
             'Team Leader' => [
-                'users.view',
                 'projects.view',
                 'sprints.manage',
                 'capacities.manage',
@@ -132,8 +130,13 @@ class AccessControlSeeder extends Seeder
         ];
 
         $permissionsByRole['Admin'][] = 'users.leaves.manage';
-        $permissionsByRole['HR Manager'] = ['users.view', 'users.leaves.manage'];
+        $permissionsByRole['HR Manager'] = ['users.view', 'users.manage', 'users.leaves.manage'];
 
+        // Remove the obsolete full user-list access without changing other permissions.
+        DB::table('permission_role')
+            ->whereIn('role_id', [$roleIds['Project Manager'], $roleIds['Team Leader']])
+            ->where('permission_id', $permissionIds['users.view'])
+            ->delete();
         foreach ($permissionsByRole as $roleAlias => $permissionNames) {
             foreach ($permissionNames as $permissionName) {
                 DB::table('permission_role')->updateOrInsert(

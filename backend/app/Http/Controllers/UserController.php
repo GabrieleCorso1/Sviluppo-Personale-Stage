@@ -78,7 +78,7 @@ class UserController extends Controller
 
     public function show(User $user): JsonResponse
     {
-        $this->authorize('update', $user);
+        $this->authorize('view', $user);
 
         return response()->json([
             'success' => true,
@@ -116,26 +116,9 @@ class UserController extends Controller
     /**
      * Elimina un utente specifico tramite il suo ID.
      */
-    public function destroy($id): JsonResponse
+    public function destroy(Request $request, $id): JsonResponse
     {
-        $user = User::find($id);
-
-        if (! $user) {
-            return response()->json([
-                'message' => 'Utente non trovato.',
-            ], 404);
-        }
-
-        $this->authorize('delete', $user);
-
-        DB::transaction(function () use ($user) {
-            $user->tokens()->delete();
-            $user->delete();
-        });
-
-        return response()->json([
-            'message' => 'Utente eliminato con successo.',
-        ], 200);
+        return $this->disable($request, $id);
     }
 
     public function store(StoreUserRequest $request, UserInvitation $invitations): JsonResponse
@@ -155,11 +138,19 @@ class UserController extends Controller
                 'hiring_date' => $request->validated('hiring_date'),
                 'filestorage_id' => $request->validated('filestorage_id'),
                 'is_intern' => $request->validated('is_intern', false),
-                'isAllocation_visible' => $request->validated('isAllocation_visible', false),
+                'isAllocation_visible' => $request->validated('isAllocation_visible', true),
                 'remember_me' => $request->validated('remember_me', false),
             ]);
 
             $this->saveUserContract($user, $request->validated());
+
+            // A hiring-date change must remain compatible with every saved contract.
+            if ($request->has('hiring_date') && $user->contracts()
+                ->whereDate('contract_start_date', '<', $user->hiring_date->toDateString())->exists()) {
+                throw ValidationException::withMessages([
+                    'hiring_date' => 'La data di assunzione non può essere successiva all’inizio di un contratto esistente.',
+                ]);
+            }
 
             $this->syncUserAssignments($user, $request->validated());
 
@@ -189,7 +180,8 @@ class UserController extends Controller
             // 1. Prepariamo i dati dell'utente da aggiornare
             $userData = $request->safe()->only($user->getFillable());
 
-            if (! empty($userData['password'])) {
+            $passwordChanged = ! empty($userData['password']);
+            if ($passwordChanged) {
                 $userData['password'] = bcrypt($userData['password']);
             } else {
                 unset($userData['password']);
@@ -198,7 +190,19 @@ class UserController extends Controller
             // Aggiorniamo l'utente
             $user->update($userData);
 
+            if ($passwordChanged) {
+                $user->tokens()->delete();
+            }
+
             $this->saveUserContract($user, $request->validated());
+
+            // A hiring-date change must remain compatible with every saved contract.
+            if ($request->has('hiring_date') && $user->contracts()
+                ->whereDate('contract_start_date', '<', $user->hiring_date->toDateString())->exists()) {
+                throw ValidationException::withMessages([
+                    'hiring_date' => 'La data di assunzione non può essere successiva all’inizio di un contratto esistente.',
+                ]);
+            }
 
             $this->syncUserAssignments($user, $request->validated());
 
@@ -224,7 +228,12 @@ class UserController extends Controller
         $this->authorize('delete', $user);
 
         $request->validate([
-            'resignation_date' => ['required', 'date'],
+            'resignation_date' => [
+                'required',
+                'date_format:Y-m-d',
+                'after_or_equal:'.$user->hiring_date->toDateString(),
+                'before_or_equal:'.Carbon::now('Europe/Rome')->toDateString(),
+            ],
         ]);
 
         DB::transaction(function () use ($user, $request) {
@@ -263,7 +272,7 @@ class UserController extends Controller
     private function saveUserContract(User $user, array $data): void
     {
         $contractData = array_intersect_key($data, array_flip([
-            'contract_start_date', 'contract_end_date', 'weekly_hours', 'contract_type',
+            'contract_start_date', 'contract_end_date', 'weekly_hours', 'contract_type', 'has_rol',
         ]));
         if ($contractData === [] && ! array_key_exists('working_days', $data)) {
             return;
@@ -287,6 +296,11 @@ class UserController extends Controller
         }
 
         $start = $contractData['contract_start_date'] ?? $contract?->contract_start_date;
+        if (Carbon::parse($start)->startOfDay()->lt($user->hiring_date->copy()->startOfDay())) {
+            throw ValidationException::withMessages([
+                'contract_start_date' => 'Il contratto non può iniziare prima della data di assunzione.',
+            ]);
+        }
         $end = array_key_exists('contract_end_date', $contractData)
             ? $contractData['contract_end_date']
             : $contract?->contract_end_date;
@@ -332,6 +346,16 @@ class UserController extends Controller
                 ? []
                 : [$data['assignment_role_id'] => ['expertise' => $data['expertise']]];
             $user->assignmentRoles()->sync($assignments);
+        } elseif (array_key_exists('expertise', $data)) {
+            $assignments = $user->assignmentRoles()->get();
+            if ($assignments->count() !== 1) {
+                throw ValidationException::withMessages([
+                    'assignment_role_id' => 'Seleziona un unico incarico prima di modificarne la competenza.',
+                ]);
+            }
+            $user->assignmentRoles()->updateExistingPivot($assignments->first()->id, [
+                'expertise' => $data['expertise'],
+            ]);
         }
     }
 }

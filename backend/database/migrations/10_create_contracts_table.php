@@ -22,6 +22,7 @@ return new class extends Migration
             $table->date('contract_end_date')->nullable();
 
             $table->unsignedInteger('weekly_hours');
+            $table->boolean('has_rol')->default(false);
 
             $table->string('contract_type')->nullable();
 

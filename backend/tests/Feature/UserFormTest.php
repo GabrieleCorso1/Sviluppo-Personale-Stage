@@ -14,6 +14,7 @@ function userFormAdministrator(): User
     $actor = User::factory()->create();
     $role = Role::create(['alias' => 'Admin']);
     $role->permissions()->attach(Permission::create(['name' => 'users.manage', 'description' => 'Manage users']));
+    $role->permissions()->attach(Permission::firstOrCreate(['name' => 'users.view'], ['description' => 'View users']));
     $actor->roles()->attach($role);
 
     return $actor;
@@ -193,4 +194,71 @@ test('the edit endpoint returns 404 for missing and disabled users', function ()
 
     $this->getJson('/api/users/'.$user->id)->assertNotFound();
     $this->getJson('/api/users/99999')->assertNotFound();
+});
+
+test('expertise can change on its own while preserving the single professional assignment', function (string $from, string $to) {
+    $actor = userFormAdministrator();
+    $user = User::factory()->create();
+    $assignment = AssignmentRole::create(['alias' => 'Sviluppatore Back-end']);
+    $user->assignmentRoles()->attach($assignment, ['expertise' => $from]);
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->putJson('/api/users/'.$user->id, ['expertise' => $to])
+        ->assertOk()->assertJsonCount(1, 'data.assignment_roles')
+        ->assertJsonPath('data.assignment_roles.0.id', $assignment->id)
+        ->assertJsonPath('data.assignment_roles.0.pivot.expertise', $to);
+    expect($user->assignmentRoles()->count())->toBe(1);
+})->with([['junior', 'senior'], ['senior', 'junior']]);
+
+test('expertise alone rejects invalid or empty levels without changing the assignment', function ($level) {
+    $actor = userFormAdministrator();
+    $user = User::factory()->create();
+    $assignment = AssignmentRole::create(['alias' => 'Sviluppatore Back-end']);
+    $user->assignmentRoles()->attach($assignment, ['expertise' => 'junior']);
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->putJson('/api/users/'.$user->id, ['expertise' => $level])
+        ->assertUnprocessable()->assertJsonValidationErrors('expertise');
+    expect($user->assignmentRoles()->firstOrFail()->pivot->expertise)->toBe('junior');
+})->with([['expert'], [null], [''], [['junior', 'senior']]]);
+
+test('expertise alone cannot guess between legacy multiple assignments and rolls back profile changes', function () {
+    $actor = userFormAdministrator();
+    $user = User::factory()->create();
+    $first = AssignmentRole::create(['alias' => 'Sviluppatore Back-end']);
+    $second = AssignmentRole::create(['alias' => 'Team Leader']);
+    $user->assignmentRoles()->attach([$first->id => ['expertise' => 'junior'], $second->id => ['expertise' => 'senior']]);
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->putJson('/api/users/'.$user->id, ['first_name' => 'Rollback', 'expertise' => 'senior'])
+        ->assertUnprocessable()->assertJsonValidationErrors('assignment_role_id');
+    expect($user->fresh()->first_name)->toBe($user->first_name);
+    expect($user->assignmentRoles()->count())->toBe(2);
+    expect($user->assignmentRoles()->whereKey($first->id)->firstOrFail()->pivot->expertise)->toBe('junior');
+});
+
+test('allocation visibility defaults to true and honors an explicit creation choice', function (array $extra, bool $expected) {
+    $actor = userFormAdministrator();
+    $role = Role::create(['alias' => 'User']);
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->postJson('/api/users', userFormPayload($actor, $role) + $extra)->assertCreated()
+        ->assertJsonPath('data.isAllocation_visible', $expected);
+})->with([
+    'omitted' => [[], true],
+    'explicit no' => [['isAllocation_visible' => false], false],
+    'explicit yes' => [['isAllocation_visible' => true], true],
+]);
+
+test('editing other user fields preserves allocation visibility', function (bool $visible) {
+    $actor = userFormAdministrator();
+    $user = User::factory()->create(['isAllocation_visible' => $visible]);
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->putJson('/api/users/'.$user->id, ['first_name' => 'Changed'])->assertOk()
+        ->assertJsonPath('data.isAllocation_visible', $visible);
+    expect($user->fresh()->isAllocation_visible)->toBe($visible);
+})->with([true, false]);
+
+test('an explicit null visibility is rejected rather than saved to a non nullable column', function () {
+    $actor = userFormAdministrator();
+    $role = Role::create(['alias' => 'User']);
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->postJson('/api/users', userFormPayload($actor, $role) + ['isAllocation_visible' => null])
+        ->assertUnprocessable()->assertJsonValidationErrors('isAllocation_visible');
 });

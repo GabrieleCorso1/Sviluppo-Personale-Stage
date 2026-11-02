@@ -8,15 +8,17 @@ import { SKIP_AUTH_REDIRECT } from '../auth-http';
 export const authGuardGuard: CanActivateFn = () => {
   const auth = inject(Auth);
   const router = inject(Router);
-  if (!auth.isAuthenticated()) {
+  const token = auth.getToken();
+  if (!token) {
     return router.createUrlTree(['/login']);
   }
 
   return auth.getUser(new HttpContext().set(SKIP_AUTH_REDIRECT, true)).pipe(
     map(() => true),
     catchError((error: HttpErrorResponse) => {
-      if (error.status === 401) {
-        auth.clearSession();
+      const currentToken = auth.getToken();
+      if (currentToken !== null && currentToken !== token) {
+        return of(false);
       }
       return of(router.createUrlTree(['/login'], {
         queryParams: {

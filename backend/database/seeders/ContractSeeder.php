@@ -61,6 +61,7 @@ class ContractSeeder extends Seeder
             }
 
             unset($contractData['email']);
+            $contractData['has_rol'] = false;
 
             DB::table('contracts')->updateOrInsert(
                 [

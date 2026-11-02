@@ -20,6 +20,7 @@ class Contract extends Model
         'contract_end_date',
         'weekly_hours',
         'contract_type',
+        'has_rol',
     ];
 
     protected function casts(): array
@@ -28,6 +29,7 @@ class Contract extends Model
             'contract_start_date' => 'date',
             'contract_end_date' => 'date',
             'weekly_hours' => 'integer',
+            'has_rol' => 'boolean',
         ];
     }
 

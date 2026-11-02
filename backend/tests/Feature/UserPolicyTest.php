@@ -22,13 +22,13 @@ test('user permissions follow the seeded role matrix', function (string $alias, 
     expect($gate->allows('delete', $target))->toBe($canManage);
     expect($gate->allows('restore', $target))->toBe($canManage);
     expect($gate->allows('manageLeaves', $target))->toBe($canLeaves);
-    expect($gate->allows('update', $actor))->toBe($canManage);
+    expect($gate->allows('update', $actor))->toBe($canManage && $alias !== 'HR Manager');
     expect($gate->allows('delete', $actor))->toBeFalse();
 })->with([
-    'HR manager' => ['HR Manager', true, false, true],
+    'HR manager' => ['HR Manager', true, true, true],
     'administrator' => ['Admin', true, true, true],
-    'project manager' => ['Project Manager', true, false, false],
-    'team leader' => ['Team Leader', true, false, false],
+    'project manager' => ['Project Manager', false, false, false],
+    'team leader' => ['Team Leader', false, false, false],
     'standard user' => ['User', false, false, false],
 ]);
 
@@ -56,7 +56,8 @@ test('user administration permission alone does not grant access to leave counte
     $this->withToken($actor->createToken('test')->plainTextToken)->getJson('/api/users/'.$target->id.'/leaves')->assertForbidden();
 });
 
-test('HR can update counters but cannot create modify or disable users', function () {
+test('HR can manage counters and ordinary accounts', function () {
+    $this->seed(AccessControlSeeder::class);
     $actor = User::factory()->create();
     $target = User::factory()->create();
     $actor->roles()->attach(Role::where('alias', 'HR Manager')->firstOrFail());
@@ -64,9 +65,9 @@ test('HR can update counters but cannot create modify or disable users', functio
     $this->getJson('/api/users')->assertOk();
     $this->putJson('/api/users/'.$target->id.'/leaves', ['leaves' => [['leave_type' => 'ferie', 'reference_month' => '2026-01-01', 'remaining_hours' => 8]]])->assertOk();
     $this->assertDatabaseHas('leave_audit_logs', ['admin_id' => $actor->id, 'user_id' => $target->id, 'new_value' => 8]);
-    $this->postJson('/api/users', [])->assertForbidden();
-    $this->putJson('/api/users/'.$target->id, ['first_name' => 'Denied'])->assertForbidden();
-    $this->postJson('/api/users/'.$target->id.'/disable', ['resignation_date' => '2026-11-02'])->assertForbidden();
+    $this->postJson('/api/users', [])->assertUnprocessable();
+    $this->putJson('/api/users/'.$target->id, ['first_name' => 'Allowed'])->assertOk();
+    $this->postJson('/api/users/'.$target->id.'/disable', ['resignation_date' => '2026-11-02'])->assertOk();
 });
 
 test('the permission upgrade backfills existing admins without duplicating HR roles', function () {
