@@ -101,19 +101,6 @@ class UserController extends Controller
     }
 
     /**
-     * Mostra i dati dell'utente attualmente autenticato usando la facciata Auth.
-     */
-    public function profile(Request $request): JsonResponse
-    {
-        $user = auth()->user();
-
-        return response()->json([
-            'success' => true,
-            'data' => $user,
-        ], 200);
-    }
-
-    /**
      * Elimina un utente specifico tramite il suo ID.
      */
     public function destroy(Request $request, $id): JsonResponse

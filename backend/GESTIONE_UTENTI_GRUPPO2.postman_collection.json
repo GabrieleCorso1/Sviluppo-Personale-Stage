@@ -3191,6 +3191,518 @@
       ]
     },
     {
+      "name": "04b - Profilo personale, foto e password",
+      "item": [
+        {
+          "name": "P01 - Profilo personale completo",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user/profile",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "const d=pm.response.json().data;",
+                  "pm.test('Solo il proprio profilo',()=>{ pm.expect(String(d.id)).to.eql(pm.collectionVariables.get('test_user_id')); pm.expect(d.email).to.eql(pm.collectionVariables.get('test_email')); });",
+                  "pm.test('Campi profilo senza password',()=>{ pm.expect(d).to.have.property('roles'); pm.expect(d).to.have.property('assignment_roles'); pm.expect(d).to.have.property('hiring_date'); pm.expect(d).not.to.have.property('password'); });"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P02 - Profilo senza sessione: 401",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user/profile",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "if (pm.response.code !== 401) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P03 - Password attuale errata: 422",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/user/password",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"password-volutamente-errata\",\n  \"password\": \"NewDemoPassword123!\",\n  \"password_confirmation\": \"NewDemoPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "if (pm.response.code !== 422) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Errore password attuale',()=>pm.expect(pm.response.json().errors).to.have.property('current_password'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P04 - Conferma password diversa: 422",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/user/password",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{test_password}}\",\n  \"password\": \"NewDemoPassword123!\",\n  \"password_confirmation\": \"diversa\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
+                  "if (pm.response.code !== 422) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Errore conferma',()=>pm.expect(pm.response.json().errors).to.have.property('password'));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P05 - Carica foto personale PNG",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/user/avatar",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "avatar",
+                  "type": "file",
+                  "src": "postman/fixtures/logo.png"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Foto privata disponibile',()=>pm.expect(pm.response.json().data.avatar_requires_auth).to.eql(true));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P06 - Leggi foto personale",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user/avatar",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Foto PNG',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('image/png')); "
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P07 - Rimuovi foto personale",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/user/avatar",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Avatar predefinito',()=>pm.expect(pm.response.json().data.avatar_requires_auth).to.eql(false));"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P08 - Leggi avatar predefinito",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user/avatar",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Avatar SVG',()=>pm.expect(pm.response.headers.get('Content-Type')).to.include('image/svg+xml')); "
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P09 - Modifica password demo e revoca sessioni",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/user/password",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"{{test_password}}\",\n  \"password\": \"NewDemoPassword123!\",\n  \"password_confirmation\": \"NewDemoPassword123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.collectionVariables.set('test_password','NewDemoPassword123!');"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P10 - Vecchia sessione revocata",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user/profile",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 401', () => pm.response.to.have.status(401));",
+                  "if (pm.response.code !== 401) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P11 - Nuovo accesso demo dopo cambio password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{base_url}}/api/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "description": "Risposta attesa: 200. Eseguire nell'ordine della collezione. Le richieste con modifica usano esclusivamente l'utente creato nella cartella 01.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"{{test_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "if (!pm.collectionVariables.get(\"test_user_id\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_user_id. Eseguire le cartelle in ordine.'); }",
+                  "if (!pm.collectionVariables.get(\"test_email\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_email. Eseguire le cartelle in ordine.'); }",
+                  "if (!pm.collectionVariables.get(\"test_password\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_password. Eseguire le cartelle in ordine.'); }",
+                  "",
+                  "",
+                  "const bodyTemplate = {\"email\":\"{{test_email}}\",\"password\":\"{{test_password}}\"};",
+                  "function resolveBody(value) {",
+                  "    if (Array.isArray(value)) return value.map(resolveBody);",
+                  "    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, resolveBody(val)]));",
+                  "    if (typeof value !== 'string') return value;",
+                  "    const match = value.match(/^\\{\\{([a-z_]+)\\}\\}$/);",
+                  "    if (!match) return value;",
+                  "    const resolved = pm.collectionVariables.get(match[1]);",
+                  "    if (resolved === undefined || resolved === '') { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile body mancante: ' + match[1]); }",
+                  "    return ['role_user_id','assignment_role_id','filestorage_id','test_contract_id'].includes(match[1]) ? Number(resolved) : resolved;",
+                  "}",
+                  "pm.request.body.update(JSON.stringify(resolveBody(bodyTemplate)));"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', function () { pm.response.to.have.status(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: esecuzione fermata. Consultare il body.'); }",
+                  "const j = pm.response.json();",
+                  "pm.collectionVariables.set('user_token', j.access_token);"
+                ]
+              }
+            }
+          ],
+          "response": []
+        },
+        {
+          "name": "P12 - Profilo accessibile con nuova sessione",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/user/profile",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{user_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: consultare il body.'); }",
+                  "pm.test('Utente demo',()=>pm.expect(String(pm.response.json().data.id)).to.eql(pm.collectionVariables.get('test_user_id'))); "
+                ]
+              }
+            }
+          ],
+          "response": []
+        }
+      ]
+    },
+    {
       "name": "05 - Disabilitazione, ripristino e chiusura",
       "description": "Disabilita il demo, verifica revoca del token, riabilita, verifica un nuovo login e infine lascia il demo disabilitato. Nessuna cancellazione definitiva.",
       "item": [
