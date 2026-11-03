@@ -2,15 +2,21 @@
 
 namespace App\Models;
 
+use App\Support\ProjectCalendar;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Validation\ValidationException;
 
 class Project extends Model
 {
     use HasFactory, SoftDeletes;
+
+    protected $hidden = ['managed_alias'];
 
     protected $fillable = [
         'alias',
@@ -24,7 +30,6 @@ class Project extends Model
         'team_leader_id',
         'scrum_master_id',
         'delivery_plan',
-        'sprintreview_id',
         'azure_team_name',
         'bug_count_url',
         'note',
@@ -38,6 +43,29 @@ class Project extends Model
         'filestorage_id',
     ];
 
+    public function save(array $options = [])
+    {
+        try {
+            return parent::save($options);
+        } catch (UniqueConstraintViolationException $exception) {
+            $message = $exception->getMessage();
+            $nameConstraint = str_contains($message, 'projects_managed_name_type_unique')
+                || (str_contains($message, 'projects.managed_alias') && str_contains($message, 'projects.is_timesheet'));
+            if (! $nameConstraint) {
+                throw $exception;
+            }
+
+            throw ValidationException::withMessages([
+                'alias' => 'Esiste gia un progetto con questo nome nello stesso tipo, anche tra quelli eliminati.',
+            ]);
+        }
+    }
+
+    public function replicate(?array $except = null)
+    {
+        return parent::replicate(array_merge($except ?? [], ['managed_alias']));
+    }
+
     protected function casts(): array
     {
         return [
@@ -48,6 +76,7 @@ class Project extends Model
             'is_course' => 'boolean',
             'start_date' => 'date',
             'end_date' => 'date',
+            'next_sprint_review_date' => 'date:Y-m-d',
         ];
     }
 
@@ -56,9 +85,53 @@ class Project extends Model
         return $this->belongsTo(User::class, 'project_manager_id');
     }
 
+    public function currentProjectManagerAssignments(): HasMany
+    {
+        $today = ProjectCalendar::today();
+
+        return $this->hasMany(ProjectUser::class)
+            ->whereHas('assignmentRole', fn ($query) => $query->where('alias', 'Project Manager'))
+            ->whereHas('user')
+            ->whereDate('startwork_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereNull('endwork_date')->orWhereDate('endwork_date', '>=', $today);
+            })
+            ->orderBy('id');
+    }
+
     public function teamLeader(): BelongsTo
     {
         return $this->belongsTo(User::class, 'team_leader_id');
+    }
+
+    public function currentTeamLeaderAssignment(): HasOne
+    {
+        $today = ProjectCalendar::today();
+
+        return $this->hasOne(ProjectUser::class)
+            ->whereHas('assignmentRole', fn ($query) => $query->where('alias', 'Team Leader'))
+            ->whereHas('user')
+            ->whereDate('startwork_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereNull('endwork_date')
+                    ->orWhereDate('endwork_date', '>=', $today);
+            })
+            ->orderBy('id');
+    }
+
+    public function currentScrumMasterAssignment(): HasOne
+    {
+        $today = ProjectCalendar::today();
+
+        return $this->hasOne(ProjectUser::class)
+            ->whereHas('assignmentRole', fn ($query) => $query->where('alias', 'Scrum Master'))
+            ->whereHas('user')
+            ->whereDate('startwork_date', '<=', $today)
+            ->where(function ($query) use ($today) {
+                $query->whereNull('endwork_date')
+                    ->orWhereDate('endwork_date', '>=', $today);
+            })
+            ->orderBy('id');
     }
 
     public function scrumMaster(): BelongsTo
@@ -74,6 +147,19 @@ class Project extends Model
     public function projectUsers(): HasMany
     {
         return $this->hasMany(ProjectUser::class);
+    }
+
+    public function upcomingReviewSprints(): HasMany
+    {
+        return $this->sprints()
+            ->where('is_concluded', false)
+            ->whereDate('end_date', '>=', ProjectCalendar::today());
+    }
+
+    public function sprintsRequiringCsv(): HasMany
+    {
+        return $this->sprints()->where('is_concluded', true)
+            ->where('is_billing', false);
     }
 
     public function sprints(): HasMany

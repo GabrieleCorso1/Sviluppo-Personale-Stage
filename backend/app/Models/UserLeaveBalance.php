@@ -16,6 +16,7 @@ class UserLeaveBalance extends Model
         'user_id',
         'leave_type',
         'reference_month',
+        'reference_date',
         'remaining_hours',
         'accrued_hours',
         'monthly_accrual',
@@ -25,6 +26,7 @@ class UserLeaveBalance extends Model
     {
         return [
             'reference_month' => 'date',
+            'reference_date' => 'date:Y-m-d',
             'remaining_hours' => 'decimal:2',
             'accrued_hours' => 'decimal:2',
             'monthly_accrual' => 'decimal:2',

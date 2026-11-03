@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('leave_type');//Forse enum
 
             $table->date('reference_month');
+            $table->date('reference_date')->nullable();
 
             $table->decimal('remaining_hours', 8, 2);
             $table->decimal('accrued_hours', 8, 2);
