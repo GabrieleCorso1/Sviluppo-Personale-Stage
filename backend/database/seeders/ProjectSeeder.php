@@ -260,6 +260,9 @@ class ProjectSeeder extends Seeder
             'work_allocation' => 0,
         ];
 
+        $projectTypes = DB::table('projects')->whereIn('id', array_values($projectIds))->get(['id', 'is_timesheet', 'is_course'])
+            ->mapWithKeys(fn ($project) => [$project->id => $project->is_course ? 'course' : ($project->is_timesheet ? 'timesheet' : 'project')]);
+
         foreach ($assignments as $assignment) {
             $userId = $userIds[$assignment['email']] ?? null;
 
@@ -287,6 +290,7 @@ class ProjectSeeder extends Seeder
                     'startwork_date' => $assignment['startwork_date'],
                 ],
                 [
+                    'allocation_type' => $projectTypes[$projectIds[$assignment['project']]],
                     'endwork_date' => $assignment['endwork_date'],
                     'work_allocation' => $assignment['work_allocation'],
                     'updated_at' => $now,

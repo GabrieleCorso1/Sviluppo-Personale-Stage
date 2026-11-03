@@ -14,6 +14,11 @@ class ProjectUser extends Model
 
     protected $table = 'project_user';
 
+    protected $attributes = [
+        'allocation_type' => 'project',
+        'is_difficult' => false,
+    ];
+
     protected $fillable = [
         'project_id',
         'user_id',
@@ -21,6 +26,8 @@ class ProjectUser extends Model
         'startwork_date',
         'endwork_date',
         'work_allocation',
+        'allocation_type',
+        'is_difficult',
     ];
 
     public function save(array $options = [])
@@ -28,13 +35,20 @@ class ProjectUser extends Model
         return $this->getConnection()->transaction(function () use ($options) {
             // Serialize assignment changes on the same project, including moves between projects.
             $projectIds = array_filter([$this->project_id, $this->getOriginal('project_id')]);
-            $this->getConnection()->table('projects')->whereIn('id', $projectIds)
-                ->orderBy('id')->lockForUpdate()->get(['id']);
+            $projects = $this->getConnection()->table('projects')->whereIn('id', $projectIds)
+                ->orderBy('id')->lockForUpdate()->get(['id', 'is_timesheet', 'is_course']);
+
+            $project = $projects->firstWhere('id', $this->project_id);
+            if ($project !== null) {
+                $this->allocation_type = $project->is_course ? 'course' : ($project->is_timesheet ? 'timesheet' : 'project');
+            }
 
             if (! $this->trashed()) {
                 $this->validatePeriod();
-                $this->validateProjectManagerCompatibility();
-                $this->validateSingleLeadership();
+                if ($this->allocation_type === 'project') {
+                    $this->validateProjectManagerCompatibility();
+                    $this->validateSingleLeadership();
+                }
             }
 
             return parent::save($options);
@@ -113,6 +127,7 @@ class ProjectUser extends Model
             'startwork_date' => 'date',
             'endwork_date' => 'date',
             'work_allocation' => 'integer',
+            'is_difficult' => 'boolean',
         ];
     }
 
@@ -128,9 +143,6 @@ class ProjectUser extends Model
 
     public function assignmentRole(): BelongsTo
     {
-        return $this->belongsTo(
-            AssignmentRole::class,
-            'assignmentrole_id'
-        );
+        return $this->belongsTo(AssignmentRole::class, 'assignmentrole_id');
     }
 }

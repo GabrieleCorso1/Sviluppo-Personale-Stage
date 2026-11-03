@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\AllocationController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -8,9 +9,9 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagerOptionController;
 use App\Http\Controllers\ProjectParticipantAvatarController;
 use App\Http\Controllers\SprintCsvController;
-use App\Http\Middleware\EnsureManagedProject;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserLeaveController;
+use App\Http\Middleware\EnsureManagedProject;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -78,6 +79,21 @@ Route::post('/forgot-password', [PasswordResetLinkController::class, 'store'])
 Route::post('/reset-password', [NewPasswordController::class, 'store'])
     ->middleware('throttle:5,1');
 
+Route::middleware('auth:sanctum')->prefix('allocations')->controller(AllocationController::class)->group(function () {
+    Route::get('/options', 'options');
+    Route::get('/summary', 'summary');
+    Route::get('/', 'index');
+    Route::get('/projects/{project}', 'project');
+    Route::get('/resources/{user}', 'resource');
+    Route::get('/resources/{user}/avatar', 'avatar')->name('allocations.resources.avatar');
+    Route::get('/projects/{project}/logo', 'logo')->name('allocations.projects.logo');
+    Route::put('/projects/{project}/necessities', 'saveNecessities');
+    Route::post('/', 'store');
+    Route::put('/{allocation}', 'update');
+    Route::patch('/{allocation}/difficulty', 'difficulty');
+    Route::post('/{allocation}/conclude', 'conclude');
+    Route::delete('/{allocation}', 'destroy');
+});
 Route::post('/projects', [ProjectController::class, 'store'])
     ->middleware(['auth:sanctum', EnsureManagedProject::class]);
 Route::get('/projects', [ProjectController::class, 'index'])
