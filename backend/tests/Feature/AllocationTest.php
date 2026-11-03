@@ -418,3 +418,21 @@ test('rollback refuses to discard independent timesheet or course allocations', 
     $this->assertModelExists($row);
     $this->assertDatabaseHas('project_user', ['id' => $row->id, 'allocation_type' => 'timesheet']);
 });
+
+test('necessities reject courses and timesheets without changing existing needs', function (array $flags, array $roles) {
+    $admin = allocationAdmin();
+    $project = allocationProject($admin, $flags);
+    $role = allocationRole();
+    $need = Necessity::create(['project_id' => $project->id, 'assignmentrole_id' => $role->id]);
+    $this->withToken($admin->createToken('test')->plainTextToken)
+        ->putJson('/api/allocations/projects/'.$project->id.'/necessities', [
+            'assignment_role_ids' => $roles === [] ? [] : [$role->id],
+        ])->assertUnprocessable()->assertJsonValidationErrors('assignment_role_ids');
+    $this->assertModelExists($need);
+    $this->assertDatabaseCount('necessities', 1);
+})->with([
+    'course add' => [['is_course' => true], [1]],
+    'course clear' => [['is_course' => true], []],
+    'timesheet add' => [['is_timesheet' => true], [1]],
+    'timesheet clear' => [['is_timesheet' => true], []],
+]);

@@ -68,3 +68,25 @@ test('counters saved just after Italian new year are immediately visible in the 
     $this->getJson($path.'/history?year=2027')->assertOk()->assertJsonPath('data.total', 3);
     $this->assertDatabaseHas('user_leave_balances', ['user_id' => $user->id, 'remaining_hours' => 8]);
 });
+
+test('full-time conversion rejects weekends for both hours and days', function (string $date, string $amount) {
+    $admin = calendarLeaveAdministrator();
+    $user = User::factory()->create();
+    $user->contracts()->create(['contract_start_date' => '2026-01-01', 'weekly_hours' => 40]);
+    $this->withToken($admin->createToken('test')->plainTextToken)
+        ->getJson('/api/users/'.$user->id.'/leaves/conversion?date='.$date.'&'.$amount.'=1')
+        ->assertUnprocessable()->assertJsonValidationErrors('date');
+})->with([
+    ['2026-11-07', 'days'], ['2026-11-07', 'hours'],
+    ['2026-11-08', 'days'], ['2026-11-08', 'hours'],
+]);
+
+test('full-time conversion still converts working days in both directions', function () {
+    $admin = calendarLeaveAdministrator();
+    $user = User::factory()->create();
+    $user->contracts()->create(['contract_start_date' => '2026-01-01', 'weekly_hours' => 40]);
+    $this->withToken($admin->createToken('test')->plainTextToken);
+    $url = '/api/users/'.$user->id.'/leaves/conversion?date=2026-11-09';
+    $this->getJson($url.'&days=1')->assertOk()->assertJsonPath('data.hours', 8);
+    $this->getJson($url.'&hours=4')->assertOk()->assertJsonPath('data.days', 0.5);
+});

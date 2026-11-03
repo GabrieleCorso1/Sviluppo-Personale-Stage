@@ -157,6 +157,9 @@ class UserLeaveController extends Controller
             throw ValidationException::withMessages(['contract_id' => 'Seleziona un unico contratto dell’utente valido alla data indicata.']);
         }
         $contract = $matches->first();
+        if ($date->isWeekend()) {
+            throw ValidationException::withMessages(['date' => 'La data indicata non è un giorno lavorativo.']);
+        }
         $hoursPerDay = 8.0;
         if ($contract->weekly_hours !== 40) {
             $schedule = WorkSchedule::validate($contract->workingDays->toArray(), $contract->weekly_hours);

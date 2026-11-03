@@ -211,7 +211,12 @@ class AllocationController extends Controller
     {
         $roles = $request->validated('assignment_role_ids');
         DB::transaction(function () use ($project, $roles) {
-            Project::whereKey($project->id)->lockForUpdate()->firstOrFail();
+            $normalProject = $this->overview->projects('project')->whereKey($project->id)->lockForUpdate()->first();
+            if (! $normalProject) {
+                throw ValidationException::withMessages([
+                    'assignment_role_ids' => 'I fabbisogni di personale sono previsti solo per i progetti normali.',
+                ]);
+            }
             $query = $this->overview->necessityQuery()->where('project_id', $project->id);
             (clone $query)->whereNotIn('assignmentrole_id', $roles)->delete();
             foreach ($roles as $role) {
