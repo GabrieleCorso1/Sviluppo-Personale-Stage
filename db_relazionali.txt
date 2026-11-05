@@ -1,0 +1,47 @@
+
+
+Table users {
+  id integer [primary key]
+  roles_id integer
+  name varchar
+  email varchar
+  password varchar
+  surname varchar
+  created_at timestamp
+  calendar_id integer
+}
+
+Table roles{
+  id integer [primary key]
+  name varchar 
+}
+
+Table projects{
+  id integer [primary key]
+  name varchar
+  typology varchar
+  description varchar
+  data_inizio date
+  data_fine date
+  status boolean
+  created_at timestamp
+}
+
+Table users_projects{
+  id integer [primary key]
+  users_id integer
+  projects_id integer
+}
+
+Table calendar{
+  id integer [primary key]
+  date datetime
+  is_smart boolean
+  is_sick boolean
+  is_holiday boolean
+}
+
+Ref: users.roles_id > roles.id
+Ref: users_projects.users_id > users.id
+Ref: users_projects.projects_id > projects.id
+Ref: users.calendar_id > calendar.id

@@ -1,114 +1,56 @@
+<app-layout [canAccessSettings]="true" (openSettings)="router.navigate(['/impostazioni'])">
+  <div class="page-content">
+    <label class="search-box">
+      <i class="bi bi-search"></i>
+      <input
+        type="search"
+        placeholder="Cerca un'impostazione..."
+        aria-label="Cerca un'impostazione"
+        [value]="searchText"
+        (input)="searchText = $any($event.target).value"
+      />
+    </label>
 
-<div class="dashboard">
-  <aside class="sidebar">
-<div class="brand" title="Pagina iniziale">
-  <img
-    src="/img/impostazioni/LogoContainer.png"
-    alt="Logo Sviluppo Personale"
-  />
-</div>
+    @for (section of filteredSections; track section.title) {
+      <section class="settings-section">
+        <h2 class="section-title">{{ section.title }}</h2>
 
-    <nav class="side-nav" aria-label="Navigazione principale">
-      <button class="nav-button" aria-label="Statistiche">
-        <i class="bi bi-graph-up-arrow"></i>
-      </button>
-      <button class="nav-button" aria-label="Organizzazione">
-        <i class="bi bi-people-fill"></i>
-      </button>
-      <button class="nav-button" aria-label="Progetti">
-        <i class="bi bi-hand-thumbs-up-fill"></i>
-      </button>
-      <button class="nav-button" aria-label="Report">
-        <i class="bi bi-bar-chart-line-fill"></i>
-      </button>
-    </nav>
+        <div class="settings-grid">
+          @for (card of section.cards; track card.title) {
+            <button
+              class="setting-card"
+              type="button"
+              [attr.aria-label]="'Gestione ' + card.title"
+            >
+              <span class="card-copy">
+                <span class="card-eyebrow">Gestione</span>
+                <span class="card-title">{{ card.title }}</span>
+                <span class="card-description">
+                  {{ card.description }}
+                </span>
+                <span class="card-count">
+                  <i class="bi bi-folder2"></i>
+                  {{ card.count }}
+                </span>
+              </span>
 
-    <button class="reward-button" aria-label="Premi">
-      <i class="bi bi-trophy-fill"></i>
-      <span class="reward-level">26°</span>
-      <i class="bi bi-award-fill"></i>
-      <small>Y100</small>
-    </button>
-  </aside>
-
-  <main class="main-area">
-    <header class="topbar">
-      <div class="page-heading">
-        <span>Impostazioni</span>
-        <i class="bi bi-info-circle"></i>
-      </div>
-
-      <div class="topbar-actions">
-        <button class="header-button" aria-label="Notifiche">
-          <i class="bi bi-bell"></i>
-        </button>
-        <button class="header-button" aria-label="Impostazioni">
-          <i class="bi bi-gear"></i>
-        </button>
-        <div class="avatar" aria-label="Profilo utente">U</div>
-      </div>
-    </header>
-
-    <div class="page-content">
-      <label class="search-box">
-        <i class="bi bi-search"></i>
-        <input
-          type="search"
-          placeholder="Cerca un'impostazione..."
-          aria-label="Cerca un'impostazione"
-          [value]="searchText"
-          (input)="searchText = $any($event.target).value"
-        />
-      </label>
-
-      @for (section of filteredSections; track section.title) {
-        <section class="settings-section">
-          <h2 class="section-title">{{ section.title }}</h2>
-
-          <div class="settings-grid">
-            @for (card of section.cards; track card.title) {
-              <button
-                class="setting-card"
-                type="button"
-                [attr.aria-label]="'Gestione ' + card.title"
+              <span
+                class="card-illustration"
+                [class.green]="card.color === 'green'"
+                [class.orange]="card.color === 'orange'"
               >
-                <span class="card-copy">
-                  <span class="card-eyebrow">Gestione</span>
-                  <span class="card-title">{{ card.title }}</span>
-                  <span class="card-description">
-                    {{ card.description }}
-                  </span>
-                  <span class="card-count">
-                    <i class="bi bi-folder2"></i>
-                    {{ card.count }}
-                  </span>
-                </span>
+                  <i class="bi" [class]="card.icon"></i>
+              </span>
+            </button>
+          }
+        </div>
+      </section>
+    }
 
-                <span
-                  class="card-illustration"
-                  [class.green]="card.color === 'green'"
-                  [class.orange]="card.color === 'orange'"
-                >
-                  @if (card.title === 'Progetti / Corsi') {
-                    <img
-                      src="/img/impostazioni/icone/cartella.svg"
-                      alt="Icona cartella"
-                    />
-                  } @else {
-                    <i class="bi" [class]="card.icon"></i>
-                  }
-                </span>
-              </button>
-            }
-          </div>
-        </section>
-      }
-
-      @if (filteredSections.length === 0) {
-        <p class="empty-state">
-          Nessuna impostazione trovata.
-        </p>
-      }
-    </div>
-  </main>
-</div>
+    @if (filteredSections.length === 0) {
+      <p class="empty-state">
+        Nessuna impostazione trovata.
+      </p>
+    }
+  </div>
+</app-layout>

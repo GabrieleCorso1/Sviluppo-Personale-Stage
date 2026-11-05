@@ -1,26 +1,18 @@
-/*
-import { Component } from '@angular/core';
+
+import { Component, inject } from '@angular/core';
+import { Router } from '@angular/router';
+import { Layout } from '../../components/layout/layout';
 
 @Component({
-  imports: [],
   selector: 'app-impostazioni',
-  styleUrl: './impostazioni.css',
-  templateUrl: './impostazioni.html',
-})
-export class Impostazioni {}
-*/
-
-
-import { Component } from '@angular/core';
-
-@Component({
-  selector: 'app-root',
   standalone: true,
+  imports: [Layout],
   templateUrl: './impostazioni.html',
   styleUrl: './impostazioni.css',
 })
-export class App {
-  searchText = 'Impostazioni';
+export class Impostazioni {
+  protected readonly router = inject(Router);
+  searchText = '';
 
   readonly sections = [
     {

@@ -1,0 +1,8 @@
+<div class="dashboard">
+  <app-navbar />
+
+  <main class="main-area">
+    <app-header [canAccessSettings]="canAccessSettings()" (openSettings)="openSettings.emit()" />
+    <ng-content />
+  </main>
+</div>

@@ -1,0 +1,11 @@
+.dashboard {
+  display: flex;
+  min-height: 100vh;
+  background: #f7f8fa;
+}
+
+.main-area {
+  width: calc(100% - 51px);
+  min-width: 0;
+  margin-left: 51px;
+}

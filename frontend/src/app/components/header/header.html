@@ -1,0 +1,23 @@
+<header class="topbar">
+      <div class="page-heading">
+        <span>Impostazioni</span>
+        <i class="bi bi-info-circle"></i>
+      </div>
+
+      <div class="topbar-actions">
+        <button class="header-button" aria-label="Notifiche">
+          <i class="bi bi-bell"></i>
+        </button>
+        @if (canAccessSettings()) {
+          <button
+            type="button"
+            class="header-button"
+            aria-label="Impostazioni"
+            (click)="openSettings.emit()"
+          >
+            <i class="bi bi-gear"></i>
+          </button>
+        }
+        <div class="avatar" aria-label="Profilo utente">U</div>
+      </div>
+    </header>

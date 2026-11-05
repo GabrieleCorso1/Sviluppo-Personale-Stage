@@ -1,7 +1,7 @@
 
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Auth } from '../../core/services/auth';
 
 @Component({
@@ -22,7 +22,6 @@ export class Login {
     ? 'Password aggiornata. Accedi con la nuova password.' : '');
 
   private auth = inject(Auth);
-  private router = inject(Router);
 
   private initialError(): string {
     switch (this.route.snapshot.queryParamMap.get('reason')) {
@@ -54,7 +53,7 @@ export class Login {
     ).subscribe({
       next: () => {
         this.caricamento.set(false);
-        this.router.navigate(['/home']);
+        this.messaggio.set('Accesso effettuato');
       },
       error: (err) => {
         this.caricamento.set(false);

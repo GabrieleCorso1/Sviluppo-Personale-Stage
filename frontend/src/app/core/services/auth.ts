@@ -13,6 +13,10 @@ export interface User {
   permissions: string[];
 }
 
+export function canAccessSettings(user: User): boolean {
+  return user.roles.some(role => role === 'Admin' || role === 'Project Manager');
+}
+
 interface LoginResponse {
   message: string;
   token_type: string;
