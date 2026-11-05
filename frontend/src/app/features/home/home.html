@@ -1,0 +1,209 @@
+<div class="page">
+  <!-- SIDEBAR LATERALE -->
+  <!--<aside class="sidebar">
+                <div class="sidebar-logo">
+                        <img src="/img/profiloUtente/logo.png" alt="Logo">
+                </div>
+                <nav class="sidebar-nav">
+                        <a href="#" class="nav-item active">📈</a>
+                        <a href="#" class="nav-item">👥</a>
+                        <a href="#" class="nav-item">💬</a>
+                        <a href="#" class="nav-item">📊</a>
+                </nav>
+        </aside>-->
+
+  <!-- HEADER / TOPBAR -->
+  <!--<header class="topbar">
+                <div class="page-title">
+                        Profilo <span class="info">ⓘ</span>
+                </div>
+
+                <div class="header-actions">
+                        <span>🔔</span>
+                        <span>⚙</span>
+                        <div class="user-avatar-small"></div>
+                </div>
+        </header>-->
+
+  <!-- BANNER PROFILO -->
+  <section class="profile-banner">
+    <!-- Avatar nel banner -->
+    <div class="banner-avatar">
+      <img src="/img/profiloUtente/Icon Avatar.png" alt="Claudia Leotta" />
+    </div>
+
+    <div class="profile-info">
+      <h2>{{ user.name }}</h2>
+      <p>{{ user.roleTitle }}</p>
+    </div>
+
+    <div class="decoration">
+      <img src="/img/profiloUtente/logo.png" alt="Logo Sfondo" />
+    </div>
+  </section>
+
+  <!-- CONTENUTO -->
+  <main class="content">
+    <section class="personal-card">
+      <div class="card-header">
+        <h3>Dati personali</h3>
+
+        <button class="password-button" (click)="apriModalePassword()">✎ Modifica password</button>
+      </div>
+
+      <div class="personal-data">
+        <!-- RUOLO -->
+        <div class="data-item">
+          <div class="icon"><img src="/img/profiloUtente/utente.png" alt="" /></div>
+          <div class="data-label">
+            <span>Ruolo</span>
+          </div>
+          <span class="data-value">{{ user.role }}</span>
+        </div>
+
+        <!-- DATA ASSUNZIONE -->
+        <div class="data-item">
+          <div class="icon"><img src="/img/profiloUtente/calendario.png" alt="" /></div>
+          <div class="data-label">
+            <span>Data di assunzione</span>
+          </div>
+          <span class="data-value">{{ user.hireDate }}</span>
+        </div>
+
+        <!-- EMAIL -->
+        <div class="data-item">
+          <div class="icon"><img src="/img/profiloUtente/email.png" alt="" /></div>
+          <div class="data-label">
+            <span>Email</span>
+          </div>
+          <span class="data-value">{{ user.email }}</span>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- MODALE MODIFICA PASSWORD -->
+
+<div class="profile-info">
+  <!-- Sezione dati personali -->
+  <div class="personal-data">
+    <!-- Riquadri dei dati -->
+    <div class="personal-data-content">
+      @if (modalePasswordAperta) {
+        <div class="modal-overlay">
+          <section
+            class="password-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-modal-title"
+          >
+            <div class="password-modal-header">
+              <h2 id="password-modal-title">Modifica password</h2>
+
+              <button
+                type="button"
+                class="modal-close"
+                aria-label="Chiudi"
+                (click)="chiudiModalePassword()"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="password-modal-body">
+              <!-- Password attuale -->
+              <label for="password-attuale">Password attuale</label>
+
+              <div class="password-input-wrapper">
+                <input
+                  id="password-attuale"
+                  [type]="mostraPasswordAttuale ? 'text' : 'password'"
+                  placeholder="Inserisci la password attuale"
+                />
+
+                <button
+                  type="button"
+                  class="password-eye"
+                  (click)="mostraPasswordAttuale = !mostraPasswordAttuale"
+                  aria-label="Mostra o nascondi password attuale"
+                >
+                  <img
+                    [src]="
+                      mostraPasswordAttuale
+                        ? '/img/icone/el_eye-open.png'
+                        : '/img/icone/el_eye-close.png'
+                    "
+                    alt=""
+                  />
+                </button>
+              </div>
+
+              <!-- Nuova password -->
+              <label for="nuova-password">Nuova password</label>
+
+              <div class="password-input-wrapper">
+                <input
+                  id="nuova-password"
+                  [type]="mostraNuovaPassword ? 'text' : 'password'"
+                  placeholder="Inserisci la nuova password"
+                />
+
+                <button
+                  type="button"
+                  class="password-eye"
+                  (click)="mostraNuovaPassword = !mostraNuovaPassword"
+                  aria-label="Mostra o nascondi nuova password"
+                >
+                  <img
+                    [src]="
+                      mostraNuovaPassword
+                        ? '/img/icone/el_eye-open.png'
+                        : '/img/icone/el_eye-close.png'
+                    "
+                    alt=""
+                  />
+                </button>
+              </div>
+
+              <!-- Conferma nuova password -->
+              <label for="conferma-password">Conferma nuova password</label>
+
+              <div class="password-input-wrapper">
+                <input
+                  id="conferma-password"
+                  [type]="mostraConfermaPassword ? 'text' : 'password'"
+                  placeholder="Conferma la nuova password"
+                />
+
+                <button
+                  type="button"
+                  class="password-eye"
+                  (click)="mostraConfermaPassword = !mostraConfermaPassword"
+                  aria-label="Mostra o nascondi conferma password"
+                >
+                  <img
+                    [src]="
+                      mostraConfermaPassword
+                        ? '/img/icone/el_eye-open.png'
+                        : '/img/icone/el_eye-close.png'
+                    "
+                    alt=""
+                  />
+                </button>
+              </div>
+            </div>
+
+            <div class="password-modal-actions">
+              <button type="button" class="btn-annulla" (click)="chiudiModalePassword()">
+                Annulla
+              </button>
+
+              <button type="button" class="btn-salva">Salva</button>
+            </div>
+          </section>
+        </div>
+      }
+    </div>
+  </div>
+</div>
