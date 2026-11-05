@@ -1,0 +1,1227 @@
+{
+  "info": {
+    "name": "Gruppo 2 - SBI - Prove complete",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Prove ordinate delle API SBI. Compilare admin_password e recipient_password nelle variabili prima del run. Usa il progetto Portale Clienti e il destinatario dei seeder. Crea ed elimina solo lo SBI di prova. Eseguire una iterazione."
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "admin_email",
+      "value": "mario.rossi@example.com",
+      "type": "string"
+    },
+    {
+      "key": "admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "recipient_email",
+      "value": "luca.verdi@example.com",
+      "type": "string"
+    },
+    {
+      "key": "recipient_password",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01 - Login Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{admin_email}}\",\n  \"password\": \"{{admin_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "for(const name of ['admin_password','recipient_password']) { if(!pm.collectionVariables.get(name)){pm.execution.setNextRequest(null);pm.execution.skipRequest();throw new Error('Compilare la variabile '+name+' prima di avviare la collection.');} }",
+              "pm.collectionVariables.set('event_date',new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));",
+              "for(const name of ['sbi_id','revision_id','second_revision_id','admin_token','recipient_token','project_id','receiver_id']) pm.collectionVariables.unset(name);"
+            ]
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.collectionVariables.set('admin_token',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 - Recupera progetto dimostrativo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/projects?is_timesheet=0&search=Portale%20Clienti",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "const p=pm.response.json().data.find(p=>p.alias==='Portale Clienti'); if(!p){pm.execution.setNextRequest(null);throw new Error('Progetto dei seeder non trovato.');} pm.collectionVariables.set('project_id',p.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 - Recupera destinatario dimostrativo",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/users?search={{recipient_email}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "const u=pm.response.json().data.data.find(u=>u.email===pm.collectionVariables.get('recipient_email')); if(!u){pm.execution.setNextRequest(null);throw new Error('Destinatario non trovato.');} pm.collectionVariables.set('receiver_id',u.id);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 - Opzioni SBI",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/options?project_id={{project_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('Destinatario disponibile',()=>pm.expect(pm.response.json().data.receivers.some(u=>u.id===Number(pm.collectionVariables.get('receiver_id')))).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 - Data futura rifiutata",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"receiver_id\": \"{{receiver_id}}\",\n  \"is_positive\": true,\n  \"event_date\": \"2999-01-01\",\n  \"situation\": \"Durante la prova Postman SBI\",\n  \"behavior\": \"Il collega ha chiarito un dubbio tecnico\",\n  \"impact\": \"Il team ha completato il lavoro\",\n  \"suggestion\": \"Continua a condividere le informazioni\",\n  \"personal_notes\": \"Nota riservata di prova\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422',()=>pm.response.to.have.status(422));",
+              "if(pm.response.code!==422){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 - Crea SBI di prova",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"project_id\": \"{{project_id}}\",\n  \"receiver_id\": \"{{receiver_id}}\",\n  \"is_positive\": true,\n  \"event_date\": \"{{event_date}}\",\n  \"situation\": \"Durante la prova Postman SBI\",\n  \"behavior\": \"Il collega ha chiarito un dubbio tecnico\",\n  \"impact\": \"Il team ha completato il lavoro\",\n  \"suggestion\": \"Continua a condividere le informazioni\",\n  \"personal_notes\": \"Nota riservata di prova\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 201',()=>pm.response.to.have.status(201));",
+              "if(pm.response.code!==201){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "const d=pm.response.json().data;pm.collectionVariables.set('sbi_id',d.id);pm.collectionVariables.set('revision_id',d.latest_revision.id);",
+              "pm.test('Prima revisione e note autore',()=>{pm.expect(d.latest_revision.revision_number).to.eql(1);pm.expect(d.latest_revision.personal_notes).to.eql('Nota riservata di prova');});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 - Inviati Admin",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis?direction=sent&project_id={{project_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('SBI creato presente',()=>pm.expect(pm.response.json().data.some(d=>d.id===Number(pm.collectionVariables.get('sbi_id')))).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 - Autore non puo rispondere",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}/revisions/{{revision_id}}/reply",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"body\": \"Risposta non autorizzata\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403',()=>pm.response.to.have.status(403));",
+              "if(pm.response.code!==403){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 - Login destinatario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/login",
+        "auth": {
+          "type": "noauth"
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{recipient_email}}\",\n  \"password\": \"{{recipient_password}}\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.collectionVariables.set('recipient_token',pm.response.json().access_token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 - Ricevuti da visualizzare",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis?direction=received&project_id={{project_id}}&view_status=unviewed",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "const d=pm.response.json().data.find(d=>d.id===Number(pm.collectionVariables.get('sbi_id')));pm.test('Da leggere e note riservate assenti',()=>{pm.expect(d).to.exist;pm.expect(d.latest_revision).not.to.have.property('personal_notes');});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "11 - Apri dettaglio come destinatario",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "const d=pm.response.json().data;pm.test('Visualizzazione registrata e note assenti',()=>{pm.expect(d.latest_revision.viewed_at).not.to.eql(null);pm.expect(d.revisions[0]).not.to.have.property('personal_notes');});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "12 - Destinatario non puo modificare SBI",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_positive\": true,\n  \"event_date\": \"{{event_date}}\",\n  \"situation\": \"Durante la prova Postman SBI\",\n  \"behavior\": \"Il collega ha chiarito un dubbio tecnico\",\n  \"impact\": \"Il team ha completato il lavoro\",\n  \"suggestion\": \"Continua a condividere le informazioni\",\n  \"personal_notes\": \"Nota riservata di prova\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403',()=>pm.response.to.have.status(403));",
+              "if(pm.response.code!==403){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "13 - Risposta destinatario",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}/revisions/{{revision_id}}/reply",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"body\": \"Grazie per il feedback!\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('Risposta salvata',()=>pm.expect(pm.response.json().data.latest_revision.reply.body).to.eql('Grazie per il feedback!'));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "14 - Modifica risposta",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}/revisions/{{revision_id}}/reply",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"body\": \"Grazie, messaggio aggiornato.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "15 - Risposta vuota rifiutata",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}/revisions/{{revision_id}}/reply",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"body\": \"<p><br></p>\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422',()=>pm.response.to.have.status(422));",
+              "if(pm.response.code!==422){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "16 - Autore crea revisione 2",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_positive\": false,\n  \"event_date\": \"{{event_date}}\",\n  \"situation\": \"Durante la prova Postman SBI\",\n  \"behavior\": \"Il collega ha chiarito un dubbio tecnico\",\n  \"impact\": \"Impatto aggiornato nella seconda versione\",\n  \"suggestion\": \"Continua a condividere le informazioni\",\n  \"personal_notes\": \"Nota riservata di prova\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "const d=pm.response.json().data;pm.collectionVariables.set('second_revision_id',d.latest_revision.id);pm.test('Nuova versione e risposta storica',()=>{pm.expect(d.latest_revision.revision_number).to.eql(2);pm.expect(d.latest_revision.viewed_at).to.eql(null);pm.expect(d.latest_revision.reply).to.eql(null);pm.expect(d.revisions[0].reply.body).to.eql('Grazie, messaggio aggiornato.');});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "17 - Filtra migliorativi",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis?direction=received&is_positive=0&project_id={{project_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('Ultima revisione filtrata',()=>pm.expect(pm.response.json().data.some(d=>d.id===Number(pm.collectionVariables.get('sbi_id')))).to.eql(true));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "18 - Apri vecchia revisione",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}?revision_id={{revision_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('Nuova versione ancora da visualizzare',()=>pm.expect(pm.response.json().data.latest_revision.viewed_at).to.eql(null));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "19 - Apri nuova revisione",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('Nuova versione visualizzata',()=>pm.expect(pm.response.json().data.latest_revision.viewed_at).not.to.eql(null));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "20 - Logo con permessi SBI",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}/logo",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "21 - Destinatario non puo eliminare SBI",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 403',()=>pm.response.to.have.status(403));",
+              "if(pm.response.code!==403){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "22 - Elimina revisione 2",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}/revisions/{{second_revision_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('Ripristinata vista revisione precedente',()=>pm.expect(pm.response.json().data.latest_revision.revision_number).to.eql(1));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "23 - Ultima revisione protetta",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}/revisions/{{revision_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 422',()=>pm.response.to.have.status(422));",
+              "if(pm.response.code!==422){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "24 - Numerazione revisioni non riutilizzata",
+      "request": {
+        "method": "PUT",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"is_positive\": true,\n  \"event_date\": \"{{event_date}}\",\n  \"situation\": \"Durante la prova Postman SBI\",\n  \"behavior\": \"Il collega ha chiarito un dubbio tecnico\",\n  \"impact\": \"Il team ha completato il lavoro\",\n  \"suggestion\": \"Continua a condividere le informazioni\",\n  \"personal_notes\": \"Nota riservata di prova\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}",
+              "pm.test('Versione 3',()=>pm.expect(pm.response.json().data.latest_revision.revision_number).to.eql(3));"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "25 - Dettaglio senza autenticazione",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "noauth"
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 401',()=>pm.response.to.have.status(401));",
+              "if(pm.response.code!==401){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "26 - Elimina solo SBI della prova",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "27 - SBI eliminato non disponibile",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/sbis/{{sbi_id}}",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 404',()=>pm.response.to.have.status(404));",
+              "if(pm.response.code!==404){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout Admin",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/logout",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{admin_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logout destinatario",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": "{{base_url}}/api/logout",
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{recipient_token}}",
+              "type": "string"
+            }
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        }
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('HTTP 200',()=>pm.response.to.have.status(200));",
+              "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Risposta inattesa: controllare il body.');}"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
