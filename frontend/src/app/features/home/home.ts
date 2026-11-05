@@ -1,10 +1,11 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Layout } from '../../components/layout/layout';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, Layout],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
