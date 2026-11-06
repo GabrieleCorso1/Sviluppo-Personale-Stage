@@ -1,4 +1,4 @@
-import { Injectable, inject, PLATFORM_ID } from '@angular/core';
+import { Injectable, inject, PLATFORM_ID, signal } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient, HttpContext, HttpErrorResponse } from '@angular/common/http';
 import { Observable, catchError, of, switchMap, tap, throwError } from 'rxjs';
@@ -9,8 +9,13 @@ export interface User {
   first_name: string;
   last_name: string;
   email: string;
+  hiring_date?: string | null;
   roles: string[];
   permissions: string[];
+}
+
+export function hasSettingsRole(user: User): boolean {
+  return user.roles.some(role => role === 'Admin' || role === 'Project Manager');
 }
 
 interface LoginResponse {
@@ -22,6 +27,9 @@ interface LoginResponse {
 
 @Injectable({ providedIn: 'root' })
 export class Auth {
+  private readonly sessionUser = signal<User | null>(null);
+  readonly currentUser = this.sessionUser.asReadonly();
+
   private http = inject(HttpClient);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly TOKEN_KEY = 'access_token';
@@ -33,6 +41,7 @@ export class Auth {
     }).pipe(
       tap(response => {
         if (isPlatformBrowser(this.platformId)) {
+          this.sessionUser.set(null);
           localStorage.setItem(this.TOKEN_KEY, response.access_token);
           localStorage.setItem(this.EXPIRY_KEY, response.expires_at);
         }
@@ -42,7 +51,12 @@ export class Auth {
   }
 
   getUser(context = new HttpContext()): Observable<User> {
-    return this.http.get<User>(`${API_URL}/api/user`, { context });
+    const token = this.getToken();
+    return this.http.get<User>(`${API_URL}/api/user`, { context }).pipe(
+      tap(user => {
+        if (token && this.getToken() === token) this.sessionUser.set(user);
+      }),
+    );
   }
 
   logout(): Observable<void> {
@@ -64,6 +78,7 @@ export class Auth {
   }
 
   clearSession(): void {
+    this.sessionUser.set(null);
     if (isPlatformBrowser(this.platformId)) {
       localStorage.removeItem(this.TOKEN_KEY);
       localStorage.removeItem(this.EXPIRY_KEY);

@@ -22,6 +22,7 @@ test('the profile exposes only selected fields with distinct role permissions', 
         'first_name' => $user->first_name,
         'last_name' => $user->last_name,
         'email' => $user->email,
+        'hiring_date' => $user->hiring_date?->toDateString(),
         'roles' => ['Admin', 'User'],
         'permissions' => ['users.view'],
     ]);

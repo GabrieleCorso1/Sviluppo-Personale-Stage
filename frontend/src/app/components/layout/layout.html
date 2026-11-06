@@ -1,0 +1,8 @@
+<div class="dashboard">
+  <app-navbar />
+
+  <main class="main-area">
+    <app-header [avatarEditable]="avatarEditable()" [avatarUrl]="avatarUrl()" [pageTitle]="pageTitle()" [canAccessSettings]="canAccessSettings()" (openAvatar)="openAvatar.emit()" (openSettings)="openSettings.emit()" />
+    <ng-content />
+  </main>
+</div>

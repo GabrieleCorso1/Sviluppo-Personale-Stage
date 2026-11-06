@@ -1,0 +1,84 @@
+:host { display: block; }
+
+.sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 70px;
+  padding: 12px 5px 8px;
+  background: #ffffff;
+}
+
+.brand {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 52px;
+  color: #315d82;
+  font-size: 25px;
+}
+
+.brand img {
+  display: block;
+  width: 60px;
+  height: auto;
+  object-fit: contain;
+}
+
+.side-nav {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  gap: 10px;
+  margin-top: 30px;
+}
+
+.nav-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #355b7e;
+}
+
+.nav-button {
+  width: 34px;
+  height: 35px;
+  border-radius: 8px;
+  font-size: 20px;
+}
+
+.nav-button:hover {
+  background: #edf4fa;
+}
+
+.reward-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 26px;
+  margin-top: auto;
+  padding: 9px 0;
+  border: 0;
+  border-radius: 12px;
+  background: #5325a4;
+  color: white;
+  font-size: 13px;
+}
+
+.reward-level {
+  padding: 2px 3px;
+  border-radius: 10px;
+  background: #32166e;
+  font-size: 9px;
+}
+
+.reward-button small {
+  font-size: 7px;
+}
