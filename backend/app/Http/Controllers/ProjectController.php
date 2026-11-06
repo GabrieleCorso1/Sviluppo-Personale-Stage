@@ -15,6 +15,7 @@ use App\Http\Resources\ProjectResource;
 use App\Models\AssignmentRole;
 use App\Models\FileStorage;
 use App\Models\Project;
+use App\Notifications\InAppNotification;
 use App\Support\ProjectCalendar;
 use App\Support\ProjectFiles;
 use App\Support\ProjectParticipantAvatar;
@@ -96,12 +97,13 @@ class ProjectController extends Controller
         $data['is_ux_ui'] = $request->boolean('is_ux_ui');
         $data['is_course'] = false;
 
-        $project = DB::transaction(function () use ($data) {
+        $actorId = $request->user()->id;
+        $project = DB::transaction(function () use ($data, $actorId) {
             $project = Project::create($data);
             if (! $project->is_timesheet) {
                 $role = AssignmentRole::where('alias', 'Project Manager')->first();
                 abort_unless($role, 422, 'Incarico Project Manager non configurato.');
-                $project->projectUsers()->create([
+                $assignment = $project->projectUsers()->create([
                     'user_id' => $data['project_manager_id'],
                     'assignmentrole_id' => $role->id,
                     'startwork_date' => $data['start_date'],
@@ -109,6 +111,12 @@ class ProjectController extends Controller
                     // Allocation rules are pending; do not add an assumed percentage.
                     'work_allocation' => 0,
                 ]);
+                $assignment->user->notify(new InAppNotification(
+                    'projects',
+                    "Ti è stato assegnato il ruolo di Project Manager nel progetto «{$project->alias}».",
+                    actorId: $actorId,
+                    projectId: $project->id,
+                ));
             }
 
             return $project;

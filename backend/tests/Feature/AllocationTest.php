@@ -100,6 +100,17 @@ test('one resource has independent project timesheet and course assignments', fu
     ])->assertCreated();
     $this->deleteJson('/api/allocations/'.$timesheetId)->assertOk();
 
+    expect($user->notifications()->count())->toBe(2);
+    $projectNotification = $user->notifications()->where('data->category', 'projects')->sole();
+    expect($projectNotification->data)
+        ->toMatchArray(['project_id' => $project->id, 'actor_id' => $admin->id]);
+    expect($projectNotification->data['message'])->toContain($project->alias);
+    $timesheetNotification = $user->notifications()->where('data->category', 'timesheet')->sole();
+    expect($timesheetNotification->data)
+        ->toMatchArray(['project_id' => $timesheet->id, 'actor_id' => $admin->id]);
+    expect($timesheetNotification->data['message'])->toContain($timesheet->alias);
+    expect($admin->notifications()->exists())->toBeFalse();
+
     $this->assertSoftDeleted('project_user', ['id' => $timesheetId]);
     $this->assertDatabaseHas('project_user', ['id' => $projectId, 'deleted_at' => null]);
     $this->getJson('/api/allocations?type=timesheet')->assertOk()->assertJsonPath('data.resources.data.0.projects_count', 0);

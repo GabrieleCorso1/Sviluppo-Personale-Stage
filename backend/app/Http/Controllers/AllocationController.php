@@ -9,6 +9,7 @@ use App\Models\Necessity;
 use App\Models\Project;
 use App\Models\ProjectUser;
 use App\Models\User;
+use App\Notifications\InAppNotification;
 use App\Support\ProjectCalendar;
 use App\Support\ProjectFiles;
 use App\Support\ProjectParticipantAvatar;
@@ -131,12 +132,13 @@ class AllocationController extends Controller
     public function store(AllocationRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $assignment = DB::transaction(function () use ($data) {
+        $actorId = $request->user()->id;
+        $assignment = DB::transaction(function () use ($data, $actorId) {
             $project = $this->overview->projects($data['type'])->lockForUpdate()->find($data['project_id']);
             if (! $project) {
                 throw ValidationException::withMessages(['project_id' => 'Il progetto non appartiene alla tipologia selezionata.']);
             }
-            $this->overview->resources()->lockForUpdate()->findOrFail($data['user_id']);
+            $recipient = $this->overview->resources()->lockForUpdate()->findOrFail($data['user_id']);
             $attributes = [
                 'project_id' => $project->id, 'user_id' => $data['user_id'], 'allocation_type' => $data['type'],
                 'assignmentrole_id' => $data['type'] === 'project' ? $data['assignment_role_id'] : null,
@@ -144,7 +146,20 @@ class AllocationController extends Controller
             ];
             $this->checkOverlap($attributes);
 
-            return ProjectUser::create($attributes);
+            $assignment = ProjectUser::create($attributes);
+            if (in_array($assignment->allocation_type, ['project', 'timesheet'], true)) {
+                $isTimesheet = $assignment->allocation_type === 'timesheet';
+                $recipient->notify(new InAppNotification(
+                    $isTimesheet ? 'timesheet' : 'projects',
+                    $isTimesheet
+                        ? "Ti è stato assegnato il timesheet «{$project->alias}»."
+                        : "Ti è stata assegnata una nuova attività nel progetto «{$project->alias}».",
+                    actorId: $actorId,
+                    projectId: $project->id,
+                ));
+            }
+
+            return $assignment;
         });
 
         return response()->json(['data' => $this->overview->assignment($assignment->load('assignmentRole'))], 201);

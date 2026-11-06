@@ -306,3 +306,20 @@ test('full seed creates timesheet assignments visible in allocation without putt
         ->assertJsonPath('data.allocations.0.role', null);
     $this->assertDatabaseHas('project_user', ['project_id' => $timesheet->id, 'user_id' => $user->id, 'allocation_type' => 'timesheet']);
 });
+
+test('creating a project notifies the assigned project manager once', function () {
+    $actor = integratedAllocationAdmin();
+    $manager = User::factory()->create();
+    $manager->roles()->attach(Role::firstOrCreate(['alias' => 'Project Manager']));
+    $this->withToken($actor->createToken('test')->plainTextToken);
+
+    $payload = integratedNormalProjectPayload($manager);
+    $id = $this->postJson('/api/projects', $payload)->assertCreated()->json('data.id');
+    $this->postJson('/api/projects', ['alias' => 'Timesheet', 'is_timesheet' => true])->assertCreated();
+
+    $notification = $manager->notifications()->sole();
+    expect($notification->data)
+        ->toMatchArray(['category' => 'projects', 'project_id' => $id, 'actor_id' => $actor->id]);
+    expect($notification->data['message'])->toContain($payload['alias']);
+    expect($actor->notifications()->exists())->toBeFalse();
+});
