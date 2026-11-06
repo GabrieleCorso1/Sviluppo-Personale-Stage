@@ -16,8 +16,8 @@ return new class extends Migration
             $table->string('first_name');
             $table->string('last_name');
             $table->enum('gender', ['male','female'])->nullable();
-            $table->string('azure_email');
-            $table->string('company_email');
+            $table->string('azure_email')->nullable();
+            $table->string('company_email')->nullable();
             $table->boolean('is_intern');
             $table->boolean('isAllocation_visible');
             

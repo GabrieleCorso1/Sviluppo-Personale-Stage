@@ -20,19 +20,20 @@ class CapacitySeeder extends Seeder
             ->pluck('id', 'email');
 
         $projects = DB::table('projects')
+            ->where('is_course', false)->where('is_timesheet', false)->whereNull('deleted_at')
             ->whereIn('alias', ['Portale Clienti', 'API Aziendali'])
             ->pluck('id', 'alias');
 
-        if (!$users->has('luca.verdi@example.com')
-            || !$users->has('giulia.neri@example.com')
-            || !$users->has('andrea.costa@example.com')) {
+        if (! $users->has('luca.verdi@example.com')
+            || ! $users->has('giulia.neri@example.com')
+            || ! $users->has('andrea.costa@example.com')) {
             throw new \RuntimeException(
                 'Uno o più utenti non sono presenti. Esegui prima UserSeeder.'
             );
         }
 
-        if (!$projects->has('Portale Clienti')
-            || !$projects->has('API Aziendali')) {
+        if (! $projects->has('Portale Clienti')
+            || ! $projects->has('API Aziendali')) {
             throw new \RuntimeException(
                 'Uno o più progetti non sono presenti. Esegui prima ProjectSeeder.'
             );
@@ -41,7 +42,7 @@ class CapacitySeeder extends Seeder
         $sprints = DB::table('sprints')
             ->whereIn('project_id', $projects->values())
             ->get()
-            ->keyBy(fn ($sprint) => $sprint->project_id . '-' . $sprint->number);
+            ->keyBy(fn ($sprint) => $sprint->project_id.'-'.$sprint->number);
 
         $capacities = [
             [
@@ -105,13 +106,13 @@ class CapacitySeeder extends Seeder
         foreach ($capacities as $capacity) {
             $userId = $users[$capacity['email']];
             $projectId = $projects[$capacity['project']];
-            $sprintKey = $projectId . '-' . $capacity['sprint_number'];
+            $sprintKey = $projectId.'-'.$capacity['sprint_number'];
             $sprint = $sprints->get($sprintKey);
 
-            if (!$sprint) {
+            if (! $sprint) {
                 throw new \RuntimeException(
                     "Sprint {$capacity['sprint_number']} non trovato per "
-                    . "il progetto '{$capacity['project']}'. Esegui prima SprintSeeder."
+                    ."il progetto '{$capacity['project']}'. Esegui prima SprintSeeder."
                 );
             }
 

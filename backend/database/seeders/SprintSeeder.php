@@ -12,6 +12,7 @@ class SprintSeeder extends Seeder
         $now = now();
 
         $projects = DB::table('projects')
+            ->where('is_course', false)->where('is_timesheet', false)->whereNull('deleted_at')
             ->whereIn('alias', ['Portale Clienti', 'API Aziendali'])
             ->pluck('id', 'alias');
 
@@ -24,7 +25,7 @@ class SprintSeeder extends Seeder
             ->pluck('id', 'alias');
 
         foreach (['Portale Clienti', 'API Aziendali'] as $alias) {
-            if (!$projects->has($alias)) {
+            if (! $projects->has($alias)) {
                 throw new \RuntimeException(
                     "Progetto '{$alias}' non trovato. Esegui prima ProjectSeeder."
                 );
@@ -36,7 +37,7 @@ class SprintSeeder extends Seeder
             'Backend Services',
             'UX/UI Design',
         ] as $alias) {
-            if (!$categories->has($alias)) {
+            if (! $categories->has($alias)) {
                 throw new \RuntimeException(
                     "Categoria '{$alias}' non trovata. Esegui prima TeamCategorySeeder."
                 );
@@ -53,7 +54,7 @@ class SprintSeeder extends Seeder
                 'is_concluded' => true,
                 'is_pilot' => false,
                 'is_billing' => true,
-                'has_csv' => true,
+                'has_csv' => false,
                 'is_planningdone' => true,
                 'is_estimatedone' => true,
                 'is_reviewdone' => true,
