@@ -18,6 +18,17 @@
             <i class="bi bi-gear"></i>
           </button>
         }
-        <div class="avatar" aria-label="Profilo utente">U</div>
+        @if (avatarUrl(); as photo) {
+          @if (avatarEditable()) {
+          <button type="button" class="avatar avatar-button" aria-label="Gestisci foto profilo"
+            aria-haspopup="dialog" (click)="openAvatar.emit()">
+            <img class="avatar-photo" [src]="photo" alt="" />
+          </button>
+          } @else {
+            <img class="avatar avatar-static" [src]="photo" alt="Foto profilo" />
+          }
+        } @else {
+          <div class="avatar" aria-label="Profilo utente">U</div>
+        }
       </div>
     </header>

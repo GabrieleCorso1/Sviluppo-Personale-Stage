@@ -10,7 +10,10 @@ import { Navbar } from '../navbar/navbar';
   styleUrl: './layout.css',
 })
 export class Layout {
+  readonly avatarEditable = input(false);
+  readonly avatarUrl = input<string>();
   readonly pageTitle = input('Impostazioni');
   readonly canAccessSettings = input(false);
+  readonly openAvatar = output<void>();
   readonly openSettings = output<void>();
 }
