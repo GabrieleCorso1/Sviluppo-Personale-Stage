@@ -39,7 +39,7 @@ class AdminNotificationController extends Controller
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
         ]);
 
-        $unreadCounts = (clone $notifications)->whereNull('read_at')
+        $unreadCounts = (clone $notifications)->reorder()->whereNull('read_at')
             ->select('data->category as category', DB::raw('count(*) as total'))
             ->groupBy('data->category')
             ->pluck('total', 'category')

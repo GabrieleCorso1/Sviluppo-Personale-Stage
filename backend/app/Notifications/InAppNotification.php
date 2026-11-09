@@ -12,6 +12,8 @@ class InAppNotification extends Notification
         private ?int $actorId = null,
         private ?int $calendarRequestId = null,
         private ?int $projectId = null,
+        private ?int $sbiId = null,
+        private bool $sbiReply = false,
     ) {}
 
     public function via(object $notifiable): array
@@ -25,6 +27,8 @@ class InAppNotification extends Notification
             'category' => $this->category,
             'message' => $this->message,
             'actor_id' => $this->actorId,
+            ...($this->sbiId === null ? [] : ['sbi_id' => $this->sbiId]),
+            ...($this->sbiReply ? ['sbi_reply' => true] : []),
             ...($this->projectId === null ? [] : ['project_id' => $this->projectId]),
             ...($this->calendarRequestId === null ? [] : ['calendar_request_id' => $this->calendarRequestId]),
         ];

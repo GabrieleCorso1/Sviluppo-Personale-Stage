@@ -7,6 +7,7 @@ use App\Models\Sbi;
 use App\Models\SbiReply;
 use App\Models\SbiRevision;
 use App\Models\User;
+use App\Notifications\InAppNotification;
 use App\Policies\SbiPolicy;
 use App\Support\ProjectCalendar;
 use App\Support\ProjectFiles;
@@ -28,6 +29,7 @@ class SbiController extends Controller
         $filters = $request->validate([
             'user_id' => ['sometimes', 'integer', 'min:1'],
             'direction' => ['sometimes', Rule::in(['sent', 'received'])],
+            'sbi_id' => ['sometimes', 'integer', 'min:1'],
             'project_id' => ['sometimes', 'integer', 'min:1'],
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'project_search' => ['sometimes', 'nullable', 'string', 'max:255'],
@@ -53,6 +55,9 @@ class SbiController extends Controller
         ];
         $direction = $filters['direction'] ?? 'received';
         $query = $base->where($direction === 'sent' ? 'writer_id' : 'receiver_id', $subject);
+        if (isset($filters['sbi_id'])) {
+            $query->whereKey($filters['sbi_id']);
+        }
         if (isset($filters['project_id'])) {
             $query->where('project_id', $filters['project_id']);
         }
@@ -152,6 +157,12 @@ class SbiController extends Controller
             }
             $sbi = Sbi::create(['writer_id' => $request->user()->id, 'receiver_id' => $receiver->id, 'project_id' => $project->id]);
             $sbi->revisions()->create($this->revisionFields($data) + ['revision_number' => 1]);
+            $receiver->notify(new InAppNotification(
+                'sbi',
+                'Hai ricevuto un nuovo SBI.',
+                actorId: $request->user()->id,
+                sbiId: $sbi->id,
+            ));
 
             return $sbi;
         });
@@ -209,7 +220,16 @@ class SbiController extends Controller
             $locked = Sbi::query()->lockForUpdate()->findOrFail($sbi->id);
             $this->authorize('reply', $locked);
             $version = $locked->revisions()->findOrFail($revision->id);
-            SbiReply::updateOrCreate(['sbi_revision_id' => $version->id], ['body' => $body]);
+            $reply = SbiReply::updateOrCreate(['sbi_revision_id' => $version->id], ['body' => $body]);
+            if ($reply->wasRecentlyCreated || $reply->wasChanged('body')) {
+                $locked->writer?->notify(new InAppNotification(
+                    'sbi',
+                    'Hai ricevuto una risposta al tuo SBI.',
+                    actorId: $locked->receiver_id,
+                    sbiId: $locked->id,
+                    sbiReply: true,
+                ));
+            }
             if ($version->viewed_at === null) {
                 $version->update(['viewed_at' => now()]);
             }

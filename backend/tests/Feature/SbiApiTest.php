@@ -54,13 +54,21 @@ test('SBI complete flow preserves replies across revisions and tracks views only
     $first = $created['latest_revision']['id'];
     $this->getJson('/api/sbis/'.$id)->assertOk()->assertJsonPath('data.latest_revision.viewed_at', null);
     sbiLoginAs($this, $this->receiver);
-    $this->getJson('/api/sbis')->assertOk()->assertJsonPath('counts.unviewed', 1)->assertJsonMissingPath('data.0.latest_revision.personal_notes');
+    $this->getJson('/api/notifications?category=sbi')->assertOk()
+        ->assertJsonCount(1, 'data')->assertJsonPath('data.0.data.sbi_id', $id);
+    $this->getJson('/api/sbis?direction=received&sbi_id='.$id)->assertOk()
+        ->assertJsonPath('data.0.id', $id)->assertJsonPath('counts.unviewed', 1)
+        ->assertJsonMissingPath('data.0.latest_revision.personal_notes');
     $view = $this->getJson('/api/sbis/'.$id)->assertOk()->assertJsonMissingPath('data.revisions.0.personal_notes')->json('data.latest_revision.viewed_at');
     expect($view)->not->toBeNull();
     $this->putJson("/api/sbis/$id/revisions/$first/reply", ['body' => '<strong>Grazie</strong>'])->assertOk();
     $this->putJson("/api/sbis/$id/revisions/$first/reply", ['body' => 'Risposta aggiornata'])->assertOk();
+    $this->putJson("/api/sbis/$id/revisions/$first/reply", ['body' => 'Risposta aggiornata'])->assertOk();
     $this->assertDatabaseCount('sbi_replies', 1);
     sbiLoginAs($this, $this->actor);
+    $this->getJson('/api/notifications?category=sbi')->assertOk()->assertJsonCount(2, 'data')
+        ->assertJsonPath('data.0.data.sbi_id', $id)->assertJsonPath('data.0.data.sbi_reply', true);
+    $this->getJson('/api/sbis?direction=sent&sbi_id='.$id)->assertOk()->assertJsonPath('data.0.id', $id);
     $second = $this->putJson('/api/sbis/'.$id, sbiNewRevision($this->payload) + ['unused' => 'ignored'])->assertOk()
         ->assertJsonPath('data.revisions_count', 2)->assertJsonPath('data.latest_revision.revision_number', 2)
         ->assertJsonPath('data.latest_revision.viewed_at', null)->assertJsonPath('data.latest_revision.reply', null)
