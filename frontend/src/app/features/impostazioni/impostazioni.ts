@@ -23,6 +23,7 @@ export class Impostazioni {
           description: 'Crea e gestisci progetti, corsi e relative informazioni.',
           count: '18 progetti',
           icon: 'bi-folder',
+          countIcon: 'folder.png',
           color: 'blue',
         },
         {
@@ -30,6 +31,7 @@ export class Impostazioni {
           description: 'Crea team e assegna collaboratori.',
           count: '9 team',
           icon: 'bi-people-fill',
+          countIcon: 'groups.png',
           color: 'blue',
         },
         {
@@ -37,6 +39,7 @@ export class Impostazioni {
           description: 'Definisci le tipologie di team disponibili nel sistema.',
           count: '7 tipologie',
           icon: 'bi-diagram-3',
+          countIcon: 'account_tree.png',
           color: 'blue',
         },
         {
@@ -44,6 +47,7 @@ export class Impostazioni {
           description: 'Assegna le risorse ai progetti e monitora il carico di lavoro.',
           count: '29 risorse allocate',
           icon: 'bi-person-workspace',
+          countIcon: 'perm_contact_calendar.png',
           color: 'blue',
         },
         {
@@ -51,6 +55,7 @@ export class Impostazioni {
           description: 'Crea e gestisci progetti, corsi e relative informazioni.',
           count: '18 progetti',
           icon: 'bi-folder',
+          
           color: 'blue',
         },
         {
@@ -58,6 +63,7 @@ export class Impostazioni {
           description: 'Crea team e assegna collaboratori.',
           count: '9 team',
           icon: 'bi-people-fill',
+          countIcon: 'groups.png',
           color: 'blue',
         },
       ],
@@ -70,6 +76,7 @@ export class Impostazioni {
           description: 'Crea e gestisci utenti, ruoli e permessi di accesso.',
           count: '62 utenti',
           icon: 'bi-person',
+          countIcon: 'person.png',
           color: 'green',
         },
         {
@@ -77,6 +84,7 @@ export class Impostazioni {
           description: 'Gestisci i professori e le loro informazioni.',
           count: '4 professori',
           icon: 'bi-mortarboard',
+          countIcon: 'school.png',
           color: 'green',
         },
         {
@@ -84,6 +92,7 @@ export class Impostazioni {
           description: 'Gestisci le competenze trasversali del catalogo.',
           count: '23 competenze',
           icon: 'bi-globe-europe-africa',
+          countIcon: 'diamante.png',
           color: 'green',
         },
       ],
@@ -96,6 +105,7 @@ export class Impostazioni {
           description: 'Gestisci le tecnologie disponibili nel catalogo.',
           count: 'Tecnologie del catalogo',
           icon: 'bi-code-slash',
+          countIcon: 'code.png',
           color: 'orange',
         },
         {
@@ -103,6 +113,7 @@ export class Impostazioni {
           description: 'Gestisci gli hobby e gli interessi.',
           count: 'Hobby disponibili',
           icon: 'bi-controller',
+          countIcon: 'stadia_controller.png',
           color: 'orange',
         },
         {
@@ -110,6 +121,7 @@ export class Impostazioni {
           description: 'Gestisci le domande dei sondaggi.',
           count: 'Domande disponibili',
           icon: 'bi-ui-checks',
+          countIcon: 'person_raised_hand.png',
           color: 'orange',
         },
       ],
