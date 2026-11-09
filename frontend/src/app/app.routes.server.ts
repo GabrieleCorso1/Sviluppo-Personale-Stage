@@ -3,6 +3,7 @@ import { RenderMode, ServerRoute } from '@angular/ssr';
 export const serverRoutes: ServerRoute[] = [
   { path: 'notifiche/:category/:id', renderMode: RenderMode.Client },
   { path: 'notifiche', renderMode: RenderMode.Client },
+  { path: 'sbi', renderMode: RenderMode.Client },
   { path: 'impostazioni', renderMode: RenderMode.Client },
   { path: 'reset-password', renderMode: RenderMode.Client },
   { path: 'login', renderMode: RenderMode.Client },

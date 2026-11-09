@@ -1,0 +1,207 @@
+<app-layout pageTitle="SBI" [canAccessSettings]="settings()" [avatarUrl]="avatarUrl()" (openSettings)="openSettings()">
+  
+  <main class="sbi">
+    @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+    @if (draft; as form) {
+      <button type="button" class="back" (click)="closeForm()" [disabled]="busy()">← Torna agli SBI</button>
+      <header class="panel wizard-bar"><h1><i class="bi bi-person-video3" aria-hidden="true"></i>{{ editing ? 'Modifica SBI' : 'Aggiungi SBI' }}</h1>        <div class="actions">
+          @if (step > 0) { <button (click)="step = step - 1; formError.set('')" [disabled]="busy()">Indietro</button> }
+          @if (step < 4) { <button class="primary" (click)="next()">Continua</button> }
+          @else { <button class="primary" (click)="save()" [disabled]="busy()">{{ busy() ? 'Salvataggio…' : editing ? 'Salva revisione' : 'Invia SBI' }}</button> }
+        </div></header><section class="panel wizard">
+        <ol class="steps" aria-label="Passaggi">
+          @for (label of steps; track label; let i = $index) {
+            <li [class.completed]="step > i" [attr.aria-current]="step === i ? 'step' : null"><span>@if (step > i) { <i class="bi bi-check-lg" aria-hidden="true"></i> } @else { {{ i + 1 }} }</span> {{ label }}</li>
+          }
+        </ol>
+        <div class="wizard-grid">
+          <aside class="wizard-aside">
+            <h2>{{ steps[step] }}</h2>
+            <p>{{ descriptions[step] }}</p>
+            <i [class]="'illustration bi bi-' + stepIcons[step]" aria-hidden="true"></i>
+          </aside>
+          <div>
+        @if (step === 0) {
+          <div class="fields">
+            @if (editing; as entry) {
+              <label>Progetto <input readonly [value]="entry.project.alias"></label>
+              <label>Risorsa <input readonly [value]="name(entry.receiver)"></label>
+            } @else {
+              <label>Progetto
+                <select [(ngModel)]="projectId" (ngModelChange)="loadOptions()">
+                  <option [ngValue]="null">Seleziona progetto</option>
+                  @for (project of projects(); track project.id) { <option [ngValue]="project.id">{{ project.alias }}</option> }
+                </select>
+              </label>
+              <label>Risorsa
+                <select [(ngModel)]="receiverId" [disabled]="optionsLoading() || !projectId || !form.event_date">
+                  <option [ngValue]="null">Seleziona destinatario</option>
+                  @for (person of receivers(); track person.id) { <option [ngValue]="person.id">{{ name(person) }}</option> }
+                </select>
+              </label>
+            }
+            <label>Data dell’evento <input type="date" [(ngModel)]="form.event_date" (ngModelChange)="editing || loadOptions()"></label>
+          </div>
+          @if (optionsLoading()) { <p role="status">Caricamento opzioni…</p> }
+          @if (optionsError()) { <p role="alert">{{ optionsError() }} <button (click)="loadOptions()">Riprova</button></p> }
+          @if (!editing && projectId && form.event_date && !optionsLoading() && !optionsError() && !receivers().length) {
+            <p>Nessun destinatario assegnato al progetto in questa data.</p>
+          }
+        }
+        @switch (step) {
+          @case (0) { <app-sbi-editor label="Descrivi la situazione" [(value)]="form.situation" /> }
+          @case (1) { <app-sbi-editor label="Descrivi il comportamento" [(value)]="form.behavior" /> }
+          @case (2) { <app-sbi-editor label="Descrivi l’impatto" [(value)]="form.impact" /> }
+          @case (3) {
+            <app-sbi-editor label="Suggerimento" [(value)]="form.suggestion" />
+            <section class="callout notes"><h2>Note personali</h2><p>Queste note sono visibili solo a te.</p><app-sbi-editor label="Note personali" [(value)]="form.personal_notes" /></section>
+          }
+          @case (4) {
+            <fieldset class="panel type-picker">
+              <legend>Tipologia SBI</legend>
+              <button type="button" [attr.aria-pressed]="!form.is_positive" (click)="form.is_positive = false"><i class="bi bi-graph-up-arrow"></i> Migliorativo</button>
+              <button type="button" [attr.aria-pressed]="form.is_positive" (click)="form.is_positive = true"><i class="bi bi-emoji-smile"></i> Positivo</button>
+            </fieldset>
+            <dl class="summary">
+              <dt>Situation</dt><dd [innerHTML]="form.situation"></dd>
+              <dt>Behaviour</dt><dd [innerHTML]="form.behavior"></dd>
+              <dt>Impact</dt><dd [innerHTML]="form.impact"></dd>
+              @if (form.suggestion) { <dt>Suggestion</dt><dd [innerHTML]="form.suggestion"></dd> }
+              @if (form.personal_notes) { <dt>Note personali</dt><dd [innerHTML]="form.personal_notes"></dd> }
+            </dl>
+          }
+        }
+        @if (formError()) { <p class="error" role="alert">{{ formError() }}</p> }</div></div>
+
+      </section>
+    } @else {
+      <div class="toolbar"><form class="quick-search" (ngSubmit)="load()"><i class="bi bi-search" aria-hidden="true"></i><input name="search" [(ngModel)]="search" maxlength="255" placeholder="Cerca utente" aria-label="Cerca utente"><button>Cerca</button></form>
+        <div class="actions">
+        @if (canCreate()) { <button class="primary" (click)="startForm()" [disabled]="busy()">+ Aggiungi SBI</button> }</div>
+      </div>
+      @if (canCreate()) {
+        <details class="panel people">
+          <summary>Consulta SBI di una risorsa{{ subject ? ' · ' + name(subject) : '' }}</summary>
+          <form class="actions" (ngSubmit)="findPeople()">
+            <input name="peopleSearch" [(ngModel)]="peopleSearch" maxlength="255" placeholder="Cerca risorsa" aria-label="Cerca risorsa">
+            <button [disabled]="peopleLoading() || busy()">Cerca</button>
+            @if (subject) { <button type="button" (click)="selectSubject(null)" [disabled]="busy()">Torna ai miei SBI</button> }
+          </form>
+          @if (peopleLoading()) { <p role="status">Caricamento risorse…</p> }
+          @if (peopleError()) { <p class="error" role="alert">{{ peopleError() }}</p> }
+          @for (person of people(); track person.id) {
+            <button class="person" (click)="selectSubject(person)" [disabled]="busy()">{{ name(person) }}</button>
+          }
+          @if (peopleLastPage() > 1 && people().length) {
+            <button (click)="findPeople(peoplePage - 1)" [disabled]="peopleLoading() || peoplePage <= 1">Precedente</button>
+            <button (click)="findPeople(peoplePage + 1)" [disabled]="peopleLoading() || peoplePage >= peopleLastPage()">Successiva</button>
+          }
+        </details>
+      }
+      <div class="tabs" role="group" aria-label="Direzione SBI">
+        <button [attr.aria-pressed]="direction === 'sent'" (click)="direction = 'sent'; load()" [disabled]="busy()">Mandati <span>{{ page()?.counts?.sent ?? '' }}</span></button>
+        <button [attr.aria-pressed]="direction === 'received'" (click)="direction = 'received'; load()" [disabled]="busy()">Ricevuti <span>{{ page()?.counts?.received ?? '' }}</span></button>
+      </div>
+      <form class="fields filters" (ngSubmit)="load()">
+        <label>Data inizio <input type="date" name="dateFrom" [(ngModel)]="dateFrom"></label>
+        <label>Data fine <input type="date" name="dateTo" [(ngModel)]="dateTo"></label>
+        <label>Tipologia SBI <select name="type" [(ngModel)]="type"><option value="">Tutte</option><option value="1">Positivo</option><option value="0">Migliorativo</option></select></label>
+        <label>Stato risposta <select name="response" [(ngModel)]="response"><option value="">Tutti</option><option value="pending">In attesa</option><option value="answered">Con risposta</option></select></label>
+        <label>Cerca progetto <input name="projectSearch" [(ngModel)]="projectSearch" maxlength="255" placeholder="Nome progetto"></label>
+        <div class="actions"><button class="primary" [disabled]="busy()">Filtra</button><button type="button" (click)="resetFilters()" [disabled]="busy()">Azzera</button></div>
+      </form>
+      @if (loading()) { <p role="status">Caricamento SBI…</p> }
+      @if (error()) { <p class="error" role="alert">{{ error() }} <button (click)="load()">Riprova</button></p> }
+      @if (page(); as results) {
+        @for (item of results.data; track item.id) {
+          <article class="panel card">
+            <button class="row-toggle" [attr.aria-expanded]="openId() === item.id" [attr.aria-controls]="'sbi-' + item.id"
+              (click)="openId() === item.id ? closeDetail() : show(item.id)" [disabled]="busy()">
+              <span class="row-person"><img [sbiImage]="(direction === 'sent' ? item.receiver : item.writer).avatar_url ?? avatarFallback" [imageFallback]="avatarFallback" alt=""><span><strong>{{ name(direction === 'sent' ? item.receiver : item.writer) }}</strong>
+                <small>{{ item.created_at | date:'dd/MM/yyyy' }}</small></span></span>
+              <span class="preview row-person"><img [sbiImage]="item.project.logo_url ?? logoFallback" [imageFallback]="logoFallback" alt=""><span><strong>{{ item.project.alias }}</strong>
+                <small>{{ item.latest_revision.event_date | date:'dd/MM/yyyy' }} · {{ item.latest_revision.is_positive ? 'Positivo' : 'Migliorativo' }}</small><small class="excerpt" >{{ preview(item.latest_revision.situation) }}</small></span></span>
+              <span class="badges">
+                @if (direction === 'received') {
+                  <i class="bi response-badge" [class.bi-chat-left-text]="!item.latest_revision.reply" [class.bi-chat-left-text-fill]="!!item.latest_revision.reply" [attr.aria-label]="item.latest_revision.reply ? 'Con risposta' : 'In attesa di risposta'"></i>
+                }
+                @if (direction === 'sent') { <i class="bi note" [class.bi-clipboard]="!item.latest_revision.has_personal_notes" [class.bi-clipboard-fill]="item.latest_revision.has_personal_notes" [attr.aria-label]="item.latest_revision.has_personal_notes ? 'Con note personali' : 'Senza note personali'"></i> }
+                @if (direction === 'sent') { <i class="bi suggestion" [class.bi-lightbulb]="!item.latest_revision.suggestion" [class.bi-lightbulb-fill]="!!item.latest_revision.suggestion" [attr.aria-label]="item.latest_revision.suggestion ? 'Con suggerimento' : 'Senza suggerimento'"></i> }
+                <i [class]="openId() === item.id ? 'bi bi-chevron-up' : 'bi bi-chevron-down'" aria-hidden="true"></i>
+              </span>
+            </button>
+            @if (openId() === item.id) {
+              <section class="detail" [id]="'sbi-' + item.id">
+                @if (detailError()) { <p class="error" role="alert">{{ detailError() }}</p> }
+                @if (detail(); as entry) {
+                  @if (revision(); as version) {
+                    <div class="detail-grid">
+                      <div class="content">
+                        <h2><i class="bi bi-calendar-check"></i> Situation</h2><div [innerHTML]="version.situation"></div>
+                        <h2><i class="bi bi-person-gear"></i> Behaviour</h2><div [innerHTML]="version.behavior"></div>
+                        <h2><i class="bi bi-lightning-charge"></i> Impact</h2><div [innerHTML]="version.impact"></div>
+                        @if (version.personal_notes) { <section class="callout notes"><h2><i class="bi bi-clipboard"></i> Note personali</h2><div [innerHTML]="version.personal_notes"></div></section> }
+                      </div>
+                      <div>
+                        <label>Revisioni · {{ entry.revisions_count }}
+                          <select [ngModel]="version.id" (ngModelChange)="show(entry.id, $event)" [disabled]="busy() || !!confirmation">
+                            @for (rev of entry.revisions; track rev.id) { <option [ngValue]="rev.id">#{{ rev.revision_number }} · {{ rev.created_at | date:'dd/MM/yyyy HH:mm' }}</option> }
+                          </select>
+                        </label>
+                        @if (version.reply; as response) { <section class="callout"><h2>Risposta di {{ name(entry.receiver) }}</h2><div [innerHTML]="response.body"></div></section> }
+                        @if (version.suggestion) { <section class="callout green"><h2><i class="bi bi-lightbulb"></i> Suggestion</h2><div [innerHTML]="version.suggestion"></div></section> }
+                        <div class="actions">
+                          @if (entry.can_reply) { <button (click)="detailError.set(''); reply = version.reply?.body ?? ''" [disabled]="busy()">{{ version.reply ? 'Modifica risposta' : 'Rispondi' }}</button> }
+                          @if (entry.can_update) { <button (click)="startForm(entry, version)" [disabled]="busy() || !!confirmation">Modifica SBI</button> }
+                          @if (entry.can_delete && entry.revisions_count > 1) { <button class="danger" (click)="detailError.set(''); confirmation = { entry, revision: version }" [disabled]="busy()">Elimina revisione</button> }
+                          @if (entry.can_delete) { <button class="danger" (click)="detailError.set(''); confirmation = { entry }" [disabled]="busy()">Elimina SBI</button> }
+                        </div>
+                        @if (reply !== null) {
+                          <dialog sbiModal class="sbi-modal reply-modal" aria-labelledby="reply-title" (cancel)="cancelModal($event, 'reply')">
+                            <div class="modal-heading">
+                              <div><h2 id="reply-title"><i class="bi bi-chat-left-text"></i> {{ version.reply ? 'Modifica risposta' : 'Rispondi' }}</h2><p>Commenta l’SBI ricevuto</p></div>
+                              <small>Revisione: {{ version.created_at | date:'dd/MM/yyyy HH:mm' }}</small>
+                            </div>
+                            <app-sbi-editor label="Risposta" [value]="reply" (valueChange)="reply = $event" />
+                            @if (detailError()) { <p class="error" role="alert">{{ detailError() }}</p> }
+                            <div class="modal-actions"><button (click)="reply = null" [disabled]="busy()">Annulla</button><button class="primary" (click)="saveReply(entry, version)" [disabled]="busy() || !reply.trim()">Invia</button></div>
+                          </dialog>
+                        }
+                        @if (confirmation; as pending) {
+                          <dialog sbiModal class="sbi-modal compact delete-modal" aria-labelledby="delete-title" (cancel)="cancelModal($event, 'delete')">
+                            <i class="modal-icon bi bi-trash3" aria-hidden="true"></i>
+                            <h2 id="delete-title">{{ pending.revision ? 'Elimina revisione' : 'Elimina SBI' }}</h2>
+                            <p>{{ pending.revision ? 'Sei sicuro di voler eliminare questa revisione dell’SBI?' : 'Sei sicuro di voler eliminare questo SBI e tutte le sue revisioni?' }}</p>
+                            @if (detailError()) { <p class="error" role="alert">{{ detailError() }}</p> }
+                            <div class="modal-actions"><button class="danger" (click)="confirmation = null" [disabled]="busy()">Annulla</button><button class="danger-solid" (click)="remove()" [disabled]="busy()">Elimina</button></div>
+                          </dialog>
+                        }
+                      </div>
+                    </div>
+                  }
+                } @else if (detailError()) { <button (click)="show(item.id)">Riprova</button> }
+                @else { <p role="status">Caricamento dettaglio…</p> }
+              </section>
+            }
+          </article>
+        } @empty { <p class="panel empty">Nessun SBI trovato.</p> }
+        @if (results.meta.last_page > 1) {
+          <nav class="pagination actions" aria-label="Pagine SBI">
+            <button (click)="load(results.meta.current_page - 1)" [disabled]="busy() || results.meta.current_page <= 1">Precedente</button>
+            <span>{{ results.meta.current_page }} / {{ results.meta.last_page }}</span>
+            <button (click)="load(results.meta.current_page + 1)" [disabled]="busy() || results.meta.current_page >= results.meta.last_page">Successiva</button>
+          </nav>
+        }
+      }
+    }
+  @if (savedEntry) {
+      <dialog sbiModal class="sbi-modal compact" aria-labelledby="saved-title" (cancel)="$event.preventDefault(); viewSaved()">
+        <i class="modal-icon bi bi-check-circle" aria-hidden="true"></i>
+        <h2 id="saved-title">SBI inserito con successo!</h2>
+        <p>Il tuo SBI è stato salvato correttamente</p>
+        <button class="primary" (click)="viewSaved()">Visualizza</button>
+      </dialog>
+    }
+  </main>
+</app-layout>
+

@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AllocationController;
+use App\Http\Controllers\SbiController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
@@ -157,3 +158,17 @@ Route::get('/project-options/users', [ProjectManagerOptionController::class, 'in
 Route::get('/projects/{project}/users/{user}/avatar', [ProjectParticipantAvatarController::class, 'show'])
     ->middleware(['auth:sanctum', EnsureManagedProject::class])
     ->name('projects.users.avatar');
+
+Route::middleware('auth:sanctum')->prefix('sbis')->controller(SbiController::class)->group(function () {
+    Route::get('/users', 'users');
+    Route::get('/options', 'options');
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{sbi}', 'show');
+    Route::put('/{sbi}', 'update');
+    Route::delete('/{sbi}', 'destroy');
+    Route::put('/{sbi}/revisions/{revision}/reply', 'reply');
+    Route::delete('/{sbi}/revisions/{revision}', 'destroyRevision');
+    Route::get('/{sbi}/users/{user}/avatar', 'avatar')->name('sbis.avatar');
+    Route::get('/{sbi}/logo', 'logo')->name('sbis.logo');
+});
