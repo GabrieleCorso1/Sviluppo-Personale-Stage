@@ -4,6 +4,7 @@ import { Home } from './features/home/home';
 import { authGuardGuard } from './core/guards/auth-guard-guard';
 
 export const routes: Routes = [
+  { path: 'sbi', canActivate: [authGuardGuard], loadComponent: () => import('./features/sbi/sbi').then(m => m.Sbi) },
   {
     path: 'impostazioni',
     canActivate: [authGuardGuard],
