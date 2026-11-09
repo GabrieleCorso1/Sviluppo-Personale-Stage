@@ -1,25 +1,494 @@
-.home-container {
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+.page {
   min-height: 100vh;
+  width: 100%;
+  background: #f5f7fb;
+  font-family: Arial, sans-serif;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* SIDEBAR LATERALE */
+/*.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 70px;
+  height: 100vh;
+  background: #ffffff;
+  border-right: 1px solid #eeeeee;
   display: flex;
-  justify-content: center;
+  flex-direction: column;
   align-items: center;
-  background: #f3f4f6;
+  padding-top: 15px;
+  z-index: 10;
+}
+
+.sidebar-logo img {
+  width: 35px;
+  height: 35px;
+  object-fit: contain;
+  margin-bottom: 25px;
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-items: center;
+}
+
+.nav-item {
+  font-size: 18px;
+  color: #64748b;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nav-item.active {
+  color: #174d99;
+}*/
+
+/* HEADER / TOPBAR */
+/*.topbar {
+  height: 37px;
+  width: calc(100% - 70px);
+  margin-left: 70px;
+  background: #ffffff;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 20px;
+  border-bottom: 1px solid #eeeeee;
+}
+
+.page-title {
+  font-size: 12px;
+  color: #333;
+  font-weight: 500;
+}
+
+.info {
+  color: #64748b;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.user-avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  background-size: cover;
+}*/
+
+/* BANNER BLU */
+.profile-banner {
+  width: 100%;
+  height: 160px;
+  margin-left: 0;
+  margin-top: 0;
+  background: linear-gradient(110deg, #5795df, #174d99);
+  position: relative;
+  display: flex;
+  padding: 20px 20px;
+  gap: 20px;
+  overflow: hidden;
+}
+
+/* AVATAR NEL BANNER */
+.banner-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: #e5e7eb;
+  overflow: hidden;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  z-index: 1;
+}
+
+.banner-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.profile-info {
+  color: white;
+  z-index: 1;
+  margin-top: 20px;
+}
+
+.profile-info h2 {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.profile-info p {
+  font-size: 11px;
+}
+
+/* DECORAZIONE BANNER */
+.decoration {
+  position: absolute;
+  right: 35px;
+}
+
+.decoration img {
+  height: 80px;
+  object-fit: contain;
+}
+
+/* CONTENUTO */
+.content {
+  margin: 0 20px 0 20px;
+  position: relative;
+  top: -50px; /* Sposta verso l'alto */
+}
+
+/* SCHEDA DATI PERSONALI */
+.personal-card {
+  background: #ffffff;
+  border-radius: 5px;
+  padding: 12px;
+  min-height: 110px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* HEADER SCHEDA */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+.card-header h3 {
+  color: #174d99;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.password-button {
+  background: transparent;
+  border: none;
+  color: #174d99;
+  font-size: 10px;
+  cursor: pointer;
+}
+
+/* DATI PERSONALI */
+.personal-data {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.data-item {
+  min-width: 0;
+  height: 45px;
+  border: 1px solid #e2e8f0;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  padding: 6px;
+  gap: 8px;
+}
+
+.icon img {
+  width: 25px;
+  height: 25px;
+  min-width: 25px;
+  border-radius: 50%;
+  background: #eaf1fc;
+  color: #174d99;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+
+.data-label {
+  color: #222;
+  font-size: 9px;
+  flex: 1;
+  min-width: 0;
+}
+
+.data-value {
+  color: #174d99;
+  font-size: 9px;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+/* SFONDO MODALE */
+/* Sfondo scuro dietro al modal */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+/* Finestra Modifica password */
+.password-modal {
+  width: 100%;
+  max-width: 480px;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+
+  padding: 28px;
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+
+  box-sizing: border-box;
+}
+
+/* Intestazione */
+.password-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+
+  margin-bottom: 24px;
+}
+
+.password-modal-header h2 {
+  margin: 0;
+  color: #24364b;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.modal-close {
+  border: none;
+  background: transparent;
+  color: #687789;
+  font-size: 28px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+/* Campi */
+.password-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.password-modal-body label {
+  margin-top: 8px;
+  color: #34465a;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.password-modal-body input {
+  width: 100%;
+  height: 42px;
+
+  padding: 0 12px;
+  border: 1px solid #d6dee8;
+  border-radius: 6px;
+
+  color: #24364b;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.password-modal-body input:focus {
+  outline: none;
+  border-color: #2d79bd;
+  box-shadow: 0 0 0 2px rgba(45, 121, 189, 0.12);
+}
+
+/* Pulsanti in fondo */
+.password-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+
+  margin-top: 28px;
+}
+
+.password-modal-actions button {
+  min-width: 100px;
+  height: 40px;
+
+  padding: 0 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.btn-annulla {
+  border: 1px solid #d6dee8;
+  background: #ffffff;
+  color: #34465a;
+}
+
+.btn-salva {
+  border: 1px solid #246ba5;
+  background: #246ba5;
+  color: #ffffff;
+}
+
+.btn-salva:hover {
+  background-color: #80b8ed;
+}
+
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.password-input-wrapper input {
+  width: 100%;
+  padding-right: 42px;
+  box-sizing: border-box;
+}
+
+.password-eye {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  transform: translateY(-50%);
+  z-index: 2;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  width: 28px;
+  height: 28px;
+
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.password-eye img {
+  display: block;
+  width: 20px;
+  height: 20px;
+  object-fit: contain;
+}
+
+/* RESPONSIVE */
+/*@media (max-width: 768px) {
+      .sidebar {
+              display: none;
+      }
+
+      .topbar {
+              width: 100%;
+              margin-left: 0;
+      }
+
+      .profile-banner, .content {
+              width: calc(100% - 20px);
+              margin-left: 10px;
+              margin-right: 10px;
+      }
+
+      .personal-data {
+              grid-template-columns: 1fr;
+      }
+
+      .data-item {
+              height: 48px;
+      }
+}*/
+
+.banner-avatar {
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.banner-avatar:focus-visible {
+  outline: 2px solid white;
+  outline-offset: 3px;
+}
+
+.avatar-dialog {
+  margin: auto;
+  width: min(340px, calc(100% - 32px));
+  padding: 20px;
+  border: 0;
+  border-radius: 12px;
+  color: #17324d;
   font-family: Arial, sans-serif;
 }
 
-.home-card {
-  padding: 40px;
-  text-align: center;
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+.avatar-dialog::backdrop {
+  background: rgb(15 34 56 / 45%);
 }
 
-button {
-  padding: 12px 24px;
-  border: none;
-  border-radius: 8px;
-  background: #667eea;
-  color: white;
+.avatar-dialog h2 {
+  margin-bottom: 14px;
+  font-size: 18px;
+}
+
+.avatar-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.avatar-dialog button {
+  padding: 8px 12px;
+  border: 1px solid #cbd9e6;
+  border-radius: 6px;
+  background: white;
+  color: #005487;
   cursor: pointer;
+}
+
+.avatar-dialog button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.avatar-dialog .avatar-remove {
+  color: #a32121;
+}
+
+.avatar-dialog p,
+.avatar-dialog .avatar-close {
+  margin-top: 12px;
+}
+
+.password-feedback {
+  color: #a51d2d;
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+
+.password-feedback:empty {
+  margin: 0;
 }

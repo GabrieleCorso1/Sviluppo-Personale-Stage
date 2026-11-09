@@ -27,6 +27,7 @@ Route::get('/user', function (Request $request) {
         'first_name' => $user->first_name,
         'last_name' => $user->last_name,
         'email' => $user->email,
+        'hiring_date' => $user->hiring_date?->toDateString(),
         'roles' => $user->roles
             ->pluck('alias')
             ->unique()
