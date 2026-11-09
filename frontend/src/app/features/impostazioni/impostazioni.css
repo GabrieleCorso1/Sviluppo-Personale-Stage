@@ -1,5 +1,6 @@
 
 :host {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
   display: block;
   min-height: 100vh;
   color: #303945;
@@ -38,7 +39,7 @@
   outline: 0;
   background: transparent;
   color: #303945;
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .settings-section {
@@ -195,4 +196,16 @@
   .settings-grid {
     grid-template-columns: 1fr;
   }
+}
+
+
+.search-box input,
+.setting-card {
+  font-family: inherit;
+}
+
+.card-count img {
+  width: auto;
+  height: 16px;
+  object-fit: contain;
 }
