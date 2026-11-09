@@ -4,6 +4,17 @@ import { Home } from './features/home/home';
 import { authGuardGuard } from './core/guards/auth-guard-guard';
 
 export const routes: Routes = [
+  { path: 'sbi', canActivate: [authGuardGuard], loadComponent: () => import('./features/sbi/sbi').then(m => m.Sbi) },
+  {
+    path: 'notifiche/:category/:id',
+    canActivate: [authGuardGuard],
+    loadComponent: () => import('./features/notifiche/notifiche').then(m => m.Notifiche),
+  },
+  {
+    path: 'notifiche',
+    canActivate: [authGuardGuard],
+    loadComponent: () => import('./features/notifiche/notifiche').then(m => m.Notifiche),
+  },
   {
     path: 'impostazioni',
     canActivate: [authGuardGuard],

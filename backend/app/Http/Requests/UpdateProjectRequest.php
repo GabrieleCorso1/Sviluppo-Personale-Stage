@@ -13,9 +13,7 @@ class UpdateProjectRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->where('alias', 'Admin')
-            ->exists() ?? false;
+        return $this->user()?->can('update', $this->route('project')) ?? false;
     }
 
     /**

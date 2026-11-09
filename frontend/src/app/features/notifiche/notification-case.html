@@ -1,0 +1,55 @@
+<section class="case-page">
+  <a routerLink="/notifiche"><i class="bi bi-arrow-left" aria-hidden="true"></i> Torna alle notifiche</a>
+  <article>
+    <h1>{{ heading() }}</h1>
+    @if (state(); as current) {
+      @switch (current.kind) {
+        @case ('loading') { <p role="status">Caricamento…</p> }
+        @case ('error') { <p role="alert">Questo caso non è disponibile.</p> }
+        @case ('example') {
+          <p class="example-label">{{ current.example.label }} · Esempio Figma</p>
+          <p>{{ current.example.description }}</p>
+          @if (current.example.category === 'surveys') {
+            @if (answered()) {
+              <p role="status">Risposta di prova completata.</p>
+            } @else {
+              <fieldset>
+                <legend>Quanto ti sono state utili le informazioni?</legend>
+                @for (option of ['Poco', 'Abbastanza', 'Molto']; track option) {
+                  <label><input type="radio" name="demo-answer" [checked]="answer() === option"
+                    (change)="answer.set(option)" /> {{ option }}</label>
+                }
+              </fieldset>
+              <p>La risposta è dimostrativa e non viene salvata.</p>
+              <button type="button" [disabled]="!answer()" (click)="answered.set(true)">Conferma risposta di prova</button>
+            }
+          }
+        }
+        @case ('notification') {
+          <p>{{ current.item.data.message }}</p>
+          <time [attr.datetime]="current.item.created_at">{{ current.item.created_at | date:'dd/MM/yyyy HH:mm' }}</time>
+          @if (current.item.data.calendar_request_id; as requestId) {
+            <h2>Richiesta di calendario n. {{ requestId }}</h2>
+            @switch (current.item.data.calendar_status) {
+              @case ('pending') {
+                <p>In attesa di decisione</p>
+                <div class="actions">
+                  <button type="button" [disabled]="sending()" (click)="decide(current.item.id, 'approved')">Accetta</button>
+                  <button type="button" class="reject" [disabled]="sending()" (click)="decide(current.item.id, 'rejected')">Rifiuta</button>
+                </div>
+              }
+              @case ('approved') { <p>Richiesta accettata</p> }
+              @case ('rejected') { <p>Richiesta rifiutata</p> }
+              @default { <p>Stato della richiesta non disponibile.</p> }
+            }
+          }
+          @if (current.item.data.project_id; as projectId) {
+            <h2>{{ current.item.data.category === 'timesheet' ? 'Timesheet' : 'Progetto' }} n. {{ projectId }}</h2>
+            @if (current.project?.description; as description) { <p>{{ description }}</p> }
+          }
+        }
+      }
+    }
+    @if (actionError()) { <p role="alert">{{ actionError() }}</p> }
+  </article>
+</section>

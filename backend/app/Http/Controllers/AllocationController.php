@@ -9,6 +9,7 @@ use App\Models\Necessity;
 use App\Models\Project;
 use App\Models\ProjectUser;
 use App\Models\User;
+use App\Notifications\InAppNotification;
 use App\Support\ProjectCalendar;
 use App\Support\ProjectFiles;
 use App\Support\ProjectParticipantAvatar;
@@ -131,12 +132,16 @@ class AllocationController extends Controller
     public function store(AllocationRequest $request): JsonResponse
     {
         $data = $request->validated();
-        $assignment = DB::transaction(function () use ($data) {
+        $actor = $request->user();
+        $assignment = DB::transaction(function () use ($data, $actor) {
             $project = $this->overview->projects($data['type'])->lockForUpdate()->find($data['project_id']);
             if (! $project) {
                 throw ValidationException::withMessages(['project_id' => 'Il progetto non appartiene alla tipologia selezionata.']);
             }
-            $this->overview->resources()->lockForUpdate()->findOrFail($data['user_id']);
+            if ($data['type'] === 'project') {
+                abort_unless($actor->can('assignMembers', $project), 403);
+            }
+            $recipient = $this->overview->resources()->lockForUpdate()->findOrFail($data['user_id']);
             $attributes = [
                 'project_id' => $project->id, 'user_id' => $data['user_id'], 'allocation_type' => $data['type'],
                 'assignmentrole_id' => $data['type'] === 'project' ? $data['assignment_role_id'] : null,
@@ -144,10 +149,59 @@ class AllocationController extends Controller
             ];
             $this->checkOverlap($attributes);
 
-            return ProjectUser::create($attributes);
+            $assignment = ProjectUser::create($attributes);
+            if ($assignment->allocation_type === 'project') {
+                $this->notifyProjectAssignment($project, $recipient, $actor);
+            } elseif ($assignment->allocation_type === 'timesheet') {
+                $recipient->notify(new InAppNotification(
+                    'timesheet',
+                    "Ti è stato assegnato il timesheet «{$project->alias}».",
+                    actorId: $actor->id,
+                    projectId: $project->id,
+                ));
+            }
+
+            return $assignment;
         });
 
         return response()->json(['data' => $this->overview->assignment($assignment->load('assignmentRole'))], 201);
+    }
+
+    private function notifyProjectAssignment(Project $project, User $recipient, User $actor): void
+    {
+        $teamLeaderId = $project->currentTeamLeaderAssignment()->first()?->user_id;
+        $recipientName = trim($recipient->first_name.' '.$recipient->last_name);
+        $actorName = trim($actor->first_name.' '.$actor->last_name);
+
+        $recipient->notify(new InAppNotification(
+            'projects',
+            "Ora fai parte del progetto «{$project->alias}».",
+            actorId: $actor->id,
+            projectId: $project->id,
+        ));
+
+        $observers = User::query()->whereKeyNot($recipient->id)
+            ->where(function ($users) use ($actor, $teamLeaderId) {
+                $users->whereKey($actor->id)
+                    ->orWhereHas('roles', fn ($roles) => $roles->where('alias', 'Admin'));
+
+                if ($teamLeaderId !== null) {
+                    $users->orWhere('id', $teamLeaderId);
+                }
+            });
+
+        foreach ($observers->lazyById() as $observer) {
+            $message = $observer->is($actor)
+                ? "Hai aggiunto {$recipientName} al progetto «{$project->alias}»."
+                : "{$actorName} ha aggiunto {$recipientName} al progetto «{$project->alias}».";
+
+            $observer->notify(new InAppNotification(
+                'projects',
+                $message,
+                actorId: $actor->id,
+                projectId: $project->id,
+            ));
+        }
     }
 
     public function update(AllocationRequest $request, ProjectUser $allocation): JsonResponse

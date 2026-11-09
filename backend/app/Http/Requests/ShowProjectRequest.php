@@ -12,9 +12,7 @@ class ShowProjectRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->where('alias', 'Admin')
-            ->exists() ?? false;
+        return $this->user()?->can('view', $this->route('project')) ?? false;
     }
 
     /**

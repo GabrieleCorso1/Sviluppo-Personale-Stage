@@ -15,6 +15,8 @@ use App\Http\Resources\ProjectResource;
 use App\Models\AssignmentRole;
 use App\Models\FileStorage;
 use App\Models\Project;
+use App\Models\User;
+use App\Notifications\InAppNotification;
 use App\Support\ProjectCalendar;
 use App\Support\ProjectFiles;
 use App\Support\ProjectParticipantAvatar;
@@ -96,12 +98,17 @@ class ProjectController extends Controller
         $data['is_ux_ui'] = $request->boolean('is_ux_ui');
         $data['is_course'] = false;
 
-        $project = DB::transaction(function () use ($data) {
+        if (! $data['is_timesheet']) {
+            $data['project_manager_id'] = $request->projectManagerId();
+        }
+
+        $actor = $request->user();
+        $project = DB::transaction(function () use ($data, $actor) {
             $project = Project::create($data);
             if (! $project->is_timesheet) {
                 $role = AssignmentRole::where('alias', 'Project Manager')->first();
                 abort_unless($role, 422, 'Incarico Project Manager non configurato.');
-                $project->projectUsers()->create([
+                $assignment = $project->projectUsers()->create([
                     'user_id' => $data['project_manager_id'],
                     'assignmentrole_id' => $role->id,
                     'startwork_date' => $data['start_date'],
@@ -109,6 +116,7 @@ class ProjectController extends Controller
                     // Allocation rules are pending; do not add an assumed percentage.
                     'work_allocation' => 0,
                 ]);
+                $this->notifyProjectCreation($project, $actor, $assignment->user);
             }
 
             return $project;
@@ -118,6 +126,41 @@ class ProjectController extends Controller
             'message' => 'Progetto creato con successo.',
             'data' => (new ProjectResource($project->refresh()))->resolve($request),
         ], 201);
+    }
+
+    private function notifyProjectCreation(Project $project, User $actor, User $manager): void
+    {
+        $actorName = trim($actor->first_name.' '.$actor->last_name);
+        $creationMessage = "Hai creato il progetto «{$project->alias}».";
+        if ($actor->is($manager)) {
+            $creationMessage .= ' Sei il Project Manager del progetto.';
+        } else {
+            $manager->notify(new InAppNotification(
+                'projects',
+                "Ti è stato assegnato il ruolo di Project Manager nel progetto «{$project->alias}».",
+                actorId: $actor->id,
+                projectId: $project->id,
+            ));
+        }
+
+        $actor->notify(new InAppNotification(
+            'projects',
+            $creationMessage,
+            actorId: $actor->id,
+            projectId: $project->id,
+        ));
+
+        $admins = User::query()->whereNotIn('id', [$actor->id, $manager->id])
+            ->whereHas('roles', fn ($roles) => $roles->where('alias', 'Admin'));
+
+        foreach ($admins->lazyById() as $admin) {
+            $admin->notify(new InAppNotification(
+                'projects',
+                "{$actorName} ha creato il progetto «{$project->alias}».",
+                actorId: $actor->id,
+                projectId: $project->id,
+            ));
+        }
     }
 
     /**
@@ -144,7 +187,18 @@ class ProjectController extends Controller
      */
     public function update(UpdateProjectRequest $request, Project $project): JsonResponse
     {
-        $project->update($request->validated());
+        $project = DB::transaction(function () use ($request, $project) {
+            $current = Project::query()->lockForUpdate()->findOrFail($project->id);
+            $current->fill($request->validated());
+            $changed = $current->isDirty();
+            $current->save();
+
+            if ($changed && ! $current->is_timesheet) {
+                $this->notifyProjectUpdate($current, $request->user());
+            }
+
+            return $current;
+        });
 
         $project->refresh()->load([
             'filestorage',
@@ -157,6 +211,33 @@ class ProjectController extends Controller
             'message' => 'Progetto modificato con successo.',
             'data' => (new ProjectResource($project))->resolve($request),
         ]);
+    }
+
+    private function notifyProjectUpdate(Project $project, User $actor): void
+    {
+        $actorName = trim($actor->first_name.' '.$actor->last_name);
+        $teamLeaderId = $project->currentTeamLeaderAssignment()->first()?->user_id;
+        $recipients = User::query()->where(function ($users) use ($actor, $teamLeaderId) {
+            $users->whereKey($actor->id)
+                ->orWhereHas('roles', fn ($roles) => $roles->where('alias', 'Admin'));
+
+            if ($teamLeaderId !== null) {
+                $users->orWhere('id', $teamLeaderId);
+            }
+        });
+
+        foreach ($recipients->lazyById() as $recipient) {
+            $message = $recipient->is($actor)
+                ? "Hai modificato il progetto «{$project->alias}»."
+                : "{$actorName} ha modificato il progetto «{$project->alias}».";
+
+            $recipient->notify(new InAppNotification(
+                'projects',
+                $message,
+                actorId: $actor->id,
+                projectId: $project->id,
+            ));
+        }
     }
 
     /**

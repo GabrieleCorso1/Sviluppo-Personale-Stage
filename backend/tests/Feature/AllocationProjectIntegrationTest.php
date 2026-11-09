@@ -306,3 +306,156 @@ test('full seed creates timesheet assignments visible in allocation without putt
         ->assertJsonPath('data.allocations.0.role', null);
     $this->assertDatabaseHas('project_user', ['project_id' => $timesheet->id, 'user_id' => $user->id, 'allocation_type' => 'timesheet']);
 });
+
+test('creating a project notifies the creator, the assigned manager and the other admins once', function (string $managerRole) {
+    $actor = integratedAllocationAdmin();
+    $otherAdmin = integratedAllocationAdmin();
+    $unrelated = User::factory()->create();
+    $manager = match ($managerRole) {
+        'creator' => $actor,
+        'admin' => integratedAllocationAdmin(),
+        default => User::factory()->create(),
+    };
+    $manager->roles()->attach(Role::firstOrCreate(['alias' => 'Project Manager']));
+    $this->withToken($actor->createToken('test')->plainTextToken);
+
+    $payload = integratedNormalProjectPayload($manager);
+    $alias = $payload['alias'];
+    $id = $this->postJson('/api/projects', $payload)->assertCreated()->json('data.id');
+    $this->postJson('/api/projects', $payload)->assertUnprocessable();
+    $this->postJson('/api/projects', ['alias' => 'Timesheet', 'is_timesheet' => true])->assertCreated();
+
+    $creatorMessage = "Hai creato il progetto «{$alias}».";
+    if ($manager->is($actor)) {
+        $creatorMessage .= ' Sei il Project Manager del progetto.';
+    } else {
+        expect($manager->notifications()->sole()->data)->toMatchArray([
+            'category' => 'projects', 'project_id' => $id, 'actor_id' => $actor->id,
+            'message' => "Ti è stato assegnato il ruolo di Project Manager nel progetto «{$alias}».",
+        ]);
+    }
+
+    $actorName = trim($actor->first_name.' '.$actor->last_name);
+    expect($actor->notifications()->sole()->data)->toMatchArray([
+        'category' => 'projects', 'project_id' => $id, 'actor_id' => $actor->id, 'message' => $creatorMessage,
+    ])->and($otherAdmin->notifications()->sole()->data)->toMatchArray([
+        'category' => 'projects', 'project_id' => $id, 'actor_id' => $actor->id,
+        'message' => "{$actorName} ha creato il progetto «{$alias}».",
+    ])->and($unrelated->notifications()->exists())->toBeFalse();
+})->with(['manager', 'admin', 'creator']);
+
+test('updating a project notifies the author, active team leader and other admins only when data changes', function (bool $leaderIsAdmin) {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $actor = integratedAllocationAdmin();
+    $otherAdmin = integratedAllocationAdmin();
+    $leader = $leaderIsAdmin ? integratedAllocationAdmin() : User::factory()->create();
+    $unrelated = User::factory()->create();
+    $project = Project::factory()->create(['alias' => 'Alfa', 'description' => 'Descrizione iniziale']);
+    $timesheet = Project::factory()->create(['is_timesheet' => true]);
+    $role = AssignmentRole::firstOrCreate(['alias' => 'Team Leader']);
+    $project->projectUsers()->create([
+        'user_id' => $leader->id, 'assignmentrole_id' => $role->id,
+        'allocation_type' => 'project', 'startwork_date' => '2026-11-01', 'work_allocation' => 0,
+    ]);
+    $this->withToken($actor->createToken('test')->plainTextToken);
+
+    $path = '/api/projects/'.$project->id;
+    $this->patchJson($path, ['description' => 'Descrizione iniziale'])->assertOk();
+    expect($actor->notifications()->exists())->toBeFalse();
+
+    $this->patchJson($path, ['description' => 'Nuova descrizione'])->assertOk()
+        ->assertJsonPath('data.description', 'Nuova descrizione');
+    $this->patchJson($path, ['description' => 'Nuova descrizione'])->assertOk();
+    $this->patchJson('/api/projects/'.$timesheet->id, ['description' => 'Aggiornamento timesheet'])->assertOk();
+
+    $actorName = trim($actor->first_name.' '.$actor->last_name);
+    $observerMessage = "{$actorName} ha modificato il progetto «Alfa».";
+    expect($actor->notifications()->sole()->data)->toMatchArray([
+        'category' => 'projects', 'project_id' => $project->id, 'actor_id' => $actor->id,
+        'message' => 'Hai modificato il progetto «Alfa».',
+    ])->and($otherAdmin->notifications()->sole()->data['message'])->toBe($observerMessage)
+        ->and($leader->notifications()->sole()->data['message'])->toBe($observerMessage)
+        ->and($unrelated->notifications()->exists())->toBeFalse();
+})->with([
+    'team leader without admin role' => [false],
+    'team leader who is also admin' => [true],
+]);
+
+test('project managers can create projects for themselves and receive the creation notification', function () {
+    $admin = integratedAllocationAdmin();
+    $manager = User::factory()->create();
+    $manager->roles()->attach(Role::firstOrCreate(['alias' => 'Project Manager']));
+    $other = User::factory()->create();
+    $payload = integratedNormalProjectPayload($manager);
+    $this->withToken($manager->createToken('test')->plainTextToken);
+
+    $this->postJson('/api/projects', array_replace($payload, ['project_manager_id' => $other->id]))
+        ->assertUnprocessable()->assertJsonValidationErrors('project_manager_id');
+    $this->postJson('/api/projects', ['alias' => 'Timesheet', 'is_timesheet' => true])->assertForbidden();
+    $this->assertDatabaseCount('projects', 0);
+    expect($manager->notifications()->exists())->toBeFalse();
+
+    unset($payload['project_manager_id']);
+    $id = $this->postJson('/api/projects', $payload)->assertCreated()->json('data.id');
+    $this->assertDatabaseHas('project_user', [
+        'project_id' => $id, 'user_id' => $manager->id,
+        'assignmentrole_id' => AssignmentRole::where('alias', 'Project Manager')->sole()->id,
+    ]);
+    expect($manager->notifications()->sole()->data)->toMatchArray([
+        'category' => 'projects', 'project_id' => $id, 'actor_id' => $manager->id,
+        'message' => 'Hai creato il progetto «Progetto integrato». Sei il Project Manager del progetto.',
+    ])->and($admin->notifications()->sole()->data['project_id'])->toBe($id);
+});
+
+test('a team leader cannot create a project', function () {
+    $leader = User::factory()->create();
+    $leader->roles()->attach(Role::firstOrCreate(['alias' => 'Team Leader']));
+
+    $this->withToken($leader->createToken('test')->plainTextToken)
+        ->postJson('/api/projects', integratedNormalProjectPayload($leader))->assertForbidden();
+    $this->assertDatabaseCount('projects', 0);
+});
+
+test('team leaders can view and update only projects they currently lead', function (string $assignment, bool $hasRole, bool $allowed) {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $admin = integratedAllocationAdmin();
+    $leader = User::factory()->create();
+    if ($hasRole) {
+        $leader->roles()->attach(Role::firstOrCreate(['alias' => 'Team Leader']));
+    }
+
+    $project = Project::factory()->create(['alias' => 'Alfa', 'description' => 'Prima']);
+    $role = AssignmentRole::firstOrCreate(['alias' => 'Team Leader']);
+    $project->projectUsers()->create([
+        'user_id' => $assignment === 'other' ? User::factory()->create()->id : $leader->id,
+        'assignmentrole_id' => $role->id,
+        'allocation_type' => 'project',
+        'startwork_date' => $assignment === 'future' ? '2026-11-03' : '2026-11-01',
+        'endwork_date' => $assignment === 'expired' ? '2026-11-01' : null,
+        'work_allocation' => 0,
+    ]);
+    $this->withToken($leader->createToken('test')->plainTextToken);
+    $path = '/api/projects/'.$project->id;
+
+    $this->getJson($path)->assertStatus($allowed ? 200 : 403);
+    $this->patchJson($path, ['description' => 'Dopo'])->assertStatus($allowed ? 200 : 403);
+    expect($project->fresh()->description)->toBe($allowed ? 'Dopo' : 'Prima');
+
+    if ($allowed) {
+        expect($leader->notifications()->sole()->data['message'])->toBe('Hai modificato il progetto «Alfa».')
+            ->and($admin->notifications()->sole()->data['actor_id'])->toBe($leader->id);
+    } else {
+        expect($leader->notifications()->exists())->toBeFalse()
+            ->and($admin->notifications()->exists())->toBeFalse();
+    }
+
+    $timesheet = Project::factory()->create(['is_timesheet' => true]);
+    $this->getJson('/api/projects/'.$timesheet->id)->assertForbidden();
+    $this->patchJson('/api/projects/'.$timesheet->id, ['description' => 'Dopo'])->assertForbidden();
+})->with([
+    'active' => ['active', true, true],
+    'future' => ['future', true, false],
+    'expired' => ['expired', true, false],
+    'another team leader' => ['other', true, false],
+    'no team leader role' => ['active', false, false],
+]);

@@ -3,21 +3,44 @@
 namespace App\Http\Requests;
 
 use App\AllocationOverview;
+use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class AllocationRequest extends FormRequest
 {
+    private const OPERATIONAL_ROLES = [
+        'Sviluppatore Front-end',
+        'Sviluppatore Back-end',
+        'Sviluppatore Full-stack',
+        'UX-UI Designer',
+    ];
+
+    private bool $isAdmin = false;
+
     public function authorize(): bool
     {
-        return $this->user()?->roles()->where('alias', 'Admin')->exists() ?? false;
+        $user = $this->user();
+        $this->isAdmin = $user?->roles()->where('alias', 'Admin')->exists() ?? false;
+        if ($this->isAdmin) {
+            return true;
+        }
+
+        if ($this->route()->getActionMethod() !== 'store' || $this->input('type') !== 'project') {
+            return false;
+        }
+
+        $projectId = filter_var($this->input('project_id'), FILTER_VALIDATE_INT, ['options' => ['min_range' => 1]]);
+        $project = $projectId === false ? null : Project::query()->find($projectId);
+
+        return $project !== null && ($user?->can('assignMembers', $project) ?? false);
     }
 
     public function rules(): array
     {
         $type = $this->input('type', 'project');
         $role = Rule::exists('assignmentroles', 'id')->whereNull('deleted_at')
-            ->whereIn('alias', array_keys(AllocationOverview::ROLES));
+            ->whereIn('alias', $this->isAdmin ? array_keys(AllocationOverview::ROLES) : self::OPERATIONAL_ROLES);
 
         return match ($this->route()->getActionMethod()) {
             'store' => [

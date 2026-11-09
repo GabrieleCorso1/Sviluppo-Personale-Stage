@@ -1,9 +1,12 @@
 <?php
 
+use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AllocationController;
+use App\Http\Controllers\SbiController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
+use App\Http\Controllers\CalendarRequestController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagerOptionController;
@@ -46,6 +49,18 @@ Route::get('/test', function () {
 });
 
 Route::middleware('auth:sanctum')->group(function () {
+
+    Route::post('/calendar/requests', [CalendarRequestController::class, 'store']);
+    Route::patch('/admin/notifications/{notification}/decision', [AdminNotificationController::class, 'decide'])->whereUuid('notification');
+    Route::get('/notifications/{notification}', [AdminNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.personal.show');
+    Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.personal.index');
+    Route::patch('/notifications', [AdminNotificationController::class, 'update'])->name('notifications.personal.update');
+    Route::delete('/notifications', [AdminNotificationController::class, 'destroy'])->name('notifications.personal.destroy');
+
+    Route::get('/admin/notifications', [AdminNotificationController::class, 'index']);
+    Route::patch('/admin/notifications', [AdminNotificationController::class, 'update']);
+    Route::delete('/admin/notifications', [AdminNotificationController::class, 'destroy']);
+
 
     // Gestione Utenti Completa (Figma Sync)
     Route::get('/users/options', [UserController::class, 'options']);
@@ -143,3 +158,17 @@ Route::get('/project-options/users', [ProjectManagerOptionController::class, 'in
 Route::get('/projects/{project}/users/{user}/avatar', [ProjectParticipantAvatarController::class, 'show'])
     ->middleware(['auth:sanctum', EnsureManagedProject::class])
     ->name('projects.users.avatar');
+
+Route::middleware('auth:sanctum')->prefix('sbis')->controller(SbiController::class)->group(function () {
+    Route::get('/users', 'users');
+    Route::get('/options', 'options');
+    Route::get('/', 'index');
+    Route::post('/', 'store');
+    Route::get('/{sbi}', 'show');
+    Route::put('/{sbi}', 'update');
+    Route::delete('/{sbi}', 'destroy');
+    Route::put('/{sbi}/revisions/{revision}/reply', 'reply');
+    Route::delete('/{sbi}/revisions/{revision}', 'destroyRevision');
+    Route::get('/{sbi}/users/{user}/avatar', 'avatar')->name('sbis.avatar');
+    Route::get('/{sbi}/logo', 'logo')->name('sbis.logo');
+});

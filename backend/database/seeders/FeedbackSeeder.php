@@ -4,6 +4,9 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use App\Models\Sbi;
+use App\Models\SbiReply;
+use App\Models\SbiRevision;
 
 class FeedbackSeeder extends Seeder
 {
@@ -41,6 +44,7 @@ class FeedbackSeeder extends Seeder
             [
                 'writer' => 'laura.bianchi@example.com',
                 'receiver' => 'luca.verdi@example.com',
+                'project' => 'Portale Clienti',
                 'is_positive' => true,
                 'situation' => 'Durante la pianificazione dello sprint.',
                 'behavior' => 'Hai aiutato il team a chiarire le attività tecniche.',
@@ -52,6 +56,7 @@ class FeedbackSeeder extends Seeder
             [
                 'writer' => 'luca.verdi@example.com',
                 'receiver' => 'giulia.neri@example.com',
+                'project' => 'Portale Clienti',
                 'is_positive' => true,
                 'situation' => 'Durante lo sviluppo del portale clienti.',
                 'behavior' => 'Hai condiviso aggiornamenti chiari sul lavoro svolto.',
@@ -63,6 +68,7 @@ class FeedbackSeeder extends Seeder
             [
                 'writer' => 'mario.rossi@example.com',
                 'receiver' => 'andrea.costa@example.com',
+                'project' => 'API Aziendali',
                 'is_positive' => false,
                 'situation' => 'Durante la revisione di una funzionalità.',
                 'behavior' => 'Alcuni aggiornamenti sono arrivati in ritardo.',
@@ -73,25 +79,58 @@ class FeedbackSeeder extends Seeder
             ],
         ];
 
-        foreach ($feedbacks as $feedback) {
-            $writerId = $users[$feedback['writer']];
-            $receiverId = $users[$feedback['receiver']];
+        DB::transaction(function () use ($feedbacks, $users, $now) {
+            foreach ($feedbacks as $feedback) {
+                $projectId = DB::table('projects')
+                    ->where('alias', $feedback['project'])
+                    ->where('is_course', false)
+                    ->where('is_timesheet', false)
+                    ->whereNull('deleted_at')
+                    ->value('id');
 
-            unset($feedback['writer'], $feedback['receiver']);
+                if ($projectId === null) {
+                    throw new \RuntimeException(
+                        "Progetto {$feedback['project']} non trovato."
+                    );
+                }
 
-            DB::table('sbis')->updateOrInsert(
-                [
-                    'writer_id' => $writerId,
-                    'receiver_id' => $receiverId,
-                    'written_at' => $feedback['written_at'],
-                    'situation' => $feedback['situation'],
-                ],
-                array_merge($feedback, [
-                    'updated_at' => $now,
-                    'created_at' => $now,
-                ])
-            );
-        }
+                $sbi = Sbi::firstOrCreate([
+                    'writer_id' => $users[$feedback['writer']],
+                    'receiver_id' => $users[$feedback['receiver']],
+                    'project_id' => $projectId,
+                ]);
+
+                $revision = SbiRevision::firstOrCreate(
+                    [
+                        'sbi_id' => $sbi->id,
+                        'revision_number' => 1,
+                    ],
+                    [
+                        'is_positive' => $feedback['is_positive'],
+                        'event_date' => $feedback['written_at'],
+                        'situation' => $feedback['situation'],
+                        'behavior' => $feedback['behavior'],
+                        'impact' => $feedback['impact'],
+                        'suggestion' => $feedback['suggestion'],
+                        'personal_notes' => null,
+                        'viewed_at' => $feedback['answered_at'],
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ]
+                );
+
+                if ($feedback['answered_at'] !== null) {
+                    SbiReply::firstOrCreate(
+                        ['sbi_revision_id' => $revision->id],
+                        [
+                            'body' => 'Grazie per il feedback!',
+                            'created_at' => $feedback['answered_at'],
+                            'updated_at' => $feedback['answered_at'],
+                        ]
+                    );
+                }
+            }
+        });
 
         // 3. Bilanci mensili delle ore residue
         $leaveBalances = [
