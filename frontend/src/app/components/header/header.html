@@ -25,8 +25,12 @@
             <img class="avatar-photo" [src]="photo" alt="" />
           </button>
           } @else {
-            <img class="avatar avatar-static" [src]="photo" alt="Foto profilo" />
+            <a class="avatar avatar-static" routerLink="/home" aria-label="Vai al profilo">
+              <img class="avatar-photo" [src]="photo" alt="" />
+            </a>
           }
+        } @else if (!avatarEditable()) {
+          <a class="avatar" routerLink="/home" aria-label="Vai al profilo">U</a>
         } @else {
           <div class="avatar" aria-label="Profilo utente">U</div>
         }
