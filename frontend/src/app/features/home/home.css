@@ -482,3 +482,13 @@
 .avatar-dialog .avatar-close {
   margin-top: 12px;
 }
+
+.password-feedback {
+  color: #a51d2d;
+  font-size: 14px;
+  margin: 12px 0 0;
+}
+
+.password-feedback:empty {
+  margin: 0;
+}

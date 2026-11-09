@@ -93,7 +93,7 @@
 
               <div class="password-input-wrapper">
                 <input
-                  id="password-attuale"
+                  id="password-attuale" [(ngModel)]="passwordAttuale" autocomplete="current-password" [disabled]="passwordBusy()"
                   [type]="mostraPasswordAttuale ? 'text' : 'password'"
                   placeholder="Inserisci la password attuale"
                 />
@@ -120,7 +120,7 @@
 
               <div class="password-input-wrapper">
                 <input
-                  id="nuova-password"
+                  id="nuova-password" [(ngModel)]="nuovaPassword" autocomplete="new-password" [disabled]="passwordBusy()"
                   [type]="mostraNuovaPassword ? 'text' : 'password'"
                   placeholder="Inserisci la nuova password"
                 />
@@ -147,7 +147,7 @@
 
               <div class="password-input-wrapper">
                 <input
-                  id="conferma-password"
+                  id="conferma-password" [(ngModel)]="confermaPassword" autocomplete="new-password" [disabled]="passwordBusy()"
                   [type]="mostraConfermaPassword ? 'text' : 'password'"
                   placeholder="Conferma la nuova password"
                 />
@@ -170,12 +170,13 @@
               </div>
             </div>
 
+            <p class="password-feedback" role="alert">{{ passwordError() }}</p>
             <div class="password-modal-actions">
               <button type="button" class="btn-annulla" (click)="chiudiModalePassword()">
                 Annulla
               </button>
 
-              <button type="button" class="btn-salva">Salva</button>
+              <button type="button" class="btn-salva" [disabled]="!canSavePassword" (click)="savePassword()">{{ passwordBusy() ? 'Salvataggio…' : 'Salva' }}</button>
             </div>
           </section>
         </div>

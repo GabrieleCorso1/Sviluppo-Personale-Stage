@@ -5,13 +5,15 @@ import { finalize, Observable, switchMap } from 'rxjs';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
 import { Auth, hasSettingsRole } from '../../core/services/auth';
 import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { API_URL } from '../../core/auth-http';
 import { CommonModule } from '@angular/common';
 import { Layout } from '../../components/layout/layout';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, Layout],
+  imports: [CommonModule, FormsModule, Layout],
   templateUrl: './home.html',
   styleUrl: './home.css',
 })
@@ -81,13 +83,64 @@ export class Home implements OnInit {
 
   // Apertura e chiusura modale
   modalePasswordAperta = false;
+  passwordAttuale = '';
+  nuovaPassword = '';
+  confermaPassword = '';
+  readonly passwordBusy = signal(false);
+  readonly passwordError = signal('');
+
+  get canSavePassword(): boolean {
+    return !this.passwordBusy() && !!this.passwordAttuale && !!this.nuovaPassword
+      && this.nuovaPassword === this.confermaPassword;
+  }
+
+  savePassword(): void {
+    if (!this.canSavePassword) return;
+    this.passwordBusy.set(true);
+    this.passwordError.set('');
+
+    this.http.put(API_URL + '/api/user/password', {
+      current_password: this.passwordAttuale,
+      password: this.nuovaPassword,
+      password_confirmation: this.confermaPassword,
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.passwordBusy.set(false)),
+    ).subscribe({
+      next: () => {
+        this.resetPasswordForm();
+        this.auth.clearSession();
+        void this.router.navigate(['/login'], {
+          queryParams: { passwordReset: 'success' },
+          replaceUrl: true,
+        });
+      },
+      error: (error: HttpErrorResponse) => {
+        const errors = error.error?.errors;
+        this.passwordError.set(errors?.current_password?.[0] ?? errors?.password?.[0]
+          ?? (error.status === 429 ? 'Troppi tentativi. Riprova tra un minuto.'
+            : 'Impossibile aggiornare la password. Riprova.'));
+      },
+    });
+  }
+
+  private resetPasswordForm(): void {
+    this.modalePasswordAperta = false;
+    this.passwordAttuale = '';
+    this.nuovaPassword = '';
+    this.confermaPassword = '';
+    this.passwordError.set('');
+    this.mostraPasswordAttuale = false;
+    this.mostraNuovaPassword = false;
+    this.mostraConfermaPassword = false;
+  }
 
   apriModalePassword(): void {
     this.modalePasswordAperta = true;
   }
 
   chiudiModalePassword(): void {
-    this.modalePasswordAperta = false;
+    if (!this.passwordBusy()) this.resetPasswordForm();
   }
 
   // Mostra/nascondi password
