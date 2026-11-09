@@ -17,6 +17,13 @@
   background: #edf4fa;
 }
 
+a.header-button {
+  text-decoration: none;
+}
+
+.header-button.active {
+  background: #edf4fa;
+}
 .topbar {
   position: sticky;
   top: 0;

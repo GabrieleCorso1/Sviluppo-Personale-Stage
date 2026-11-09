@@ -8,14 +8,23 @@ use Illuminate\Validation\Rule;
 
 class StoreProjectRequest extends FormRequest
 {
+    private bool $isAdmin = false;
+
     /**
      * Determine if the user is authorized to make this request.
      */
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->where('alias', 'Admin')
-            ->exists() ?? false;
+        $roles = $this->user()?->roles()->whereIn('alias', ['Admin', 'Project Manager'])
+            ->pluck('alias');
+        $this->isAdmin = $roles?->contains('Admin') ?? false;
+
+        return $this->isAdmin || (! $this->boolean('is_timesheet') && $roles?->contains('Project Manager'));
+    }
+
+    public function projectManagerId(): int
+    {
+        return $this->isAdmin ? (int) $this->validated('project_manager_id') : $this->user()->id;
     }
 
     /**
@@ -39,10 +48,11 @@ class StoreProjectRequest extends FormRequest
             'description' => ['nullable', 'string', 'max:250'],
 
             'project_manager_id' => [
-                Rule::requiredIf(fn () => ! $this->boolean('is_timesheet')),
+                Rule::requiredIf($this->isAdmin && ! $isTimesheet),
                 'nullable',
                 'integer',
                 Rule::exists('users', 'id')->whereNull('deleted_at'),
+                Rule::when(! $this->isAdmin, [Rule::in([$this->user()->id])]),
             ],
 
             'start_date' => [

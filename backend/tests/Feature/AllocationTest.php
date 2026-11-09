@@ -109,7 +109,8 @@ test('one resource has independent project timesheet and course assignments', fu
     expect($timesheetNotification->data)
         ->toMatchArray(['project_id' => $timesheet->id, 'actor_id' => $admin->id]);
     expect($timesheetNotification->data['message'])->toContain($timesheet->alias);
-    expect($admin->notifications()->exists())->toBeFalse();
+    expect($admin->notifications()->sole()->data)
+        ->toMatchArray(['category' => 'projects', 'project_id' => $project->id, 'actor_id' => $admin->id]);
 
     $this->assertSoftDeleted('project_user', ['id' => $timesheetId]);
     $this->assertDatabaseHas('project_user', ['id' => $projectId, 'deleted_at' => null]);
@@ -447,3 +448,87 @@ test('necessities reject courses and timesheets without changing existing needs'
     'timesheet add' => [['is_timesheet' => true], [1]],
     'timesheet clear' => [['is_timesheet' => true], []],
 ]);
+
+test('project assignment notifies the actor, other admins and only the current team leader once', function (bool $leaderIsAdmin) {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $actor = allocationAdmin();
+    $leader = $leaderIsAdmin ? allocationAdmin() : User::factory()->create();
+    $otherAdmin = allocationAdmin();
+    $recipient = User::factory()->create();
+    $unrelatedLeader = User::factory()->create();
+    $formerLeader = User::factory()->create();
+    $project = allocationProject($actor, ['alias' => 'Alfa']);
+    $otherProject = allocationProject($actor);
+    $leaderRole = allocationRole('Team Leader');
+    allocationRow($project, $formerLeader, [
+        'assignmentrole_id' => $leaderRole->id, 'endwork_date' => '2026-11-01',
+    ]);
+    allocationRow($project, $leader, ['assignmentrole_id' => $leaderRole->id, 'startwork_date' => '2026-11-02']);
+    allocationRow($otherProject, $unrelatedLeader, ['assignmentrole_id' => $leaderRole->id]);
+
+    $payload = [
+        'type' => 'project', 'project_id' => $project->id, 'user_id' => $recipient->id,
+        'assignment_role_id' => allocationRole()->id, 'start_date' => '2026-11-02',
+    ];
+    $this->withToken($actor->createToken('test')->plainTextToken)->postJson('/api/allocations', $payload)
+        ->assertCreated();
+    $this->postJson('/api/allocations', $payload)->assertUnprocessable();
+
+    $actorName = trim($actor->first_name.' '.$actor->last_name);
+    $recipientName = trim($recipient->first_name.' '.$recipient->last_name);
+    $observerMessage = "{$actorName} ha aggiunto {$recipientName} al progetto «Alfa».";
+    expect($recipient->notifications()->sole()->data['message'])->toBe('Ora fai parte del progetto «Alfa».')
+        ->and($actor->notifications()->sole()->data['message'])->toBe("Hai aggiunto {$recipientName} al progetto «Alfa».")
+        ->and($leader->notifications()->sole()->data['message'])->toBe($observerMessage)
+        ->and($otherAdmin->notifications()->sole()->data['message'])->toBe($observerMessage)
+        ->and($unrelatedLeader->notifications()->exists())->toBeFalse()
+        ->and($formerLeader->notifications()->exists())->toBeFalse();
+})->with([
+    'team leader without admin role' => [false],
+    'team leader who is also admin' => [true],
+]);
+
+test('team leaders can add operational members only to the projects they currently lead', function () {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $admin = allocationAdmin();
+    $leader = User::factory()->create();
+    $leader->roles()->attach(Role::firstOrCreate(['alias' => 'Team Leader']));
+    $recipient = User::factory()->create();
+    $project = allocationProject($admin, ['alias' => 'Alfa']);
+    $otherProject = allocationProject($admin);
+    $formerProject = allocationProject($admin);
+    $timesheet = allocationProject($admin, ['is_timesheet' => true]);
+    $course = allocationProject($admin, ['is_course' => true]);
+    $leaderRole = allocationRole('Team Leader');
+    allocationRow($project, $leader, ['assignmentrole_id' => $leaderRole->id]);
+    allocationRow($formerProject, $leader, [
+        'assignmentrole_id' => $leaderRole->id, 'endwork_date' => '2026-11-01',
+    ]);
+
+    $payload = [
+        'type' => 'project', 'project_id' => $project->id, 'user_id' => $recipient->id,
+        'assignment_role_id' => allocationRole()->id, 'start_date' => '2026-11-02',
+    ];
+    $this->withToken($leader->createToken('test')->plainTextToken);
+    foreach ([$otherProject, $formerProject] as $unmanaged) {
+        $this->postJson('/api/allocations', array_replace($payload, ['project_id' => $unmanaged->id]))
+            ->assertForbidden();
+    }
+    foreach (['timesheet' => $timesheet, 'course' => $course] as $type => $excluded) {
+        $this->postJson('/api/allocations', array_replace($payload, ['type' => $type, 'project_id' => $excluded->id]))
+            ->assertForbidden();
+    }
+    foreach (['Team Leader', 'Project Manager', 'Scrum Master'] as $alias) {
+        $this->postJson('/api/allocations', array_replace($payload, ['assignment_role_id' => allocationRole($alias)->id]))
+            ->assertUnprocessable()->assertJsonValidationErrors('assignment_role_id');
+    }
+    expect($recipient->notifications()->exists())->toBeFalse();
+
+    $id = $this->postJson('/api/allocations', $payload)->assertCreated()->json('data.id');
+    $this->putJson('/api/allocations/'.$id, ['start_date' => '2026-11-03'])->assertForbidden();
+    $this->deleteJson('/api/allocations/'.$id)->assertForbidden();
+    $recipientName = trim($recipient->first_name.' '.$recipient->last_name);
+    expect($recipient->notifications()->sole()->data['message'])->toBe('Ora fai parte del progetto «Alfa».')
+        ->and($leader->notifications()->sole()->data['message'])->toBe("Hai aggiunto {$recipientName} al progetto «Alfa».")
+        ->and($admin->notifications()->sole()->data['actor_id'])->toBe($leader->id);
+});

@@ -5,9 +5,10 @@
       </div>
 
       <div class="topbar-actions">
-        <button class="header-button" aria-label="Notifiche">
-          <i class="bi bi-bell"></i>
-        </button>
+        <a class="header-button" routerLink="/notifiche" routerLinkActive="active"
+          ariaCurrentWhenActive="page" aria-label="Notifiche">
+          <i class="bi bi-bell" aria-hidden="true"></i>
+        </a>
         @if (canAccessSettings()) {
           <button
             type="button"
