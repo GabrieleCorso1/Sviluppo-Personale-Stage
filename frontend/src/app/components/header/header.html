@@ -6,10 +6,14 @@
 
       <div class="topbar-actions">
         <div class="notification-bell">
-          <button #bell type="button" class="header-button" aria-label="Notifiche"
+          <button #bell type="button" class="header-button bell-button"
+            [attr.aria-label]="unreadCount() ? 'Notifiche non lette: ' + unreadCount() : 'Notifiche'"
             [attr.aria-expanded]="notificationsOpen()" (click)="notificationsOpen.set(!notificationsOpen())"
             (keydown.escape)="notificationsOpen.set(false)">
             <i class="bi bi-bell" aria-hidden="true"></i>
+            @if (unreadCount(); as count) {
+              <span class="notification-badge" aria-hidden="true">{{ count > 99 ? '99+' : count }}</span>
+            }
           </button>
           @if (notificationsOpen()) {
             <div class="notification-popover" (keydown.escape)="closeFromPreview($event, bell)">

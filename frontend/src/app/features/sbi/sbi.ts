@@ -3,7 +3,7 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { AfterViewInit, Component, Directive, ElementRef, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { Layout } from '../../components/layout/layout';
 import { API_URL } from '../../core/auth-http';
@@ -128,7 +128,17 @@ export class Sbi {
   readonly textFields = ['situation', 'behavior', 'impact'] as const;
 
   constructor() {
-    void this.load();
+    inject(ActivatedRoute).queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(params => {
+      const sent = params.has('mandato');
+      const id = Number(params.get(sent ? 'mandato' : 'ricevuto'));
+      const linkedId = Number.isSafeInteger(id) && id > 0 ? id : undefined;
+      if (linkedId !== undefined) {
+        this.direction = sent ? 'sent' : 'received';
+        this.subject = null;
+        this.search = this.projectSearch = this.dateFrom = this.dateTo = this.type = this.response = '';
+      }
+      void this.load(1, false, linkedId);
+    });
     this.avatar.load().pipe(takeUntilDestroyed(this.destroyRef)).subscribe({ error: () => undefined });
   }
 
@@ -155,7 +165,7 @@ export class Sbi {
 
   name(person: Person): string { return person.first_name + ' ' + person.last_name; }
 
-  async load(page = 1, preserveDetail = false) {
+  async load(page = 1, preserveDetail = false, linkedId?: number) {
     if (!preserveDetail) this.closeDetail();
     const request = ++this.listRequest;
     this.error.set('');
@@ -168,6 +178,7 @@ export class Sbi {
     this.loading.set(true);
     const params: Record<string, string | number> = { direction: this.direction, page };
     if (this.subject) params['user_id'] = this.subject.id;
+    if (linkedId !== undefined) params['sbi_id'] = linkedId;
     for (const [key, value] of Object.entries({
       search: this.search.trim(), project_search: this.projectSearch.trim(),
       date_from: this.dateFrom, date_to: this.dateTo, is_positive: this.type, response_status: this.response,
@@ -182,6 +193,13 @@ export class Sbi {
         return;
       }
       this.page.set(result);
+      if (linkedId !== undefined) {
+        if (result.data.some(item => item.id === linkedId)) {
+          void this.show(linkedId);
+        } else {
+          this.error.set('Questo SBI non è più disponibile nella tua casella.');
+        }
+      }
     } catch (error) {
       if (request === this.listRequest) this.error.set(this.message(error));
     } finally {

@@ -117,6 +117,17 @@ export class NotificationList implements OnInit {
     this.load(page);
   }
 
+  protected openNotification(item: NotificationItem): void {
+    if (!item.read_at) {
+      // The request must finish even when navigation destroys this list.
+      this.api.mark({ ids: [item.id] }, true).subscribe({
+        next: () => this.api.refreshLists(),
+        error: () => this.actionError.set("Impossibile segnare la notifica come letta."),
+      });
+    }
+    this.dismiss.emit();
+  }
+
   protected mark(read: boolean, id?: string): void {
     this.mutate(this.api.mark(this.selection(id), read));
   }

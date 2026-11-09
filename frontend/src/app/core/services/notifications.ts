@@ -10,6 +10,8 @@ export interface NotificationItem {
     category: string;
     message: string;
     project_id?: number;
+    sbi_id?: number;
+    sbi_reply?: boolean;
     calendar_request_id?: number;
     calendar_status?: 'pending' | 'approved' | 'rejected' | null;
   };
