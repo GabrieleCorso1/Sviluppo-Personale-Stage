@@ -5,6 +5,7 @@ import { API_URL } from '../auth-http';
 
 export interface NotificationItem {
   id: string;
+  category_label?: string;
   data: {
     category: string;
     message: string;
@@ -53,6 +54,10 @@ export class Notifications {
     if (filters.unread) params = params.set('unread', '1');
     for (const category of filters.categories ?? []) params = params.append('categories[]', category);
     return this.http.get<NotificationPage>(this.endpoint, { params });
+  }
+
+  show(id: string) {
+    return this.http.get<NotificationItem>(this.endpoint + '/' + encodeURIComponent(id));
   }
 
   mark(selection: NotificationSelection, read: boolean) {

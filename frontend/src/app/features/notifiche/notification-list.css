@@ -21,7 +21,7 @@ input[type='checkbox'] { accent-color: #0762a6; width: 1rem; height: 1rem; flex:
 .unread-dot::before { position: absolute; left: -.45rem; top: calc(50% - 3px); width: 6px; height: 6px; border-radius: 50%; background: #087cda; content: ''; }
 .item-body { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .9rem; }
 .item-body p { margin: .35rem 0; }
-.detail-link { padding: 0; text-align: left; text-decoration: underline; text-underline-offset: .15em; }
+.detail-link { color: #064875; padding: 0; text-align: left; text-decoration: underline; text-underline-offset: .15em; }
 .tag { background: #f1f5f9; border-radius: .25rem; padding: .15rem .35rem; color: #064875; font-size: .75rem; }
 time { color: #52647a; font-size: .75rem; }
 .decision { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .6rem; }
@@ -46,10 +46,17 @@ dialog h3 { margin: .55rem 0; font-size: 1.15rem; }
 dialog p { font-size: .85rem; }
 .delete-dialog div { display: flex; gap: .5rem; }
 .delete-dialog button { flex: 1; }
-.detail-dialog { width: min(34rem, calc(100% - 2rem)); text-align: left; }
-.detail-heading { display: flex; align-items: center; justify-content: space-between; gap: .75rem; }
-.case-detail { margin-top: 1rem; padding: .75rem; border-radius: .45rem; background: #eef4fa; }
-.case-detail h4 { margin: 0; font-size: .95rem; }
-.case-detail p { margin: .4rem 0 0; }
 .delete-button { background: #bf0033; }
 .delete-button:not(:disabled):hover { background: #950028; }
+
+.preview { min-height: 0; background: #fff; border-radius: .6rem; }
+.preview-title, .examples h2 { font-size: .95rem; margin: 0; padding: .8rem 1rem .3rem; }
+.preview .items { max-height: min(55vh, 23rem); overflow: auto; }
+.preview .item { padding: .7rem 1rem; }
+.preview .empty { min-height: 6rem; }
+.preview .empty i { font-size: 2rem; }
+.preview .row-actions[open] > div { position: static; max-width: 8rem; }
+.preview footer { padding: .7rem 1rem; text-align: right; font-size: .8rem; }
+.preview footer a, .example-action { color: #064875; }
+.examples { padding: .5rem 0 1rem; }
+.example-action { display: inline-block; font-weight: 600; margin-top: .35rem; }

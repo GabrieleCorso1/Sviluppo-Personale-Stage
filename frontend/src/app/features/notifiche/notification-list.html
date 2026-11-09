@@ -1,13 +1,15 @@
-<section class="notifications" aria-label="Notifiche">
-  <div class="categories" aria-label="Filtra per categoria">
-    @for (category of result()?.categories; track category.key) {
-      <button type="button" class="category" [attr.aria-pressed]="categories().includes(category.key)"
-        [disabled]="saving()" (click)="toggleCategory(category.key)">
-        <span><small>{{ category.unread_count }}</small> <i [class]="icon(category.key)" aria-hidden="true"></i></span>
-        {{ category.label }}
-      </button>
-    }
-  </div>
+<section class="notifications" [class.preview]="preview()" aria-label="Notifiche">
+  @if (preview()) { <h2 class="preview-title">Notifiche</h2> } @else {
+    <div class="categories" aria-label="Filtra per categoria">
+      @for (category of result()?.categories; track category.key) {
+        <button type="button" class="category" [attr.aria-pressed]="categories().includes(category.key)"
+          [disabled]="saving()" (click)="toggleCategory(category.key)">
+          <span><small>{{ category.unread_count }}</small> <i [class]="icon(category.key)" aria-hidden="true"></i></span>
+          {{ category.label }}
+        </button>
+      }
+    </div>
+  }
 
   <div class="tabs" aria-label="Filtra per stato">
     <button type="button" [attr.aria-pressed]="!unread()" [disabled]="saving()" (click)="selectTab(false)">
@@ -18,22 +20,24 @@
     </button>
   </div>
 
-  <div class="toolbar">
-    <input type="checkbox" aria-label="Seleziona tutte le notifiche filtrate"
-      [checked]="allSelected()" [indeterminate]="selected().length > 0"
-      [disabled]="loading() || saving() || loadError() || !result()?.total" (change)="toggleAll()" />
-    <button type="button" aria-label="Aggiorna notifiche" [disabled]="loading() || saving()"
-      (click)="goTo(result()?.current_page ?? 1)">
-      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-    </button>
-    @if (allSelected() || selected().length) {
-      <span>{{ allSelected() ? result()?.total : selected().length }} selezionate</span>
-      <button type="button" [disabled]="loading() || saving() || loadError()" (click)="mark(true)">Segna come lette</button>
-      <button type="button" [disabled]="loading() || saving() || loadError()" (click)="mark(false)">Segna come non lette</button>
-      <button type="button" class="danger" [disabled]="loading() || saving() || loadError()"
-        (click)="askToDelete(deleteDialog)">Elimina</button>
-    }
-  </div>
+  @if (!preview()) {
+    <div class="toolbar">
+      <input type="checkbox" aria-label="Seleziona tutte le notifiche filtrate"
+        [checked]="allSelected()" [indeterminate]="selected().length > 0"
+        [disabled]="loading() || saving() || loadError() || !result()?.total" (change)="toggleAll()" />
+      <button type="button" aria-label="Aggiorna notifiche" [disabled]="loading() || saving()"
+        (click)="goTo(result()?.current_page ?? 1)">
+        <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+      </button>
+      @if (allSelected() || selected().length) {
+        <span>{{ allSelected() ? result()?.total : selected().length }} selezionate</span>
+        <button type="button" [disabled]="loading() || saving() || loadError()" (click)="mark(true)">Segna come lette</button>
+        <button type="button" [disabled]="loading() || saving() || loadError()" (click)="mark(false)">Segna come non lette</button>
+        <button type="button" class="danger" [disabled]="loading() || saving() || loadError()"
+          (click)="askToDelete(deleteDialog)">Elimina</button>
+      }
+    </div>
+  }
 
   @if (actionError()) { <p class="notice danger" role="alert">{{ actionError() }}</p> }
 
@@ -45,18 +49,20 @@
     } @else {
       @for (item of result()?.data; track item.id) {
         <article class="item" [class.unread]="!item.read_at">
-          <input type="checkbox" aria-label="Seleziona notifica" [disabled]="saving()"
-            [checked]="allSelected() || selected().includes(item.id)" (change)="toggleItem(item.id)" />
+          @if (!preview()) {
+            <input type="checkbox" aria-label="Seleziona notifica" [disabled]="saving()"
+              [checked]="allSelected() || selected().includes(item.id)" (change)="toggleItem(item.id)" />
+          }
           <span class="item-icon" [class.unread-dot]="!item.read_at">
             <i [class]="icon(item.data.category)" aria-hidden="true"></i>
             @if (!item.read_at) { <span class="visually-hidden">Non letta</span> }
           </span>
           <div class="item-body">
             <span class="tag"><i [class]="icon(item.data.category)" aria-hidden="true"></i> {{ label(item.data.category) }}</span>
-            <p><button type="button" class="detail-link" aria-haspopup="dialog"
-              (click)="showDetail(item, detailDialog)">{{ item.data.message }}</button></p>
+            <p><a class="detail-link" [routerLink]="['/notifiche', item.data.category, item.id]"
+              (click)="dismiss.emit()">{{ item.data.message }}</a></p>
             <time [attr.datetime]="item.created_at">{{ item.created_at | date:'dd/MM/yyyy HH:mm' }}</time>
-            @if (item.data.calendar_request_id) {
+            @if (!preview() && item.data.calendar_request_id) {
               @switch (item.data.calendar_status) {
                 @case ('pending') {
                   <div class="decision">
@@ -91,7 +97,9 @@
     }
   </div>
 
-  @if (result(); as page) {
+  @if (preview()) {
+    <footer><a routerLink="/notifiche" (click)="dismiss.emit()">Visualizza tutte</a></footer>
+  } @else if (result(); as page) {
     @if (page.last_page > 1 && !loadError()) {
       <nav class="pagination" aria-label="Paginazione notifiche">
         <button type="button" aria-label="Pagina precedente" [disabled]="loading() || saving() || page.current_page <= 1"
@@ -103,53 +111,21 @@
     }
   }
 
-  <dialog #detailDialog class="detail-dialog" aria-label="Dettaglio notifica" (close)="closeDetail()">
-    @if (detail(); as item) {
-      <header class="detail-heading">
-        <h3>{{ label(item.data.category) }}</h3>
-        <button type="button" aria-label="Chiudi dettaglio" autofocus (click)="detailDialog.close()">
-          <i class="bi bi-x-lg" aria-hidden="true"></i>
-        </button>
-      </header>
-      <p>{{ item.data.message }}</p>
-      <time [attr.datetime]="item.created_at">{{ item.created_at | date:'dd/MM/yyyy HH:mm' }}</time>
-
-      @if (item.data.calendar_request_id) {
-        <section class="case-detail" aria-label="Richiesta di calendario">
-          <h4>Richiesta di calendario n. {{ item.data.calendar_request_id }}</h4>
-          @switch (item.data.calendar_status) {
-            @case ('pending') {
-              <p>In attesa di decisione</p>
-              <div class="decision">
-                <button type="button" class="primary" [disabled]="saving() || loading()"
-                  (click)="decide(item, 'approved')">Accetta</button>
-                <button type="button" class="outline-danger" [disabled]="saving() || loading()"
-                  (click)="decide(item, 'rejected')">Rifiuta</button>
-              </div>
-            }
-            @case ('approved') { <p class="approved">Richiesta accettata</p> }
-            @case ('rejected') { <p class="danger">Richiesta rifiutata</p> }
-            @default { <p>Stato della richiesta non disponibile.</p> }
-          }
-        </section>
+  @if (!preview() && !unread() && examples().length) {
+    <section class="examples" aria-label="Esempi Figma">
+      <h2>Esempi Figma</h2>
+      @for (example of examples(); track example.id) {
+        <article class="item">
+          <span class="item-icon"><i [class]="example.icon" aria-hidden="true"></i></span>
+          <div class="item-body">
+            <span class="tag">{{ example.label }} · Esempio</span>
+            <p><a class="detail-link" [routerLink]="['/notifiche', example.category, example.id]">{{ example.message }}</a></p>
+            <a class="example-action" [routerLink]="['/notifiche', example.category, example.id]">{{ example.action }}</a>
+          </div>
+        </article>
       }
-
-      @if (item.data.project_id) {
-        <section class="case-detail" aria-label="Riferimento assegnazione">
-          @if (project(); as linkedProject) {
-            <h4>{{ linkedProject.alias }}</h4>
-            @if (linkedProject.description) { <p>{{ linkedProject.description }}</p> }
-          } @else {
-            <h4>{{ item.data.category === 'timesheet' ? 'Timesheet' : 'Progetto' }} n. {{ item.data.project_id }}</h4>
-            @if (projectLoading()) { <p role="status">Caricamento scheda…</p> }
-            @if (projectError()) { <p role="status">Scheda collegata non disponibile.</p> }
-          }
-        </section>
-      }
-
-      @if (actionError()) { <p class="danger" role="alert">{{ actionError() }}</p> }
-    }
-  </dialog>
+    </section>
+  }
 
   <dialog #deleteDialog class="delete-dialog" aria-label="Conferma eliminazione">
     <i class="bi bi-trash danger" aria-hidden="true"></i>

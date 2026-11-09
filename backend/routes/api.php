@@ -51,6 +51,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/calendar/requests', [CalendarRequestController::class, 'store']);
     Route::patch('/admin/notifications/{notification}/decision', [AdminNotificationController::class, 'decide'])->whereUuid('notification');
+    Route::get('/notifications/{notification}', [AdminNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.personal.show');
     Route::get('/notifications', [AdminNotificationController::class, 'index'])->name('notifications.personal.index');
     Route::patch('/notifications', [AdminNotificationController::class, 'update'])->name('notifications.personal.update');
     Route::delete('/notifications', [AdminNotificationController::class, 'destroy'])->name('notifications.personal.destroy');

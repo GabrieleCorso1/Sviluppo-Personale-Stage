@@ -5,6 +5,11 @@ import { authGuardGuard } from './core/guards/auth-guard-guard';
 
 export const routes: Routes = [
   {
+    path: 'notifiche/:category/:id',
+    canActivate: [authGuardGuard],
+    loadComponent: () => import('./features/notifiche/notifiche').then(m => m.Notifiche),
+  },
+  {
     path: 'notifiche',
     canActivate: [authGuardGuard],
     loadComponent: () => import('./features/notifiche/notifiche').then(m => m.Notifiche),

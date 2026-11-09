@@ -6,6 +6,7 @@ use App\Models\Calendar;
 use App\Notifications\InAppNotification;
 use App\Support\CalendarNotificationRecipients;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
+use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -45,20 +46,16 @@ class AdminNotificationController extends Controller
             ->map(fn ($total) => (int) $total);
 
         $page = $this->applyFilters($notifications, $filters)
+            ->orderByDesc('created_at')
             ->orderByDesc('id')
             ->paginate($filters['per_page'] ?? 20)
             ->withQueryString();
 
         $requestIds = $page->getCollection()->pluck('data.calendar_request_id')->filter()->unique();
         $statuses = Calendar::query()->whereKey($requestIds->all())->pluck('status', 'id');
-        $page->through(function ($notification) use ($statuses) {
-            $item = $notification->only(['id', 'data', 'read_at', 'created_at']);
-            if (isset($item['data']['calendar_request_id'])) {
-                $item['data']['calendar_status'] = $statuses->get($item['data']['calendar_request_id']);
-            }
-
-            return $item;
-        });
+        $page->through(fn (DatabaseNotification $notification) => $this->notificationItem(
+            $notification, $statuses->get($notification->data['calendar_request_id'] ?? null),
+        ));
 
         return response()->json([
             ...$page->toArray(),
@@ -73,6 +70,26 @@ class AdminNotificationController extends Controller
                 ->sortBy([['unread_count', 'desc'], ['label', 'asc']])
                 ->values(),
         ]);
+    }
+
+    public function show(Request $request, string $notification): JsonResponse
+    {
+        $item = $this->notifications($request)->whereKey($notification)->firstOrFail();
+        $calendarId = $item->data['calendar_request_id'] ?? null;
+        $status = $calendarId === null ? null : Calendar::query()->whereKey($calendarId)->value('status');
+
+        return response()->json($this->notificationItem($item, $status));
+    }
+
+    private function notificationItem(DatabaseNotification $notification, ?string $calendarStatus): array
+    {
+        $item = $notification->only(['id', 'data', 'read_at', 'created_at']);
+        $item['category_label'] = self::CATEGORY_LABELS[$item['data']['category'] ?? ''] ?? null;
+        if (isset($item['data']['calendar_request_id'])) {
+            $item['data']['calendar_status'] = $calendarStatus;
+        }
+
+        return $item;
     }
 
     public function update(Request $request): JsonResponse

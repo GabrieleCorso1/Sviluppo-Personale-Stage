@@ -193,3 +193,19 @@ test('select all applies the active filters across pages for the authenticated r
     $this->deleteJson($url, ['all' => true, 'ids' => [$user->notifications()->sole()->id]])->assertUnprocessable();
     expect($other->notifications()->unread()->count())->toBe(1);
 });
+
+test('a personal notification can be opened directly only by its recipient', function () {
+    $recipient = User::factory()->create();
+    $other = User::factory()->create();
+    $recipient->notify(new InAppNotification('wiki', 'Guida del progetto'));
+    $item = $recipient->notifications()->sole();
+    $path = '/api/notifications/'.$item->id;
+
+    $this->getJson($path)->assertUnauthorized();
+    $this->withToken($other->createToken('test')->plainTextToken)->getJson($path)->assertNotFound();
+    $this->app['auth']->forgetGuards();
+    $this->withToken($recipient->createToken('test')->plainTextToken)->getJson($path)
+        ->assertOk()->assertJsonPath('id', $item->id)
+        ->assertJsonPath('category_label', 'Wiki')
+        ->assertJsonPath('data.message', 'Guida del progetto');
+});

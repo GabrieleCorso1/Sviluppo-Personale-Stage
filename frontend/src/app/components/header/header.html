@@ -5,10 +5,18 @@
       </div>
 
       <div class="topbar-actions">
-        <a class="header-button" routerLink="/notifiche" routerLinkActive="active"
-          ariaCurrentWhenActive="page" aria-label="Notifiche">
-          <i class="bi bi-bell" aria-hidden="true"></i>
-        </a>
+        <div class="notification-bell">
+          <button #bell type="button" class="header-button" aria-label="Notifiche"
+            [attr.aria-expanded]="notificationsOpen()" (click)="notificationsOpen.set(!notificationsOpen())"
+            (keydown.escape)="notificationsOpen.set(false)">
+            <i class="bi bi-bell" aria-hidden="true"></i>
+          </button>
+          @if (notificationsOpen()) {
+            <div class="notification-popover" (keydown.escape)="closeFromPreview($event, bell)">
+              <app-notification-list [preview]="true" (dismiss)="notificationsOpen.set(false)" />
+            </div>
+          }
+        </div>
         @if (canAccessSettings()) {
           <button
             type="button"
