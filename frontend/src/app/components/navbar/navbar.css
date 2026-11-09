@@ -26,7 +26,7 @@
   display: block;
   width: 60px;
   height: auto;
-  object-fit: contain;
+  pointer-events: none;
 }
 
 .side-nav {
@@ -81,4 +81,17 @@
 
 .reward-button small {
   font-size: 7px;
+}
+
+
+.nav-button:has(img) {
+  position: relative;
+}
+
+.nav-button img {
+  display: block;
+  position: absolute;
+  width: 48px;
+  height: auto;
+  pointer-events: none;
 }
