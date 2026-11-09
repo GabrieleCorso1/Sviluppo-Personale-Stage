@@ -1,0 +1,56 @@
+<app-layout [avatarUrl]="avatarUrl()" [canAccessSettings]="true" (openSettings)="router.navigate(['/impostazioni'])">
+  <div class="page-content">
+    <label class="search-box">
+      <i class="bi bi-search"></i>
+      <input
+        type="search"
+        placeholder="Cerca un'impostazione..."
+        aria-label="Cerca un'impostazione"
+        [value]="searchText"
+        (input)="searchText = $any($event.target).value"
+      />
+    </label>
+
+    @for (section of filteredSections; track section.title) {
+      <section class="settings-section">
+        <h2 class="section-title">{{ section.title }}</h2>
+
+        <div class="settings-grid">
+          @for (card of section.cards; track card.title) {
+            <button
+              class="setting-card"
+              type="button"
+              [attr.aria-label]="'Gestione ' + card.title"
+            >
+              <span class="card-copy">
+                <span class="card-eyebrow">Gestione</span>
+                <span class="card-title">{{ card.title }}</span>
+                <span class="card-description">
+                  {{ card.description }}
+                </span>
+                <span class="card-count">
+                  <i class="bi bi-folder2"></i>
+                  {{ card.count }}
+                </span>
+              </span>
+
+              <span
+                class="card-illustration"
+                [class.green]="card.color === 'green'"
+                [class.orange]="card.color === 'orange'"
+              >
+                  <i class="bi" [class]="card.icon"></i>
+              </span>
+            </button>
+          }
+        </div>
+      </section>
+    }
+
+    @if (filteredSections.length === 0) {
+      <p class="empty-state">
+        Nessuna impostazione trovata.
+      </p>
+    }
+  </div>
+</app-layout>

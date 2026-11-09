@@ -1,13 +1,206 @@
-<main class="home-container">
-  <section class="home-card">
-    <h1>Benvenuto nella Home!</h1>
-    <p>Hai effettuato l'accesso al frontend.</p>
-
-    <button type="button" (click)="logout()" [disabled]="caricamento()">
-      Esci
+<app-layout pageTitle="Profilo" [avatarUrl]="avatarUrl()" [canAccessSettings]="canAccessSettings()" (openSettings)="router.navigate(['/impostazioni'])">
+<div class="page">
+  <!-- BANNER PROFILO -->
+  <section class="profile-banner">
+    <!-- Avatar nel banner -->
+    <button type="button" class="banner-avatar" aria-label="Gestisci foto profilo"
+      aria-haspopup="dialog" (click)="avatarDialog.showModal()">
+      <img [src]="avatarUrl()" alt="" />
     </button>
-    @if (errore()) {
-      <p role="alert">{{ errore() }}</p>
-    }
+
+    <div class="profile-info">
+      <h2>{{ fullName() }}</h2>
+      <p>{{ roleTitle }}</p>
+    </div>
+
+    <div class="decoration">
+      <img src="/img/profiloUtente/logo.png" alt="Logo Sfondo" />
+    </div>
   </section>
-</main>
+
+  <!-- CONTENUTO -->
+  <section class="content">
+    <section class="personal-card">
+      <div class="card-header">
+        <h3>Dati personali</h3>
+
+        <button class="password-button" (click)="apriModalePassword()">✎ Modifica password</button>
+      </div>
+
+      <div class="personal-data">
+        <!-- RUOLO -->
+        <div class="data-item">
+          <div class="icon"><img src="/img/profiloUtente/utente.png" alt="" /></div>
+          <div class="data-label">
+            <span>Ruolo</span>
+          </div>
+          <span class="data-value">{{ user()?.roles?.join(', ') || 'Non disponibile' }}</span>
+        </div>
+
+        <!-- DATA ASSUNZIONE -->
+        <div class="data-item">
+          <div class="icon"><img src="/img/profiloUtente/calendario.png" alt="" /></div>
+          <div class="data-label">
+            <span>Data di assunzione</span>
+          </div>
+          <span class="data-value">{{ (user()?.hiring_date | date: 'dd/MM/yyyy') ?? 'Non disponibile' }}</span>
+        </div>
+
+        <!-- EMAIL -->
+        <div class="data-item">
+          <div class="icon"><img src="/img/profiloUtente/email.png" alt="" /></div>
+          <div class="data-label">
+            <span>Email</span>
+          </div>
+          <span class="data-value">{{ user()?.email || 'Non disponibile' }}</span>
+        </div>
+      </div>
+    </section>
+  </section>
+</div>
+
+<!-- MODALE MODIFICA PASSWORD -->
+
+<div class="profile-info">
+  <!-- Sezione dati personali -->
+  <div class="personal-data">
+    <!-- Riquadri dei dati -->
+    <div class="personal-data-content">
+      @if (modalePasswordAperta) {
+        <div class="modal-overlay">
+          <section
+            class="password-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="password-modal-title"
+          >
+            <div class="password-modal-header">
+              <h2 id="password-modal-title">Modifica password</h2>
+
+              <button
+                type="button"
+                class="modal-close"
+                aria-label="Chiudi"
+                (click)="chiudiModalePassword()"
+              >
+                ×
+              </button>
+            </div>
+
+            <div class="password-modal-body">
+              <!-- Password attuale -->
+              <label for="password-attuale">Password attuale</label>
+
+              <div class="password-input-wrapper">
+                <input
+                  id="password-attuale" [(ngModel)]="passwordAttuale" autocomplete="current-password" [disabled]="passwordBusy()"
+                  [type]="mostraPasswordAttuale ? 'text' : 'password'"
+                  placeholder="Inserisci la password attuale"
+                />
+
+                <button
+                  type="button"
+                  class="password-eye"
+                  (click)="mostraPasswordAttuale = !mostraPasswordAttuale"
+                  aria-label="Mostra o nascondi password attuale"
+                >
+                  <img
+                    [src]="
+                      mostraPasswordAttuale
+                        ? '/img/profiloUtente/el_eye-open.png'
+                        : '/img/profiloUtente/el_eye-close.png'
+                    "
+                    alt=""
+                  />
+                </button>
+              </div>
+
+              <!-- Nuova password -->
+              <label for="nuova-password">Nuova password</label>
+
+              <div class="password-input-wrapper">
+                <input
+                  id="nuova-password" [(ngModel)]="nuovaPassword" autocomplete="new-password" [disabled]="passwordBusy()"
+                  [type]="mostraNuovaPassword ? 'text' : 'password'"
+                  placeholder="Inserisci la nuova password"
+                />
+
+                <button
+                  type="button"
+                  class="password-eye"
+                  (click)="mostraNuovaPassword = !mostraNuovaPassword"
+                  aria-label="Mostra o nascondi nuova password"
+                >
+                  <img
+                    [src]="
+                      mostraNuovaPassword
+                        ? '/img/profiloUtente/el_eye-open.png'
+                        : '/img/profiloUtente/el_eye-close.png'
+                    "
+                    alt=""
+                  />
+                </button>
+              </div>
+
+              <!-- Conferma nuova password -->
+              <label for="conferma-password">Conferma nuova password</label>
+
+              <div class="password-input-wrapper">
+                <input
+                  id="conferma-password" [(ngModel)]="confermaPassword" autocomplete="new-password" [disabled]="passwordBusy()"
+                  [type]="mostraConfermaPassword ? 'text' : 'password'"
+                  placeholder="Conferma la nuova password"
+                />
+
+                <button
+                  type="button"
+                  class="password-eye"
+                  (click)="mostraConfermaPassword = !mostraConfermaPassword"
+                  aria-label="Mostra o nascondi conferma password"
+                >
+                  <img
+                    [src]="
+                      mostraConfermaPassword
+                        ? '/img/profiloUtente/el_eye-open.png'
+                        : '/img/profiloUtente/el_eye-close.png'
+                    "
+                    alt=""
+                  />
+                </button>
+              </div>
+            </div>
+
+            <p class="password-feedback" role="alert">{{ passwordError() }}</p>
+            <div class="password-modal-actions">
+              <button type="button" class="btn-annulla" (click)="chiudiModalePassword()">
+                Annulla
+              </button>
+
+              <button type="button" class="btn-salva" [disabled]="!canSavePassword" (click)="savePassword()">{{ passwordBusy() ? 'Salvataggio…' : 'Salva' }}</button>
+            </div>
+          </section>
+        </div>
+      }
+    </div>
+  </div>
+</div>
+  <dialog #avatarDialog class="avatar-dialog" aria-labelledby="avatar-dialog-title"
+    (cancel)="avatarBusy() && $event.preventDefault()">
+    <h2 id="avatar-dialog-title">Foto profilo</h2>
+    <input #avatarFile type="file" accept="image/jpeg,image/png,image/webp" hidden
+      (change)="changeAvatar(avatarFile, avatarDialog)" />
+    <div class="avatar-actions">
+      <button type="button" [disabled]="avatarBusy()" (click)="avatarFile.click()">Modifica foto</button>
+      <button type="button" class="avatar-remove" [disabled]="avatarBusy()"
+        (click)="removeAvatar(avatarDialog)">Elimina foto</button>
+    </div>
+    @if (avatarBusy()) {
+      <p role="status">Attendi…</p>
+    }
+    @if (avatarError()) {
+      <p role="alert">{{ avatarError() }}</p>
+    }
+    <button type="button" class="avatar-close" [disabled]="avatarBusy()"
+      (click)="avatarDialog.close()">Chiudi</button>
+  </dialog>
+</app-layout>
