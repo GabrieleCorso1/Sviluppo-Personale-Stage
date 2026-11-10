@@ -2,8 +2,10 @@ import { DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, input, OnInit, output, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { catchError, EMPTY, Observable, Subject, switchMap } from 'rxjs';
+import { catchError, EMPTY, Observable, Subject, switchMap, timer } from 'rxjs';
 import { RouterLink } from '@angular/router';
+import { AuthenticatedImage } from '../../core/authenticated-image';
+import { API_URL } from '../../core/auth-http';
 import { NOTIFICATION_EXAMPLES } from './notification-examples';
 import {
   NotificationFilters, NotificationItem, NotificationPage, Notifications,
@@ -18,13 +20,14 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 @Component({
   selector: 'app-notification-list',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, RouterLink, AuthenticatedImage],
   templateUrl: './notification-list.html',
   styleUrl: './notification-list.css',
 })
 export class NotificationList implements OnInit {
   readonly preview = input(false);
   readonly dismiss = output<void>();
+  protected readonly avatarFallback = API_URL + '/images/defaults/default-avatar.svg';
 
   private readonly api = inject(Notifications);
   private readonly destroyRef = inject(DestroyRef);
@@ -48,8 +51,8 @@ export class NotificationList implements OnInit {
     this.requests.pipe(
       switchMap(page => this.api.list(this.filters(), page, this.preview() ? 6 : 20).pipe(
         catchError(() => {
+          if (this.loading()) this.loadError.set(true);
           this.loading.set(false);
-          this.loadError.set(true);
           return EMPTY;
         }),
       )),
@@ -60,11 +63,18 @@ export class NotificationList implements OnInit {
         return;
       }
       this.result.set(result);
+      this.loadError.set(false);
       this.loading.set(false);
     });
     this.api.changed.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
       this.resetSelection();
       this.load(this.result()?.current_page);
+    });
+    timer(30_000, 30_000).pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      const page = this.result()?.current_page;
+      if (page && !this.loading() && !this.saving()) {
+        this.requests.next(page);
+      }
     });
     this.load();
   }

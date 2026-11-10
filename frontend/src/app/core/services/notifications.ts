@@ -6,6 +6,7 @@ import { API_URL } from '../auth-http';
 export interface NotificationItem {
   id: string;
   category_label?: string;
+  actor?: { avatar_url: string | null };
   data: {
     category: string;
     message: string;

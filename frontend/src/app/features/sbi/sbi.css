@@ -48,7 +48,7 @@ button:disabled { opacity: .55; cursor: default; }
 .row-person img { width: 2rem; height: 2rem; object-fit: contain; border-radius: 50%; }
 .excerpt { overflow: hidden; max-height: 1.35em; overflow-wrap: anywhere; }
 
-:host { font-family: 'Poppins', 'Segoe UI', sans-serif; font-size: .875rem; }
+:host { font-size: .875rem; }
 .sbi { max-width: none; padding: 20px clamp(16px, 2.3vw, 34px); }
 .toolbar { gap: .5rem; }
 .toolbar .quick-search { flex: 1; display: flex; align-items: center; gap: .55rem; }
@@ -74,8 +74,6 @@ button:disabled { opacity: .55; cursor: default; }
 .notes h2 { color: #805500; }
 .green h2 { color: #006b51; }
 
-@font-face { font-family: Poppins; src: url('/fonts/sbi/Poppins-Regular.ttf') format('truetype'); font-weight: 400; font-display: swap; }
-@font-face { font-family: Poppins; src: url('/fonts/sbi/Poppins-SemiBold.ttf') format('truetype'); font-weight: 600 700; font-display: swap; }
 @media (max-width: 640px) {
   .toolbar { flex-wrap: wrap; }
   .row-toggle { grid-template-columns: 1fr auto; }

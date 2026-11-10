@@ -3,14 +3,18 @@
 namespace App\Http\Controllers;
 
 use App\Models\Calendar;
+use App\Models\User;
 use App\Notifications\InAppNotification;
 use App\Support\CalendarNotificationRecipients;
+use App\Support\ProjectParticipantAvatar;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminNotificationController extends Controller
 {
@@ -53,8 +57,13 @@ class AdminNotificationController extends Controller
 
         $requestIds = $page->getCollection()->pluck('data.calendar_request_id')->filter()->unique();
         $statuses = Calendar::query()->whereKey($requestIds->all())->pluck('status', 'id');
+        $actorIds = $page->getCollection()->pluck('data.actor_id')->filter()->unique();
+        $actors = User::query()->with('filestorage')->whereKey($actorIds->all())->get()->keyBy('id');
+
         $page->through(fn (DatabaseNotification $notification) => $this->notificationItem(
-            $notification, $statuses->get($notification->data['calendar_request_id'] ?? null),
+            $notification,
+            $statuses->get($notification->data['calendar_request_id'] ?? null),
+            $actors->get($notification->data['actor_id'] ?? null),
         ));
 
         return response()->json([
@@ -81,12 +90,33 @@ class AdminNotificationController extends Controller
         return response()->json($this->notificationItem($item, $status));
     }
 
-    private function notificationItem(DatabaseNotification $notification, ?string $calendarStatus): array
+    public function avatar(Request $request, string $notification): BinaryFileResponse
+    {
+        $item = $this->notifications($request)->whereKey($notification)->firstOrFail();
+        $actor = User::query()->with('filestorage')->findOrFail($item->data['actor_id'] ?? null);
+        $path = ProjectParticipantAvatar::privatePath($actor);
+        abort_if($path === null, 404);
+
+        return response()->file(Storage::disk('local')->path($path), [
+            'Cache-Control' => 'private, no-store',
+            'X-Content-Type-Options' => 'nosniff',
+        ]);
+    }
+
+    private function notificationItem(DatabaseNotification $notification, ?string $calendarStatus, ?User $actor = null): array
     {
         $item = $notification->only(['id', 'data', 'read_at', 'created_at']);
         $item['category_label'] = self::CATEGORY_LABELS[$item['data']['category'] ?? ''] ?? null;
         if (isset($item['data']['calendar_request_id'])) {
             $item['data']['calendar_status'] = $calendarStatus;
+        }
+
+        if ($actor !== null) {
+            $item['actor'] = [
+                'avatar_url' => ProjectParticipantAvatar::privatePath($actor) === null
+                    ? null
+                    : route('notifications.personal.avatar', ['notification' => $notification->id, 'v' => $actor->filestorage_id], false),
+            ];
         }
 
         return $item;

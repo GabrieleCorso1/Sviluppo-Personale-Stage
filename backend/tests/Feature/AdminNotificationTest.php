@@ -4,6 +4,7 @@ use App\Models\Role;
 use App\Models\User;
 use App\Notifications\InAppNotification;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 use Laravel\Sanctum\Sanctum;
 
 uses(LazilyRefreshDatabase::class);
@@ -208,4 +209,37 @@ test('a personal notification can be opened directly only by its recipient', fun
         ->assertOk()->assertJsonPath('id', $item->id)
         ->assertJsonPath('category_label', 'Wiki')
         ->assertJsonPath('data.message', 'Guida del progetto');
+});
+
+test('notification avatars are available only to the recipient', function () {
+    Storage::fake('local');
+    $actor = User::factory()->create();
+    $recipient = User::factory()->create();
+    $recipient->notify(new InAppNotification('sbi', 'New feedback', $actor->id));
+    $notificationId = $recipient->notifications()->sole()->id;
+    $url = '/api/notifications/'.$notificationId.'/avatar';
+
+    Sanctum::actingAs($recipient);
+    $this->getJson('/api/notifications')->assertOk()
+        ->assertJsonPath('data.0.actor.avatar_url', null);
+    $this->get($url)->assertNotFound();
+
+    $actor->filestorage()->update(['path' => 'users/avatars', 'name' => 'sender']);
+    $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aASsAAAAASUVORK5CYII=');
+    Storage::disk('local')->put('users/avatars/sender.png', $png);
+
+    $this->getJson('/api/notifications')->assertOk()
+        ->assertJsonPath('data.0.actor.avatar_url', $url.'?v='.$actor->filestorage_id);
+
+    $replacement = $actor->filestorage()->firstOrFail()->replicate();
+    $replacement->name = 'replacement';
+    $replacement->save();
+    Storage::disk('local')->put('users/avatars/replacement.png', $png);
+    $actor->filestorage()->associate($replacement)->save();
+    $this->getJson('/api/notifications')->assertOk()
+        ->assertJsonPath('data.0.actor.avatar_url', $url.'?v='.$replacement->id);
+    $this->get($url)->assertOk()->assertHeader('Content-Type', 'image/png');
+
+    Sanctum::actingAs($actor);
+    $this->get($url)->assertNotFound();
 });

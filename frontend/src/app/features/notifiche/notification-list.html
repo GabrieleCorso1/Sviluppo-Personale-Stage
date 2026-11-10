@@ -54,7 +54,11 @@
               [checked]="allSelected() || selected().includes(item.id)" (change)="toggleItem(item.id)" />
           }
           <span class="item-icon" [class.unread-dot]="!item.read_at">
-            <i [class]="icon(item.data.category)" aria-hidden="true"></i>
+            @if (item.actor; as actor) {
+              <img [authenticatedImage]="actor.avatar_url ?? avatarFallback" [imageFallback]="avatarFallback" alt="" />
+            } @else {
+              <i [class]="icon(item.data.category)" aria-hidden="true"></i>
+            }
             @if (!item.read_at) { <span class="visually-hidden">Non letta</span> }
           </span>
           <div class="item-body">

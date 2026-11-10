@@ -117,9 +117,9 @@
           <article class="panel card">
             <button class="row-toggle" [attr.aria-expanded]="openId() === item.id" [attr.aria-controls]="'sbi-' + item.id"
               (click)="openId() === item.id ? closeDetail() : show(item.id)" [disabled]="busy()">
-              <span class="row-person"><img [sbiImage]="(direction === 'sent' ? item.receiver : item.writer).avatar_url ?? avatarFallback" [imageFallback]="avatarFallback" alt=""><span><strong>{{ name(direction === 'sent' ? item.receiver : item.writer) }}</strong>
+              <span class="row-person"><img [authenticatedImage]="(direction === 'sent' ? item.receiver : item.writer).avatar_url ?? avatarFallback" [imageFallback]="avatarFallback" alt=""><span><strong>{{ name(direction === 'sent' ? item.receiver : item.writer) }}</strong>
                 <small>{{ item.created_at | date:'dd/MM/yyyy' }}</small></span></span>
-              <span class="preview row-person"><img [sbiImage]="item.project.logo_url ?? logoFallback" [imageFallback]="logoFallback" alt=""><span><strong>{{ item.project.alias }}</strong>
+              <span class="preview row-person"><img [authenticatedImage]="item.project.logo_url ?? logoFallback" [imageFallback]="logoFallback" alt=""><span><strong>{{ item.project.alias }}</strong>
                 <small>{{ item.latest_revision.event_date | date:'dd/MM/yyyy' }} · {{ item.latest_revision.is_positive ? 'Positivo' : 'Migliorativo' }}</small><small class="excerpt" >{{ preview(item.latest_revision.situation) }}</small></span></span>
               <span class="badges">
                 @if (direction === 'received') {

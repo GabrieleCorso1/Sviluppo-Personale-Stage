@@ -10,7 +10,7 @@ import { API_URL } from '../../core/auth-http';
 import { Auth, hasSettingsRole } from '../../core/services/auth';
 
 import { SbiEditor } from './sbi-editor';
-import { SbiImage } from './sbi-image';
+import { AuthenticatedImage } from '../../core/authenticated-image';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
 
 interface Person { id: number; first_name: string; last_name: string; avatar_url?: string; }
@@ -61,7 +61,7 @@ class SbiModal implements AfterViewInit {
 }
 
 @Component({
-  imports: [DatePipe, FormsModule, Layout, SbiImage, SbiEditor, SbiModal],
+  imports: [DatePipe, FormsModule, Layout, AuthenticatedImage, SbiEditor, SbiModal],
   templateUrl: './sbi.html',
   styleUrls: ['./sbi.css', './sbi-wizard.css'],
 })

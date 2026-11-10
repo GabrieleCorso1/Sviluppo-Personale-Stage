@@ -1,25 +1,25 @@
 import { HttpClient } from '@angular/common/http';
 import { Directive, effect, inject, input, signal } from '@angular/core';
-import { API_URL } from '../../core/auth-http';
+import { API_URL } from './auth-http';
 
 @Directive({
-  selector: 'img[sbiImage]',
+  selector: 'img[authenticatedImage]',
   host: { '[attr.src]': 'src()' },
 })
-export class SbiImage {
-  readonly sbiImage = input.required<string>();
-  readonly imageFallback = input.required<string>();
-  protected readonly src = signal('');
+export class AuthenticatedImage {
+  readonly authenticatedImage = input.required<string>();
+  readonly imageFallback = input<string | null>(null);
+  protected readonly src = signal<string | null>(null);
   private readonly http = inject(HttpClient);
 
   constructor() {
     effect(onCleanup => {
       const fallback = this.imageFallback();
       this.src.set(fallback);
-      const path = new URL(this.sbiImage(), API_URL).pathname;
-      if (!path.startsWith('/api/sbis/')) return;
+      const { pathname: path, search } = new URL(this.authenticatedImage(), API_URL);
+      if (!path.startsWith('/api/sbis/') && !/^\/api\/notifications\/[a-f0-9-]+\/avatar$/i.test(path)) return;
       let objectUrl: string | undefined;
-      const subscription = this.http.get(API_URL + path, { responseType: 'blob' }).subscribe({
+      const subscription = this.http.get(API_URL + path + search, { responseType: 'blob' }).subscribe({
         next: blob => {
           objectUrl = URL.createObjectURL(blob);
           this.src.set(objectUrl);

@@ -1,7 +1,8 @@
 import { Component, computed, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { finalize, Observable, switchMap } from 'rxjs';
+import { finalize, Observable, switchMap, tap } from 'rxjs';
+import { Notifications } from '../../core/services/notifications';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
 import { Auth, hasSettingsRole } from '../../core/services/auth';
 import { Router } from '@angular/router';
@@ -35,6 +36,7 @@ export class Home implements OnInit {
   private readonly http = inject(HttpClient);
   private readonly destroyRef = inject(DestroyRef);
   private readonly avatar = inject(ProfileAvatar);
+  private readonly notifications = inject(Notifications);
   readonly avatarUrl = this.avatar.url;
   readonly avatarBusy = signal(true);
   readonly avatarError = signal('');
@@ -70,6 +72,7 @@ export class Home implements OnInit {
     this.avatarBusy.set(true);
     this.avatarError.set('');
     request.pipe(
+      tap(() => this.notifications.refreshLists()),
       switchMap(() => this.avatar.load(true)),
       takeUntilDestroyed(this.destroyRef),
       finalize(() => this.avatarBusy.set(false)),
