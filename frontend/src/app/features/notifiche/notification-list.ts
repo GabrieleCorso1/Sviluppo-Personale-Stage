@@ -189,7 +189,8 @@ export class NotificationList implements OnInit {
       error: (error: HttpErrorResponse) => {
         this.saving.set(false);
         if (error.status === 409) this.load(this.result()?.current_page);
-        this.actionError.set(error.status === 409
+        const validation = Object.values(error.error?.errors ?? {}).flat()[0];
+        this.actionError.set(typeof validation === 'string' ? validation : error.status === 409
           ? 'La richiesta è già stata gestita.'
           : 'Operazione non riuscita. Riprova.');
       },

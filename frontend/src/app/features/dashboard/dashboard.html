@@ -1,0 +1,175 @@
+<app-layout pageTitle="Bacheca" [avatarUrl]="avatarUrl()" [canAccessSettings]="settings()" (openSettings)="openSettings()">
+  <main class="dashboard-page">
+    <h1 class="visually-hidden">Bacheca</h1>
+    @if (notice()) { <p class="notice" role="status">{{ notice() }}</p> }
+    @if (error()) { <p role="alert">{{ error() }} <button type="button" (click)="load()">Riprova</button></p> }
+    @if (loading() && !data()) { <p role="status">Caricamento Bacheca…</p> }
+
+    @if (data(); as board) {
+      <div class="board" [class.hr]="board.mode === 'hr'">
+        <section class="card today">
+          <h2>Oggi</h2>
+          <time [attr.datetime]="board.today"><strong>{{ board.today | date:'dd' }}</strong><span>{{ board.today | date:'MMM yyyy' }}</span></time>
+          <i class="bi bi-calendar-week calendar-art" aria-hidden="true"></i>
+          <div class="badges">
+            @for (badge of calendarBadges; track badge.type) {
+              <span [class]="badge.color" [attr.aria-label]="badge.type + ': ' + (board.counts[badge.type] ?? 0)" [title]="badge.type">
+                <i [class]="'bi bi-' + badge.icon" aria-hidden="true"></i> {{ board.counts[badge.type] ?? 0 }}
+              </span>
+            }
+          </div>
+        </section>
+
+        @if (board.mode !== 'hr') {
+          <section class="card metric">
+            <h2>SBI <a routerLink="/sbi" aria-label="Apri SBI"><i class="bi bi-arrow-up-right"></i></a></h2>
+            <p><strong>{{ board.mode === 'personal' ? board.sbi.received_unread : board.sbi.sent_month }}</strong>
+              {{ board.mode === 'personal' ? 'da visualizzare' : 'inviati nell’ultimo mese' }}</p>
+            @if (canSendSbi()) { <a class="primary" routerLink="/sbi">Apri SBI</a> }
+          </section>
+        }
+        <section class="card shortcuts">
+          <h2>Richiedi o comunica</h2>
+          <div>
+            <button type="button" (click)="openRequest('Permesso')"><i class="bi bi-clock-fill amber"></i>Permesso</button>
+            <button type="button" (click)="openRequest('Ferie')"><i class="bi bi-airplane-fill green"></i>Ferie</button>
+          </div>
+        </section>
+
+        <section class="card activity">
+          <h2>Nuove attività <a routerLink="/notifiche" aria-label="Apri Notifiche"><i class="bi bi-arrow-up-right"></i></a></h2>
+          @if (activitiesError()) {
+            <p role="alert">Impossibile caricare le attività. <button (click)="loadActivities()">Riprova</button></p>
+          } @else {
+            <ul>
+              @for (item of activities(); track item.id) {
+                <li>
+                  <i class="bi bi-bell-fill list-icon" aria-hidden="true"></i>
+                  <a [routerLink]="item.data.sbi_id ? ['/sbi'] : ['/notifiche', item.data.category, item.id]"
+                    [queryParams]="item.data.sbi_id ? (item.data.sbi_reply ? { mandato: item.data.sbi_id } : { ricevuto: item.data.sbi_id }) : null"
+                    (click)="openActivity(item)">{{ item.data.message }}</a>
+                  <span class="tag">{{ item.category_label ?? item.data.category }}</span>
+                  <time [attr.datetime]="item.created_at">{{ item.created_at | date:'dd/MM HH:mm' }}</time>
+                </li>
+              } @empty { <li class="empty">Nessuna attività registrata.</li> }
+            </ul>
+          }
+        </section>
+
+        <section class="card events">
+          <h2>Prossimi eventi</h2>
+          <ul>
+            @for (event of board.events; track event.id) {
+              <li><time class="event-date" [attr.datetime]="event.start">{{ event.start | date:'dd.MM' }}</time>
+                <i class="bi bi-calendar-event list-icon" aria-hidden="true"></i>
+                <span>{{ event.type }} @if (event.start_time) { <small>{{ event.start_time.slice(0, 5) }}</small> }</span>
+              </li>
+            } @empty { <li class="empty">Nessun evento in programma.</li> }
+          </ul>
+        </section>
+
+        @if (board.mode === 'admin' || board.mode === 'hr') {
+          <section class="card requests team-requests">
+            <h2>Richieste e comunicazioni <a routerLink="/notifiche" aria-label="Apri richieste nelle notifiche"><i class="bi bi-arrow-up-right"></i></a></h2>
+            <ul>
+              @for (entry of board.pending; track entry.id) {
+                <li><i class="bi bi-person-circle list-icon" aria-hidden="true"></i><span>{{ entry.person }}</span>
+                  <time [attr.datetime]="entry.start">{{ entry.start | date:'dd/MM/yyyy' }}</time><span class="tag pending">{{ entry.type }}</span></li>
+              } @empty { <li class="empty">Nessuna richiesta in attesa.</li> }
+            </ul>
+          </section>
+        }
+
+        @if (board.mode === 'hr') {
+          <section class="card requests">
+            <h2>Tirocinanti registrati</h2>
+            <ul>
+              @for (intern of board.interns; track intern.id) {
+                <li><i class="bi bi-person-circle list-icon"></i>{{ intern.first_name }} {{ intern.last_name }}</li>
+              } @empty { <li class="empty">Nessun tirocinante registrato.</li> }
+            </ul>
+          </section>
+        }
+
+        @if (board.mode !== 'hr') {
+          <section class="card projects" [class.monitor]="board.mode === 'manager'">
+            <h2>{{ board.mode === 'manager' ? 'Monitoraggio progetti' : 'Progetti in corso' }}
+              @if (board.projects.length) { <small>{{ projectIndex() + 1 }} di {{ board.projects.length }}</small> }
+            </h2>
+            @if (project(); as selected) {
+              <div class="project-tile">
+                <div class="project-name"><i class="bi bi-kanban-fill" aria-hidden="true"></i>
+                  @if (board.mode === 'manager') {
+                    <select aria-label="Seleziona progetto" [ngModel]="projectIndex()" (ngModelChange)="projectIndex.set($event)">
+                      @for (item of board.projects; track item.id; let i = $index) { <option [ngValue]="i">{{ item.name }}</option> }
+                    </select>
+                  } @else { <strong>{{ selected.name }}</strong> }
+                </div>
+                @if (selected.sprints[0]; as sprint) {
+                  <p class="sprint">Sprint {{ sprint.number }} <strong>{{ daysUntil(sprint.end) }} giorni alla fine</strong></p>
+                  <p class="range">{{ sprint.start | date:'dd/MM/yyyy' }} – {{ sprint.end | date:'dd/MM/yyyy' }}</p>
+                } @else { <p>Nessuno sprint in programma.</p> }
+                <details><summary>Dettagli sprint</summary>
+                  <ul>
+                    @for (sprint of selected.sprints; track sprint.number + sprint.start) {
+                      <li>Sprint {{ sprint.number }} <span>{{ sprint.start | date:'dd/MM' }} – {{ sprint.end | date:'dd/MM' }}</span></li>
+                    } @empty { <li>Nessuno sprint disponibile.</li> }
+                  </ul>
+                </details>
+                @if (board.projects.length > 1 && board.mode !== 'manager') {
+                  <div class="project-nav">
+                    <button (click)="projectIndex.set(projectIndex() - 1)" [disabled]="projectIndex() === 0" aria-label="Progetto precedente"><i class="bi bi-chevron-left"></i></button>
+                    <button (click)="projectIndex.set(projectIndex() + 1)" [disabled]="projectIndex() >= board.projects.length - 1" aria-label="Progetto successivo"><i class="bi bi-chevron-right"></i></button>
+                  </div>
+                }
+              </div>
+            } @else { <p class="empty">Nessun progetto in corso disponibile.</p> }
+          </section>
+        }
+
+        @for (type of ['Ferie', 'Permesso']; track type) {
+          <section class="card requests">
+            <h2>{{ type === 'Ferie' ? 'Le mie richieste ferie' : 'Le mie richieste permessi' }}</h2>
+            <ul>
+              @for (entry of board.requests; track entry.id) {
+                @if (entry.type === type) {
+                  <li><i class="bi bi-calendar3 list-icon" aria-hidden="true"></i>
+                    <span>{{ entry.start | date:'dd/MM/yyyy' }} @if (entry.start !== entry.end) { – {{ entry.end | date:'dd/MM/yyyy' }} }</span>
+                    <span class="tag" [class.pending]="entry.status === 'pending'" [class.approved]="entry.status === 'approved'">{{ statusLabels[entry.status] ?? entry.status }}</span>
+                  </li>
+                }
+              }
+            </ul>
+            @if (type === 'Ferie' ? !hasHolidays(board.requests) : !hasPermits(board.requests)) { <p class="empty">Nessuna richiesta registrata.</p> }
+          </section>
+        }
+        <section class="card requests">
+          <h2>Saldo ferie e permessi</h2>
+          <ul>
+            @for (balance of board.leave; track balance.type) {
+              <li class="balance"><span>{{ balance.type }}</span><strong>{{ balance.hours | number:'1.0-2' }} ore</strong></li>
+            } @empty { <li class="empty">Nessun saldo disponibile.</li> }
+          </ul>
+        </section>
+      </div>
+    }
+
+    <dialog #requestDialog aria-labelledby="request-title" (cancel)="$event.preventDefault(); closeRequest()">
+      <form (ngSubmit)="submitRequest()">
+        <h2 id="request-title">Richiedi {{ requestType === 'Ferie' ? 'ferie' : 'un permesso' }}</h2>
+        <div class="request-fields">
+          <label>Data inizio <input type="date" name="start" [(ngModel)]="start" required></label>
+          @if (requestType === 'Ferie') { <label>Data fine <input type="date" name="end" [(ngModel)]="end" [min]="start" required></label> }
+          @if (requestType === 'Permesso') {
+            <label>Ora inizio <input type="time" name="startTime" [(ngModel)]="startTime" required></label>
+            <label>Ora fine <input type="time" name="endTime" [(ngModel)]="endTime" required></label>
+          }
+        </div>
+        <label>Note <textarea name="notes" maxlength="255" [(ngModel)]="notes"></textarea></label>
+        @if (requestError()) { <p role="alert">{{ requestError() }}</p> }
+        <div class="dialog-actions"><button type="button" (click)="closeRequest()" [disabled]="saving()">Annulla</button>
+          <button class="primary" [disabled]="saving()">{{ saving() ? 'Invio…' : 'Invia richiesta' }}</button></div>
+      </form>
+    </dialog>
+  </main>
+</app-layout>

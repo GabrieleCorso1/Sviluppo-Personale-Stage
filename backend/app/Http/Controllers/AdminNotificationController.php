@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Calendar;
 use App\Models\User;
 use App\Notifications\InAppNotification;
+use App\Support\CalendarLeave;
 use App\Support\CalendarNotificationRecipients;
 use App\Support\ProjectParticipantAvatar;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
@@ -158,9 +159,21 @@ class AdminNotificationController extends Controller
         abort_unless(CalendarNotificationRecipients::forRequester($entry->user_id)
             ->whereKey($request->user()->id)->exists(), 403);
 
-        $updated = Calendar::query()->whereKey($entry->id)->where('status', 'pending')
-            ->update(['status' => $data['status']]);
-        abort_unless($updated === 1, 409, 'La richiesta è già stata gestita.');
+        DB::transaction(function () use ($entry, $data) {
+            $locked = Calendar::query()->with('typology')->lockForUpdate()->findOrFail($entry->id);
+            abort_unless($locked->status === 'pending', 409, 'La richiesta è già stata gestita.');
+
+            if ($data['status'] === 'approved' && in_array($locked->typology?->alias, ['Ferie', 'Permesso'], true)) {
+                $user = \App\Models\User::query()->lockForUpdate()->findOrFail($locked->user_id);
+                $type = $locked->typology->alias;
+                $hours = CalendarLeave::hours($user, $type, $locked->start_date->toDateString(),
+                    $locked->end_date->toDateString(), $locked->start_time, $locked->end_time);
+                $balance = CalendarLeave::availableBalance($user, $type, $hours, lock: true);
+                $balance->decrement('remaining_hours', $hours);
+            }
+
+            $locked->update(['status' => $data['status']]);
+        }, 3);
 
         return response()->json(['id' => $entry->id, 'status' => $data['status']]);
     }

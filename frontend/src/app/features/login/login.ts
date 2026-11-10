@@ -54,7 +54,7 @@ export class Login {
     ).subscribe({
       next: () => {
         this.caricamento.set(false);
-        this.router.navigate(['/home']);
+        this.router.navigate(['/bacheca']);
       },
       error: (err) => {
         this.caricamento.set(false);

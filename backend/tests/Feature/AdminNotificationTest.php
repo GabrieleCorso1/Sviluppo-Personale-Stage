@@ -9,6 +9,23 @@ use Laravel\Sanctum\Sanctum;
 
 uses(LazilyRefreshDatabase::class);
 
+function addCalendarLeaveBalance(User $user): void
+{
+    $contract = $user->contracts()->create([
+        'contract_start_date' => '2025-01-01',
+        'weekly_hours' => 40,
+        'contract_type' => 'indeterminato',
+    ]);
+    $contract->workingDays()->createMany(\App\WorkSchedule::fullTime());
+    $user->leaveBalances()->create([
+        'leave_type' => 'ferie',
+        'reference_month' => '2026-12-01',
+        'remaining_hours' => 16,
+        'accrued_hours' => 16,
+        'monthly_accrual' => 0,
+    ]);
+}
+
 test('admins can manage only their own in-app notifications', function () {
     $role = Role::firstOrCreate(['alias' => 'Admin'], ['description' => 'Admin']);
     $admin = User::factory()->create();
@@ -46,6 +63,7 @@ test('calendar requests notify admins and can be decided once', function () {
     $first = User::factory()->create();
     $second = User::factory()->create();
     $requester = User::factory()->create();
+    addCalendarLeaveBalance($requester);
     $first->roles()->attach($role);
     $second->roles()->attach($role);
     \App\Models\CalendarTypology::firstOrCreate(['alias' => 'Ferie']);
@@ -56,6 +74,8 @@ test('calendar requests notify admins and can be decided once', function () {
         'start_date' => '2026-12-01',
         'end_date' => '2026-12-02',
     ])->assertCreated()->assertJsonPath('status', 'pending')->json('id');
+
+    expect((float) $requester->leaveBalances()->sole()->remaining_hours)->toBe(16.0);
 
     $firstId = $first->notifications()->sole()->id;
     $secondId = $second->notifications()->sole()->id;
@@ -74,10 +94,12 @@ test('calendar requests notify admins and can be decided once', function () {
     $this->patchJson("$url/$secondId/decision", ['status' => 'rejected'])->assertConflict();
     $this->getJson($url)->assertOk()->assertJsonPath('data.0.data.calendar_status', 'approved');
     $this->assertDatabaseHas('calendar', ['id' => $requestId, 'status' => 'approved']);
+    expect((float) $requester->leaveBalances()->sole()->remaining_hours)->toBe(0.0);
 });
 
 test('only active project leaders receive calendar requests and can decide them', function () {
     $requester = User::factory()->create();
+    addCalendarLeaveBalance($requester);
     $project = \App\Models\Project::factory()->create();
     $memberRole = \App\Models\AssignmentRole::firstOrCreate(['alias' => 'Sviluppatore Front-end']);
     $attach = fn ($user, $role) => $project->projectUsers()->create([

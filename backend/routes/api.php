@@ -7,6 +7,7 @@ use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\CalendarRequestController;
+use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ProjectManagerOptionController;
@@ -50,6 +51,7 @@ Route::get('/test', function () {
 
 Route::middleware('auth:sanctum')->group(function () {
 
+    Route::get('/dashboard', DashboardController::class);
     Route::post('/calendar/requests', [CalendarRequestController::class, 'store']);
     Route::patch('/admin/notifications/{notification}/decision', [AdminNotificationController::class, 'decide'])->whereUuid('notification');
     Route::get('/notifications/{notification}', [AdminNotificationController::class, 'show'])->whereUuid('notification')->name('notifications.personal.show');

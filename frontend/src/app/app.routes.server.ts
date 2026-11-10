@@ -1,6 +1,7 @@
 import { RenderMode, ServerRoute } from '@angular/ssr';
 
 export const serverRoutes: ServerRoute[] = [
+  { path: 'bacheca', renderMode: RenderMode.Client },
   { path: 'notifiche/:category/:id', renderMode: RenderMode.Client },
   { path: 'notifiche', renderMode: RenderMode.Client },
   { path: 'sbi', renderMode: RenderMode.Client },

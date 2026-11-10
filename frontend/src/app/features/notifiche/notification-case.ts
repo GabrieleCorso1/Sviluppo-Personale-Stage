@@ -74,7 +74,8 @@ export class NotificationCase {
         this.sending.set(false);
         if (this.route.snapshot.paramMap.get('id') !== id) return;
         if (error.status === 409) this.reload.next();
-        this.actionError.set(error.status === 409 ? 'La richiesta è già stata gestita.' : 'Operazione non riuscita.');
+        const validation = Object.values(error.error?.errors ?? {}).flat()[0];
+        this.actionError.set(typeof validation === 'string' ? validation : error.status === 409 ? 'La richiesta è già stata gestita.' : 'Operazione non riuscita.');
       },
     });
   }

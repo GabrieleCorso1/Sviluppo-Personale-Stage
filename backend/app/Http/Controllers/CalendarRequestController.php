@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\CalendarTypology;
 use App\Notifications\InAppNotification;
+use App\Support\CalendarLeave;
 use App\Support\CalendarNotificationRecipients;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -18,14 +19,18 @@ class CalendarRequestController extends Controller
             'type' => ['required', Rule::in(['Ferie', 'Permesso'])],
             'start_date' => ['required', 'date_format:Y-m-d'],
             'end_date' => ['required', 'date_format:Y-m-d', 'after_or_equal:start_date'],
-            'start_time' => ['nullable', 'required_with:end_time', 'date_format:H:i'],
-            'end_time' => ['nullable', 'required_with:start_time', 'date_format:H:i', 'after:start_time'],
+            'start_time' => ['nullable', 'required_if:type,Permesso', 'prohibited_if:type,Ferie', 'date_format:H:i'],
+            'end_time' => ['nullable', 'required_if:type,Permesso', 'prohibited_if:type,Ferie', 'date_format:H:i', 'after:start_time'],
             'notes' => ['nullable', 'string', 'max:255'],
         ]);
 
         $type = CalendarTypology::query()->where('alias', $data['type'])->firstOrFail();
         unset($data['type']);
         $user = $request->user();
+
+        $hours = CalendarLeave::hours($user, $type->alias, $data['start_date'], $data['end_date'],
+            $data['start_time'] ?? null, $data['end_time'] ?? null);
+        CalendarLeave::availableBalance($user, $type->alias, $hours);
 
         $entry = DB::transaction(function () use ($data, $type, $user) {
             $entry = $user->calendarEntries()->create([
