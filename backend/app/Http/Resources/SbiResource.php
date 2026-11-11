@@ -54,7 +54,7 @@ class SbiResource extends JsonResource
             'id' => $revision->id, 'revision_number' => $revision->revision_number,
             'is_positive' => $revision->is_positive, 'event_date' => $revision->event_date->toDateString(),
             'situation' => $revision->situation, 'behavior' => $revision->behavior, 'impact' => $revision->impact,
-            'suggestion' => $revision->suggestion, 'viewed_at' => $revision->viewed_at?->toIso8601String(),
+            'suggestion' => ($owner || $revision->reply !== null) ? $revision->suggestion : null, 'viewed_at' => $revision->viewed_at?->toIso8601String(),
             'created_at' => $revision->created_at->toIso8601String(),
             'has_personal_notes' => $owner && filled($revision->personal_notes),
             'reply' => $revision->reply ? [

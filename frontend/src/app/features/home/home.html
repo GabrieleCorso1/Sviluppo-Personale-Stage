@@ -6,6 +6,7 @@
     <button type="button" class="banner-avatar" aria-label="Gestisci foto profilo"
       aria-haspopup="dialog" (click)="avatarDialog.showModal()">
       <img [src]="avatarUrl()" alt="" />
+      <span class="avatar-edit" aria-hidden="true">✎</span>
     </button>
 
     <div class="profile-info">
@@ -24,7 +25,7 @@
       <div class="card-header">
         <h3>Dati personali</h3>
 
-        <button class="password-button" (click)="apriModalePassword()">✎ Modifica password</button>
+        <button class="password-button" (click)="apriModalePassword()"><span class="password-edit" aria-hidden="true">✎</span> Modifica password</button>
       </div>
 
       <div class="personal-data">

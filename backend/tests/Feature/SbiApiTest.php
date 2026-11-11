@@ -49,7 +49,7 @@ function sbiNewRevision(array $payload): array
 
 test('SBI complete flow preserves replies across revisions and tracks views only for the recipient', function () {
     $created = $this->postJson('/api/sbis', $this->payload)->assertCreated()
-        ->assertJsonPath('data.latest_revision.personal_notes', 'Nota riservata')->json('data');
+        ->assertJsonPath('data.latest_revision.suggestion', 'Continua così')->assertJsonPath('data.latest_revision.personal_notes', 'Nota riservata')->json('data');
     $id = $created['id'];
     $first = $created['latest_revision']['id'];
     $this->getJson('/api/sbis/'.$id)->assertOk()->assertJsonPath('data.latest_revision.viewed_at', null);
@@ -58,10 +58,11 @@ test('SBI complete flow preserves replies across revisions and tracks views only
         ->assertJsonCount(1, 'data')->assertJsonPath('data.0.data.sbi_id', $id);
     $this->getJson('/api/sbis?direction=received&sbi_id='.$id)->assertOk()
         ->assertJsonPath('data.0.id', $id)->assertJsonPath('counts.unviewed', 1)
-        ->assertJsonMissingPath('data.0.latest_revision.personal_notes');
+        ->assertJsonMissingPath('data.0.latest_revision.personal_notes')->assertJsonPath('data.0.latest_revision.suggestion', null);
     $view = $this->getJson('/api/sbis/'.$id)->assertOk()->assertJsonMissingPath('data.revisions.0.personal_notes')->json('data.latest_revision.viewed_at');
     expect($view)->not->toBeNull();
     $this->putJson("/api/sbis/$id/revisions/$first/reply", ['body' => '<strong>Grazie</strong>'])->assertOk();
+    $this->getJson("/api/sbis/$id")->assertOk()->assertJsonPath('data.latest_revision.suggestion', 'Continua così');
     $this->putJson("/api/sbis/$id/revisions/$first/reply", ['body' => 'Risposta aggiornata'])->assertOk();
     $this->putJson("/api/sbis/$id/revisions/$first/reply", ['body' => 'Risposta aggiornata'])->assertOk();
     $this->assertDatabaseCount('sbi_replies', 1);
@@ -94,7 +95,7 @@ test('SBI admin can read all feedback but cannot see private notes or answer for
     $id = $sbi['id'];
     $revision = $sbi['latest_revision']['id'];
     $this->getJson('/api/sbis?user_id='.$this->receiver->id)->assertOk()->assertJsonCount(1, 'data')
-        ->assertJsonMissingPath('data.0.latest_revision.personal_notes');
+        ->assertJsonMissingPath('data.0.latest_revision.personal_notes')->assertJsonPath('data.0.latest_revision.suggestion', null);
     $this->getJson('/api/sbis/'.$id)->assertOk()->assertJsonMissingPath('data.revisions.0.personal_notes')
         ->assertJsonPath('data.latest_revision.viewed_at', null);
     $this->putJson('/api/sbis/'.$id, sbiNewRevision($this->payload))->assertForbidden();
@@ -220,7 +221,7 @@ test('SBI current project leaders can inspect team feedback while personal notes
     ]);
     sbiLoginAs($this, $this->outsider);
     $this->getJson('/api/sbis?user_id='.$this->receiver->id)->assertOk()->assertJsonCount(1, 'data')
-        ->assertJsonMissingPath('data.0.latest_revision.personal_notes');
+        ->assertJsonMissingPath('data.0.latest_revision.personal_notes')->assertJsonPath('data.0.latest_revision.suggestion', null);
     $this->getJson('/api/sbis/'.$id)->assertOk()->assertJsonMissingPath('data.revisions.0.personal_notes')
         ->assertJsonPath('data.latest_revision.viewed_at', null);
 });

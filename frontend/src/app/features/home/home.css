@@ -448,6 +448,8 @@
 }*/
 
 .banner-avatar {
+  position: relative;
+  overflow: visible;
   cursor: pointer;
   flex-shrink: 0;
 }
@@ -512,4 +514,31 @@
 
 .password-feedback:empty {
   margin: 0;
+}
+.banner-avatar img {
+  border-radius: 50%;
+}
+
+.avatar-edit {
+  position: absolute;
+  right: -3px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: #fff;
+  color: #174d99;
+  font-size: 18px;
+  line-height: 1;
+}
+
+.password-edit {
+  display: inline-block;
+  margin-right: 3px;
+  font-size: 18px;
+  line-height: 1;
+  vertical-align: middle;
 }
