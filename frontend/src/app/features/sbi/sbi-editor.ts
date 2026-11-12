@@ -19,11 +19,11 @@ import { DomSanitizer } from '@angular/platform-browser';
   `,
   styles: `
     :host { display: block; }
-    .editor { border: 1px solid #d6dfe7; border-radius: 7px; background: #fff; }
+    .editor { border: 1px solid var(--border); border-radius: var(--radius-control); background: var(--surface); }
     .tools { display: flex; flex-wrap: wrap; gap: 4px; padding: 5px 8px; border-bottom: 1px solid #edf0f3; }
-    button { color: #233347; border: 0; border-radius: 4px; background: transparent; padding: 4px 6px; }
+    button { color: var(--text); border: 0; border-radius: var(--radius-control); background: transparent; padding: 4px 6px; }
     button:hover { background: #edf4fb; }
-    .field { min-height: var(--editor-height, 130px); padding: 12px; overflow-wrap: anywhere; font-size: .875rem; }
+    .field { min-height: var(--editor-height, 130px); padding: 12px; overflow-wrap: anywhere; font-size: var(--font-body); }
   `,
 })
 export class SbiEditor implements AfterViewInit {

@@ -7,7 +7,7 @@
 .page {
   min-height: 100vh;
   width: 100%;
-  background: #f5f7fb;
+  background: var(--page);
   overflow-x: hidden;
   position: relative;
 }
@@ -19,7 +19,7 @@
   left: 0;
   width: 70px;
   height: 100vh;
-  background: #ffffff;
+  background: var(--surface);
   border-right: 1px solid #eeeeee;
   display: flex;
   flex-direction: column;
@@ -58,7 +58,7 @@
   height: 37px;
   width: calc(100% - 70px);
   margin-left: 70px;
-  background: #ffffff;
+  background: var(--surface);
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -113,7 +113,7 @@
   width: 88px;
   height: 88px;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   overflow: hidden;
   border: 2px solid rgba(255, 255, 255, 0.8);
   z-index: 1;
@@ -126,7 +126,7 @@
 }
 
 .profile-banner .profile-info {
-  color: white;
+  color: var(--on-brand);
   z-index: 1;
   margin-block: auto;
   min-width: 0;
@@ -165,7 +165,7 @@
 
 /* SCHEDA DATI PERSONALI */
 .personal-card {
-  background: #ffffff;
+  background: var(--surface);
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   padding: 16px 20px 14px;
@@ -280,9 +280,9 @@
   width: 100%;
   max-width: 480px;
 
-  padding: 28px;
-  border-radius: 12px;
-  background: #ffffff;
+  padding: var(--modal-space);
+  border-radius: var(--radius-modal);
+  background: var(--surface);
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
 
   box-sizing: border-box;
@@ -299,8 +299,8 @@
 
 .password-modal-header h2 {
   margin: 0;
-  color: #24364b;
-  font-size: 22px;
+  color: var(--brand);
+  font-size: var(--font-title);
   font-weight: 600;
 }
 
@@ -329,13 +329,13 @@
 
 .password-modal-body input {
   width: 100%;
-  height: 42px;
+  height: var(--control-height);
 
   padding: 0 12px;
-  border: 1px solid #d6dee8;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
 
-  color: #24364b;
+  color: var(--text);
   font-size: 14px;
   box-sizing: border-box;
 }
@@ -357,28 +357,28 @@
 
 .password-modal-actions button {
   min-width: 100px;
-  height: 40px;
+  height: var(--control-height);
 
   padding: 0 16px;
-  border-radius: 6px;
+  border-radius: var(--radius-control);
   font-size: 14px;
   cursor: pointer;
 }
 
 .btn-annulla {
-  border: 1px solid #d6dee8;
-  background: #ffffff;
+  border: 1px solid var(--border);
+  background: var(--surface);
   color: #34465a;
 }
 
 .btn-salva {
-  border: 1px solid #246ba5;
-  background: #246ba5;
-  color: #ffffff;
+  border: 1px solid var(--brand);
+  background: var(--brand);
+  color: var(--on-brand);
 }
 
-.btn-salva:hover {
-  background-color: #80b8ed;
+.btn-salva:not(:disabled):hover {
+  background-color: var(--brand-hover);
 }
 
 .password-input-wrapper {
@@ -460,21 +460,24 @@
 }
 
 .avatar-dialog {
+  box-sizing: border-box;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
   margin: auto;
   width: min(340px, calc(100% - 32px));
-  padding: 20px;
+  padding: var(--modal-space);
   border: 0;
-  border-radius: 12px;
-  color: #17324d;
+  border-radius: var(--radius-modal);
+  color: var(--text);
 }
 
 .avatar-dialog::backdrop {
-  background: rgb(15 34 56 / 45%);
+  background: var(--backdrop);
 }
 
 .avatar-dialog h2 {
   margin-bottom: 14px;
-  font-size: 18px;
+  font-size: var(--font-title);
 }
 
 .avatar-actions {
@@ -485,16 +488,22 @@
 
 .avatar-dialog button {
   padding: 8px 12px;
-  border: 1px solid #cbd9e6;
-  border-radius: 6px;
-  background: white;
-  color: #005487;
+  min-height: var(--control-height);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: var(--surface);
+  color: var(--brand);
   cursor: pointer;
 }
 
 .avatar-dialog button:disabled {
   opacity: 0.6;
   cursor: wait;
+}
+
+.password-modal-actions button:disabled {
+  opacity: .5;
+  cursor: default;
 }
 
 .avatar-dialog .avatar-remove {
@@ -529,7 +538,7 @@
   height: 28px;
   border: 2px solid white;
   border-radius: 50%;
-  background: #fff;
+  background: var(--surface);
   color: #174d99;
   font-size: 18px;
   line-height: 1;

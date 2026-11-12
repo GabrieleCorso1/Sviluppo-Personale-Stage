@@ -1,7 +1,7 @@
 .dashboard {
   display: flex;
   min-height: 100vh;
-  background: #f7f8fa;
+  background: var(--page);
 }
 
 .main-area {

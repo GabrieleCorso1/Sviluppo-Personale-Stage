@@ -2,11 +2,11 @@
 :host {
   display: block;
   min-height: 100vh;
-  color: #303945;
+  color: var(--text);
 }
 
 .page-content {
-  padding: 24px 32px 32px;
+  padding: var(--page-y) var(--page-x) 32px;
 }
 
 .search-box {
@@ -17,7 +17,7 @@
   padding: 0 16px;
   border: 1px solid #e1e5eb;
   border-radius: 8px;
-  background: #fff;
+  background: var(--surface);
   color: #8995a3;
 }
 
@@ -37,7 +37,7 @@
   border: 0;
   outline: 0;
   background: transparent;
-  color: #303945;
+  color: var(--text);
   font-size: 13px;
 }
 
@@ -71,9 +71,9 @@
   padding: 16px 12px 12px 22px;
   border: 1px solid #e0e4eb;
   border-radius: 13px;
-  background: #fff;
+  background: var(--surface);
   box-shadow: 0 1px 2px rgb(24 43 65 / 4%);
-  color: #303945;
+  color: var(--text);
   text-align: left;
   transition:
     transform 180ms ease,

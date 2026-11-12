@@ -16,7 +16,7 @@
   z-index: 1000;
 }
 .overlay::backdrop {
-  background: #18334b66;
+  background: var(--backdrop);
 }
 .modal {
   position: relative;
@@ -24,10 +24,10 @@
   width: min(100%, 520px);
   max-height: calc(100dvh - 40px);
   overflow-y: auto;
-  padding: 24px;
+  padding: var(--modal-space);
   border: 1px solid #edf0f5;
-  border-radius: 10px;
-  background: white;
+  border-radius: var(--radius-modal);
+  background: var(--surface);
   box-shadow: 0 8px 32px #15314926;
 }
 .modal-header {
@@ -41,9 +41,9 @@
 }
 .modal-header h2 {
   margin: 0;
-  font-size: 15px;
-  color: #004575;
-  font-weight: 500;
+  font-size: var(--font-title);
+  color: var(--brand);
+  font-weight: 600;
 }
 .modal-header .icon-button {
   margin-top: -7px;
@@ -85,7 +85,7 @@ label > span.required:first-child {
   flex-wrap: nowrap;
   align-items: center;
   gap: 4px;
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 input[type='checkbox'] {
   accent-color: #005386;
@@ -95,7 +95,7 @@ input[type='checkbox'] {
   background: #e8f2fb;
   border-radius: 5px;
   padding: 8px 10px;
-  font-size: 10px;
+  font-size: var(--font-xs);
   line-height: 1.6;
   margin: 0;
 }
@@ -134,14 +134,14 @@ input[type='checkbox'] {
   place-items: center;
   border-radius: 50%;
   border: 2px solid white;
-  color: white;
-  background: #004575;
+  color: var(--on-brand);
+  background: var(--brand);
 }
 .logo-picker small,
 .plan-picker small {
   display: block;
-  color: #8190a2;
-  font-size: 9px;
+  color: var(--muted);
+  font-size: var(--font-xs);
   overflow-wrap: anywhere;
 }
 .plan-picker {
@@ -155,7 +155,7 @@ input[type='checkbox'] {
   display: block;
   width: 100%;
   text-align: right;
-  font-size: 9px;
+  font-size: var(--font-xs);
   color: #94a2b3;
 }
 .modal-actions {
@@ -190,13 +190,13 @@ input[type='checkbox'] {
 }
 .delete-icon {
   font-size: 33px;
-  color: #d60032;
+  color: var(--danger);
   display: block;
   margin: 15px 0;
 }
 .help {
   color: #8997a9;
-  font-size: 10px;
+  font-size: var(--font-xs);
   line-height: 1.6;
 }
 .people-search {
@@ -232,7 +232,7 @@ input[type='checkbox'] {
   display: block;
   color: #8795a7;
   margin-top: 3px;
-  font-size: 9px;
+  font-size: var(--font-xs);
 }
 .wide {
   width: 100%;
@@ -250,7 +250,7 @@ input[type='checkbox'] {
   gap: 12px;
 }
 .pbi-grid section {
-  border: 1px solid #e1e7ef;
+  border: 1px solid var(--border-soft);
   border-radius: 5px;
   padding: 15px 12px;
 }
@@ -261,15 +261,15 @@ input[type='checkbox'] {
 }
 .pbi-grid section > i {
   font-size: 25px;
-  color: #004575;
+  color: var(--brand);
 }
 .pbi-grid a,
 .pbi-grid p,
 .pbi-grid small {
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .pbi-grid a {
-  color: #004575;
+  color: var(--brand);
 }
 .csv-modal {
   max-width: 580px;
@@ -279,7 +279,7 @@ input[type='checkbox'] {
   gap: 15px;
 }
 .csv-tabs button {
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .sprint-list {
   margin-top: 18px;
@@ -287,7 +287,7 @@ input[type='checkbox'] {
 .sprint {
   padding: 13px;
   margin: 10px 0;
-  border: 1px solid #e1e7ef;
+  border: 1px solid var(--border-soft);
   border-radius: 6px;
 }
 .sprint header {
@@ -311,7 +311,7 @@ input[type='checkbox'] {
 }
 .sprint-state {
   margin-left: auto;
-  font-size: 9px;
+  font-size: var(--font-xs);
   color: #91a0af;
 }
 .sprint-actions {
@@ -324,10 +324,10 @@ input[type='checkbox'] {
 .sprint-actions label {
   flex: 1;
   min-width: 140px;
-  font-size: 9px;
+  font-size: var(--font-xs);
 }
 .sprint-actions select {
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .sprint-actions button {
   margin-bottom: 8px;
@@ -340,11 +340,11 @@ input[type='checkbox'] {
 .success > i {
   display: block;
   font-size: 38px;
-  color: #004575;
+  color: var(--brand);
   margin: 15px 0 22px;
 }
 .success h2 {
-  color: #004575;
+  color: var(--brand);
   font-size: 19px;
   font-weight: 500;
   margin: 0;
@@ -421,17 +421,17 @@ input[type='checkbox'] {
 }
 .pbi-grid h3 {
   margin: 0;
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .pbi-grid .pbi-count {
-  color: #004575;
+  color: var(--brand);
   font-size: 18px;
   font-weight: 600;
   margin: 0;
 }
 .pbi-grid a,
 .pbi-grid small {
-  font-size: 9px;
+  font-size: var(--font-xs);
 }
 .sprint-row {
   display: flex;
@@ -447,7 +447,7 @@ input[type='checkbox'] {
 }
 .sprint-row > .check {
   margin-left: auto;
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .download-csv {
   margin-left: 4px;
@@ -459,7 +459,7 @@ input[type='checkbox'] {
 .sprint-actions > .check {
   flex: initial;
   min-width: 0;
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .sprint-actions > .text-link {
   margin: 0 0 0 auto;
@@ -491,13 +491,13 @@ input[type='checkbox'] {
 .csv-other {
   margin-top: 14px;
   color: #8091a2;
-  font-size: 10px;
+  font-size: var(--font-xs);
 }
 .csv-other > summary {
   cursor: pointer;
 }
 .csv-other .sprint {
-  color: #24384c;
+  color: var(--text);
 }
 .compact .project-summary {
   display: none;
@@ -540,12 +540,14 @@ input[type='checkbox'] {
   margin-left: auto;
 }
 .delete-title {
-  color: #d60032;
+  color: var(--danger);
   font-size: 17px;
   font-weight: 500;
   margin: 8px 0;
 }
 .delete-project {
-  color: #004575;
+  color: var(--brand);
   font-size: 11px;
 }
+
+.modal-actions button { min-height: var(--control-height); border-radius: var(--radius-control); font-size: var(--font-dense); }

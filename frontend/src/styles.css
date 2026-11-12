@@ -14,11 +14,71 @@
   font-display: swap;
 }
 
+:root {
+  --brand: #004575;
+  --brand-hover: #00375e;
+  --on-brand: #ffffff;
+  --surface: #ffffff;
+  --page: #f7f8fa;
+  --surface-muted: #f3f5f8;
+  --text: #24384c;
+  --muted: #627489;
+  --border: #d6dfe9;
+  --border-soft: #e1e7ef;
+  --control-border: #b8cce0;
+  --focus: #1788c4;
+  --danger: #bf0033;
+  --danger-hover: #950028;
+  --success: #14644b;
+  --success-soft: #e7f5ef;
+  --danger-soft: #fff0f3;
+  --auth-accent: #ffb26c;
+  --auth-hover: #ff9d4b;
+  --font-xs: .6875rem;
+  --font-sm: .75rem;
+  --font-dense: .8125rem;
+  --font-body: .875rem;
+  --font-title: 1.125rem;
+  --control-height: 38px;
+  --radius-control: 6px;
+  --radius-card: 8px;
+  --radius-modal: 10px;
+  --page-x: clamp(16px, 2.3vw, 32px);
+  --page-y: 24px;
+  --modal-space: 24px;
+  --backdrop: #18334b66;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', 'Segoe UI', sans-serif;
+  color: var(--text);
+  background: var(--page);
 }
 
 button, input, select, textarea {
   font-family: inherit;
+}
+
+a { color: var(--brand); }
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+:where(button, a, input, select, textarea, summary):focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@media (max-width: 680px) {
+  :root { --page-x: 12px; --page-y: 16px; --modal-space: 20px; }
 }

@@ -27,7 +27,7 @@
   padding: 0 .2rem;
   border-radius: 1rem;
   background: #b42318;
-  color: #fff;
+  color: var(--on-brand);
   font-size: .65rem;
   line-height: 1rem;
   text-align: center;
@@ -37,7 +37,7 @@
   right: -2.5rem;
   top: calc(100% + .4rem);
   width: min(23rem, calc(100vw - 2rem));
-  background: #fff;
+  background: var(--surface);
   border: 1px solid #e3eaf1;
   border-radius: .6rem;
   box-shadow: 0 6px 20px #172d4426;
@@ -55,7 +55,7 @@
   justify-content: space-between;
   min-height: 65px;
   padding: 0 24px;
-  background: #fff;
+  background: var(--surface);
   border-bottom: 1px solid #f0f1f4;
 }
 
