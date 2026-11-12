@@ -1,4 +1,5 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
+import { Theme } from './core/services/theme';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
@@ -9,5 +10,6 @@ import { RouterOutlet } from '@angular/router';
   standalone: true,
 })
 export class App {
+  private readonly theme = inject(Theme);
   protected readonly title = signal('frontend');
 }

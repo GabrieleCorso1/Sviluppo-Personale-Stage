@@ -26,7 +26,7 @@
   overflow-y: auto;
   padding: var(--modal-space);
   border-radius: var(--radius-modal);
-  border: 1px solid #e6edf5;
+  border: 1px solid var(--edge-blue, #e6edf5);
   background: var(--surface);
   box-shadow: 0 8px 32px #15314926;
 }
@@ -34,7 +34,7 @@
   display: flex;
   justify-content: space-between;
   align-items: start;
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid var(--edge-blue, #edf0f5);
   padding-bottom: 12px;
   margin-bottom: 16px;
   gap: 12px;
@@ -46,14 +46,14 @@
   font-weight: 600;
 }
 .modal-header .icon-button {
-  color: #8a9aac;
+  color: var(--ink-muted, #8a9aac);
   margin-top: -7px;
 }
 .assignment-header {
   display: flex;
   align-items: center;
   gap: 8px;
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid var(--edge-blue, #edf0f5);
   padding-bottom: 15px;
   margin-bottom: 16px;
 }
@@ -83,7 +83,7 @@
   font-weight: 400;
 }
 .assignment-header > i {
-  color: #3499e4;
+  color: var(--ink-blue, #3499e4);
 }
 .assignment-header .delete-trigger {
   margin-left: auto;
@@ -112,7 +112,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: #ffe8ef;
+  background: var(--soft-pink, #ffe8ef);
   border-radius: 5px;
   padding: 10px;
   margin: 12px 0;
@@ -130,7 +130,7 @@
   padding: 0;
   margin: 0;
   flex-shrink: 0;
-  accent-color: #005386;
+  accent-color: var(--ink-blue, #005386);
 }
 .warning {
   line-height: 1.7;
@@ -196,7 +196,7 @@
 .detail-row small {
   display: block;
   font-size: var(--font-xs);
-  color: #8d9daf;
+  color: var(--ink-muted, #8d9daf);
   margin-top: 4px;
 }
 .detail-row > button,
@@ -209,7 +209,7 @@
   gap: 5px;
 }
 .yes {
-  color: #00ac89;
+  color: var(--ink-teal, #00ac89);
 }
 .modal h4 {
   color: var(--brand);
@@ -242,8 +242,8 @@
   flex: 1;
 }
 .need-row .icon-button {
-  border: 1px solid #e0e7ef;
-  color: #8a99ac;
+  border: 1px solid var(--edge-blue, #e0e7ef);
+  color: var(--ink-muted, #8a99ac);
   font-size: 12px;
 }
 .need-row .small {
@@ -254,8 +254,8 @@
   color: var(--danger);
 }
 .add-need {
-  color: #3a7dae;
-  background: #edf3f8;
+  color: var(--ink-blue, #3a7dae);
+  background: var(--soft-neutral, #edf3f8);
   border: 0;
 }
 .need-picker {

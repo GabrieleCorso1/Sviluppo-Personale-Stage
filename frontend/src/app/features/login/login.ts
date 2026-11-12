@@ -1,3 +1,4 @@
+import { ThemePicker } from '../../components/theme-picker/theme-picker';
 
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
@@ -5,7 +6,7 @@ import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Auth } from '../../core/services/auth';
 
 @Component({
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ThemePicker],
   standalone: true,
   selector: 'app-login',
   styleUrl: './login.css',

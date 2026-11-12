@@ -1,0 +1,150 @@
+.legend {
+  padding:15px;
+  background:var(--surface);
+  border:1px solid var(--edge-blue, #ecf0f5);
+  border-radius:7px;
+  margin-bottom:16px;
+}
+.legend-heading {
+  width:100%;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border:0;
+  background:transparent;
+  padding:0;
+  font-size:12px;
+}
+.legend-heading i {
+  color:var(--ink-muted, #8191a4);
+  font-size:var(--font-xs);
+}
+.legend-content {
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  margin-top:14px;
+}
+.legend-group {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  font-size:var(--font-xs);
+}
+.legend-group:first-child {
+  flex-direction:column;
+  align-items:flex-start;
+}
+.legend-label {
+  font-size:var(--font-xs);
+  color:var(--ink-muted, #71839a);
+}
+.legend-items {
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px 15px;
+}
+.legend-items > span {
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:var(--font-xs);
+}
+.legend.collapsed {
+  position:relative;
+  padding-right:35px;
+}
+.legend.collapsed .legend-heading {
+  position:absolute;
+  right:12px;
+  top:15px;
+  width:auto;
+}
+.legend.collapsed .legend-heading span {
+  display:none;
+}
+.legend.collapsed .legend-content {
+  flex-direction:row;
+  flex-wrap:wrap;
+  margin:0;
+  gap:10px 18px;
+}
+.legend.collapsed .legend-label {
+  display:none;
+}
+.difficulty-example {
+  width:17px;
+  height:17px;
+  border:2px solid var(--edge-yellow, #ffc400);
+  border-radius:3px;
+  box-sizing:border-box;
+}
+.role {
+  display:inline-grid;
+  place-items:center;
+  box-sizing:border-box;
+  min-width:20px;
+  height:20px;
+  padding:1px 4px;
+  font-size:var(--font-xs);
+  border:1px solid;
+  border-radius:3px;
+  font-weight:500;
+  line-height:1;
+}
+.role-F {
+  color:var(--ink-blue, #258ce0);
+  background:var(--soft-blue, #ecf6ff);
+  border-color:var(--edge-blue, #bcdfff);
+}
+.role-B {
+  color:var(--ink-teal, #00aa80);
+  background:var(--soft-green, #e9fcf5);
+  border-color:var(--edge-green, #9bead5);
+}
+.role-FB {
+  color:var(--ink-yellow, #bf8800);
+  background:var(--soft-yellow, #fff8e6);
+  border-color:var(--edge-yellow, #f5dda1);
+}
+.role-D {
+  color:var(--ink-purple, #9154e8);
+  background:var(--soft-purple, #f4edff);
+  border-color:var(--edge-purple, #dac3fa);
+}
+.role-TL {
+  color:var(--ink-teal, #05a6ba);
+  background:var(--soft-teal, #e5fcff);
+  border-color:var(--edge-teal, #99e3ef);
+}
+.role-PM {
+  color:var(--ink-indigo, #3854bd);
+  background:var(--soft-indigo, #edf0ff);
+  border-color:var(--edge-indigo, #bac9fa);
+}
+.role-SM {
+  color:var(--ink-pink, #c65a88);
+  background:var(--soft-pink, #fff0f7);
+  border-color:var(--edge-pink, #edb9d0);
+}
+.role.difficult {
+  outline:2px solid var(--edge-yellow, #ffc400);
+  outline-offset:1px;
+}
+.state-dot {
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:var(--state-running, #00bf96);
+  flex-shrink:0;
+}
+.state-manutenzione {
+  background:var(--state-maintenance, #ff8d25);
+}
+.state-sospeso {
+  background:var(--state-suspended, #ff386c);
+}
+.state-concluso {
+  background:var(--state-completed, #389bed);
+}

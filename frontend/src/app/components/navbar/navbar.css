@@ -18,7 +18,7 @@
   place-items: center;
   width: 60px;
   height: 52px;
-  color: #315d82;
+  color: var(--ink-blue, #315d82);
   font-size: 25px;
 }
 
@@ -43,7 +43,7 @@
   place-items: center;
   border: 0;
   background: transparent;
-  color: #355b7e;
+  color: var(--ink-blue, #355b7e);
 }
 
 .nav-button {
@@ -54,7 +54,7 @@
 }
 
 .nav-button:hover {
-  background: #edf4fa;
+  background: var(--soft-blue, #edf4fa);
 }
 
 .reward-button {
@@ -67,7 +67,7 @@
   padding: 9px 0;
   border: 0;
   border-radius: 12px;
-  background: #5325a4;
+  background: var(--solid-purple, #5325a4);
   color: var(--on-brand);
   font-size: 13px;
 }
@@ -75,7 +75,7 @@
 .reward-level {
   padding: 2px 3px;
   border-radius: 10px;
-  background: #32166e;
+  background: var(--solid-purple, #32166e);
   font-size: 9px;
 }
 
@@ -94,4 +94,4 @@
   width: 48px;
   height: auto;
   pointer-events: none;
-}.nav-button.active { background: #e5f0fa; }
+}.nav-button.active { background: var(--soft-blue, #e5f0fa); }

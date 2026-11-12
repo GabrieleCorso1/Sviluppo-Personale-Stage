@@ -25,7 +25,7 @@
   max-height: calc(100dvh - 40px);
   overflow-y: auto;
   padding: var(--modal-space);
-  border: 1px solid #edf0f5;
+  border: 1px solid var(--edge-blue, #edf0f5);
   border-radius: var(--radius-modal);
   background: var(--surface);
   box-shadow: 0 8px 32px #15314926;
@@ -35,7 +35,7 @@
   justify-content: space-between;
   align-items: start;
   gap: 16px;
-  border-bottom: 1px solid #edf0f5;
+  border-bottom: 1px solid var(--edge-blue, #edf0f5);
   padding-bottom: 13px;
   margin-bottom: 16px;
 }
@@ -47,7 +47,7 @@
 }
 .modal-header .icon-button {
   margin-top: -7px;
-  color: #8c9ba9;
+  color: var(--ink-muted, #8c9ba9);
 }
 fieldset {
   border: 0;
@@ -64,7 +64,7 @@ fieldset {
   grid-column: 1 / -1;
 }
 .required {
-  color: #c13a54;
+  color: var(--ink-red, #c13a54);
 }
 label > span.required:first-child {
   width: auto;
@@ -88,11 +88,11 @@ label > span.required:first-child {
   font-size: var(--font-xs);
 }
 input[type='checkbox'] {
-  accent-color: #005386;
+  accent-color: var(--ink-blue, #005386);
 }
 .info {
-  color: #005386;
-  background: #e8f2fb;
+  color: var(--ink-blue, #005386);
+  background: var(--soft-blue, #e8f2fb);
   border-radius: 5px;
   padding: 8px 10px;
   font-size: var(--font-xs);
@@ -116,7 +116,7 @@ input[type='checkbox'] {
   border-radius: 50%;
   padding: 0;
   border: 0;
-  background: #e7eff6;
+  background: var(--soft-blue, #e7eff6);
 }
 .logo-button img {
   width: 100%;
@@ -135,7 +135,7 @@ input[type='checkbox'] {
   border-radius: 50%;
   border: 2px solid white;
   color: var(--on-brand);
-  background: var(--brand);
+  background: var(--action);
 }
 .logo-picker small,
 .plan-picker small {
@@ -156,7 +156,7 @@ input[type='checkbox'] {
   width: 100%;
   text-align: right;
   font-size: var(--font-xs);
-  color: #94a2b3;
+  color: var(--ink-muted, #94a2b3);
 }
 .modal-actions {
   display: grid;
@@ -175,7 +175,7 @@ input[type='checkbox'] {
   height: 32px;
   border-radius: 50%;
   object-fit: cover;
-  background: #e8f2fa;
+  background: var(--soft-blue, #e8f2fa);
 }
 .project-summary strong {
   font-size: 11px;
@@ -195,7 +195,7 @@ input[type='checkbox'] {
   margin: 15px 0;
 }
 .help {
-  color: #8997a9;
+  color: var(--ink-muted, #8997a9);
   font-size: var(--font-xs);
   line-height: 1.6;
 }
@@ -230,7 +230,7 @@ input[type='checkbox'] {
 }
 .person small {
   display: block;
-  color: #8795a7;
+  color: var(--ink-muted, #8795a7);
   margin-top: 3px;
   font-size: var(--font-xs);
 }
@@ -239,7 +239,7 @@ input[type='checkbox'] {
   margin-top: 20px;
 }
 .empty-message {
-  color: #8b99a9;
+  color: var(--ink-muted, #8b99a9);
   text-align: center;
   padding: 45px 10px;
   font-size: 11px;
@@ -306,13 +306,13 @@ input[type='checkbox'] {
   width: 30px;
   height: 30px;
   border-radius: 50%;
-  color: #00a982;
-  background: #e7f8f3;
+  color: var(--ink-teal, #00a982);
+  background: var(--soft-green, #e7f8f3);
 }
 .sprint-state {
   margin-left: auto;
   font-size: var(--font-xs);
-  color: #91a0af;
+  color: var(--ink-muted, #91a0af);
 }
 .sprint-actions {
   display: flex;
@@ -350,7 +350,7 @@ input[type='checkbox'] {
   margin: 0;
 }
 .success p {
-  color: #8c99a9;
+  color: var(--ink-muted, #8c99a9);
   font-size: 11px;
   margin: 15px 0 25px;
 }
@@ -361,7 +361,7 @@ input[type='checkbox'] {
   position: absolute;
   top: 10px;
   right: 12px;
-  color: #8c99a9;
+  color: var(--ink-muted, #8c99a9);
 }
 @media (max-width: 680px) {
   .overlay {
@@ -413,7 +413,7 @@ input[type='checkbox'] {
   grid-row: 1 / 4;
   display: grid;
   place-items: center;
-  background: #e8f2fa;
+  background: var(--soft-blue, #e8f2fa);
   border-radius: 50%;
   width: 42px;
   height: 42px;
@@ -465,7 +465,7 @@ input[type='checkbox'] {
   margin: 0 0 0 auto;
 }
 .sprint-actions input[type='radio'] {
-  accent-color: #005386;
+  accent-color: var(--ink-blue, #005386);
   margin: 0;
 }
 .sprint-actions > .help {
@@ -490,7 +490,7 @@ input[type='checkbox'] {
 }
 .csv-other {
   margin-top: 14px;
-  color: #8091a2;
+  color: var(--ink-muted, #8091a2);
   font-size: var(--font-xs);
 }
 .csv-other > summary {
@@ -519,7 +519,7 @@ input[type='checkbox'] {
   padding: 0;
   margin: 0;
   flex: 0 0 12px;
-  accent-color: #005386;
+  accent-color: var(--ink-blue, #005386);
 }
 .sprint-actions > .check {
   flex-wrap: nowrap;

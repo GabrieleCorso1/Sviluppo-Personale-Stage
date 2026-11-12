@@ -10,11 +10,11 @@
   place-items: center;
   border: 0;
   background: transparent;
-  color: #355b7e;
+  color: var(--ink-blue, #355b7e);
 }
 
 .header-button:hover {
-  background: #edf4fa;
+  background: var(--soft-blue, #edf4fa);
 }
 
 .notification-bell { position: relative; }
@@ -26,7 +26,7 @@
   min-width: 1rem;
   padding: 0 .2rem;
   border-radius: 1rem;
-  background: #b42318;
+  background: var(--solid-red, #b42318);
   color: var(--on-brand);
   font-size: .65rem;
   line-height: 1rem;
@@ -38,7 +38,7 @@
   top: calc(100% + .4rem);
   width: min(23rem, calc(100vw - 2rem));
   background: var(--surface);
-  border: 1px solid #e3eaf1;
+  border: 1px solid var(--edge-blue, #e3eaf1);
   border-radius: .6rem;
   box-shadow: 0 6px 20px #172d4426;
 }
@@ -56,10 +56,11 @@
   min-height: 65px;
   padding: 0 24px;
   background: var(--surface);
-  border-bottom: 1px solid #f0f1f4;
+  border-bottom: 1px solid var(--edge-neutral, #f0f1f4);
 }
 
 .page-heading {
+  min-width: 0;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -68,14 +69,21 @@
 }
 
 .page-heading i {
-  color: #9aa3ae;
+  color: var(--ink-muted, #9aa3ae);
   font-size: 15px;
 }
 
 .topbar-actions {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+@media (max-width: 680px) {
+  .topbar { padding-inline: 12px; gap: 8px; }
+  .page-heading span { overflow-wrap: anywhere; }
+  .topbar-actions { gap: 4px; }
 }
 
 .header-button {
@@ -108,10 +116,10 @@
   width: 30px;
   height: 30px;
   margin-left: 3px;
-  border: 1px solid #e2d4ca;
+  border: 1px solid var(--edge-orange, #e2d4ca);
   border-radius: 50%;
-  background: #e8d8cb;
-  color: #674d3e;
+  background: var(--soft-orange, #e8d8cb);
+  color: var(--ink-neutral, #674d3e);
   font-size: 15px;
   font-weight: 600;
 }

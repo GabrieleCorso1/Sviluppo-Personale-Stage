@@ -15,7 +15,11 @@
 }
 
 :root {
+  color-scheme: light;
   --brand: #004575;
+  --action: #004575;
+  --action-hover: #00375e;
+  --danger-solid: #bf0033;
   --brand-hover: #00375e;
   --on-brand: #ffffff;
   --surface: #ffffff;
@@ -49,6 +53,76 @@
   --backdrop: #18334b66;
 }
 
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --brand: #9bcaff;
+  --brand-hover: #b8dcff;
+  --action: #17669a;
+  --action-hover: #207bb5;
+  --surface: #1b293b;
+  --page: #101a28;
+  --surface-muted: #243449;
+  --text: #e6edf6;
+  --muted: #adbed2;
+  --ink-muted: #adbed2;
+  --border: #486078;
+  --border-soft: #34475e;
+  --control-border: #526b86;
+  --focus: #82c5ff;
+  --danger: #ff9fb5;
+  --danger-solid: #b81945;
+  --danger-hover: #d02a57;
+  --success: #91ddbd;
+  --success-soft: #183c34;
+  --danger-soft: #492637;
+  --backdrop: #020812b8;
+  --auth-button-text: #28180a;
+  --soft-neutral: #243449;
+  --soft-blue: #203b54;
+  --soft-green: #183d34;
+  --soft-teal: #153d45;
+  --soft-orange: #443323;
+  --soft-yellow: #40391e;
+  --soft-red: #492637;
+  --soft-pink: #472e43;
+  --soft-purple: #352d50;
+  --soft-indigo: #283555;
+  --ink-neutral: #e6edf6;
+  --ink-blue: #9bcaff;
+  --ink-green: #8bdfbd;
+  --ink-teal: #87dce5;
+  --ink-orange: #ffc18b;
+  --ink-yellow: #f2d478;
+  --ink-red: #ff9fb5;
+  --ink-pink: #f6a8cd;
+  --ink-purple: #c9b6ff;
+  --ink-indigo: #b9c5ff;
+  --edge-neutral: #486078;
+  --edge-blue: #5588b0;
+  --edge-green: #43816d;
+  --edge-teal: #3e8490;
+  --edge-orange: #a67b4a;
+  --edge-yellow: #a28c39;
+  --edge-red: #ad5f78;
+  --edge-pink: #955d82;
+  --edge-purple: #8070aa;
+  --edge-indigo: #6677ae;
+  --solid-blue: #185881;
+  --solid-neutral: #34475a;
+  --solid-green: #24684f;
+  --solid-teal: #1c616a;
+  --solid-orange: #8d4b19;
+  --solid-yellow: #665116;
+  --solid-red: #a72a50;
+  --solid-pink: #853d68;
+  --solid-purple: #57418a;
+  --solid-indigo: #414f95;
+  --state-running: #60d2ac;
+  --state-maintenance: #ffb777;
+  --state-suspended: #ff8eae;
+  --state-completed: #84bfff;
+}
+
 body {
   margin: 0;
   font-family: 'Poppins', 'Segoe UI', sans-serif;
@@ -61,6 +135,34 @@ button, input, select, textarea {
 }
 
 a { color: var(--brand); }
+
+app-theme-picker.public-appearance {
+  position: fixed;
+  top: 12px;
+  right: 16px;
+  z-index: 20;
+  border-radius: var(--radius-control);
+  background: var(--surface);
+}
+
+:root[data-theme='dark'] ::placeholder { color: var(--muted); opacity: 1; }
+:where(:root[data-theme='dark']) :where(input, textarea, select) {
+  background: var(--surface);
+  color: var(--text);
+}
+
+:root[data-theme='dark'] app-navbar :is(.brand img, .nav-button img) {
+  filter: brightness(0) saturate(100%) invert(84%) sepia(12%) saturate(1100%) hue-rotate(175deg);
+}
+
+:root[data-theme='dark'] :is(app-login .login-img img, app-forgot-password .logo, app-reset-password .logo) {
+  filter: invert(1) hue-rotate(180deg);
+  mix-blend-mode: screen;
+}
+:root[data-theme='dark'] input:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  box-shadow: 0 0 0 1000px var(--surface-muted) inset;
+}
 
 .visually-hidden {
   position: absolute;

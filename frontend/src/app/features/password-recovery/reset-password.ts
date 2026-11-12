@@ -1,3 +1,4 @@
+import { ThemePicker } from '../../components/theme-picker/theme-picker';
 import { Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -7,7 +8,7 @@ import { Auth } from '../../core/services/auth';
 @Component({
   selector: 'app-reset-password',
   standalone: true,
-  imports: [FormsModule, RouterLink],
+  imports: [FormsModule, RouterLink, ThemePicker],
   templateUrl: './reset-password.html',
   styleUrl: './password-recovery.css'
 })

@@ -6,11 +6,12 @@ import { catchError, EMPTY, map, merge, of, startWith, switchMap, timer } from '
 import { Auth } from '../../core/services/auth';
 import { Notifications } from '../../core/services/notifications';
 import { NotificationList } from '../../features/notifiche/notification-list';
+import { ThemePicker } from '../theme-picker/theme-picker';
 
 @Component({
   selector: 'app-header',
   standalone: true,
-  imports: [RouterLink, NotificationList],
+  imports: [RouterLink, NotificationList, ThemePicker],
   templateUrl: './header.html',
   styleUrl: './header.css',
   host: { '(document:click)': 'closeOutside($event)' },

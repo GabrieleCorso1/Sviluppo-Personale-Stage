@@ -1,11 +1,11 @@
 .case-page { max-width: 56rem; margin: auto; padding: 1.25rem; color: var(--text); }
 a { color: var(--brand); }
-article { margin-top: 1rem; padding: 1.5rem; background: var(--surface); border: 1px solid #e3eaf1; border-radius: .65rem; }
+article { margin-top: 1rem; padding: 1.5rem; background: var(--surface); border: 1px solid var(--edge-blue, #e3eaf1); border-radius: .65rem; }
 h1 { font-size: 1.5rem; }
 h2 { margin-top: 1rem; font-size: 1.1rem; }
-time, .example-label { color: #52647a; font-size: .85rem; }
+time, .example-label { color: var(--ink-muted, #52647a); font-size: .85rem; }
 .actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-button { padding: .4rem .8rem; border: 1px solid var(--brand); border-radius: .35rem; background: var(--brand); color: var(--on-brand); }
+button { padding: .4rem .8rem; border: 1px solid var(--brand); border-radius: .35rem; background: var(--action); color: var(--on-brand); }
 button:disabled { opacity: .55; }
 .reject { background: var(--surface); color: var(--danger); border-color: var(--danger); }
 fieldset { margin: 1rem 0; }

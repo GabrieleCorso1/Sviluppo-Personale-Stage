@@ -1,5 +1,5 @@
 .matrix-panel {
-  border: 1px solid #e3eaf3;
+  border: 1px solid var(--edge-blue, #e3eaf3);
   border-radius: var(--radius-card);
   background: var(--surface);
   overflow: hidden;
@@ -18,11 +18,11 @@
 }
 .matrix th,
 .matrix td {
-  border-right: 1px solid #edf1f6;
-  border-bottom: 1px solid #edf1f6;
+  border-right: 1px solid var(--edge-blue, #edf1f6);
+  border-bottom: 1px solid var(--edge-blue, #edf1f6);
 }
 .matrix thead th {
-  background: var(--brand);
+  background: var(--action);
   color: var(--on-brand);
   position: sticky;
   top: 0;
@@ -38,7 +38,7 @@
   background: var(--surface);
 }
 .matrix thead th.sticky {
-  background: var(--brand);
+  background: var(--action);
   z-index: 4;
   font-size: var(--font-xs);
   text-transform: uppercase;
@@ -52,12 +52,12 @@
 }
 .project-logo {
   position: relative;
-  border: 2px solid #00c49b;
+  border: 2px solid var(--edge-teal, #00c49b);
   padding: 0;
   border-radius: 50%;
   width: 36px;
   height: 36px;
-  background: #e8f2fa;
+  background: var(--soft-blue, #e8f2fa);
 }
 .project-logo img {
   width: 100%;
@@ -66,13 +66,13 @@
   object-fit: cover;
 }
 .logo-manutenzione {
-  border-color: #ff942f;
+  border-color: var(--edge-orange, #ff942f);
 }
 .logo-sospeso {
-  border-color: #ff386c;
+  border-color: var(--edge-pink, #ff386c);
 }
 .logo-concluso {
-  border-color: #389bed;
+  border-color: var(--edge-blue, #389bed);
 }
 .resource-count {
   position: absolute;
@@ -80,7 +80,7 @@
   right: -7px;
   border-radius: 50%;
   background: var(--surface);
-  color: #294c67;
+  color: var(--ink-blue, #294c67);
   font-size: var(--font-xs);
   min-width: 15px;
   height: 15px;
@@ -92,8 +92,8 @@
   left: -6px;
   top: -6px;
   border-radius: 50%;
-  background: #ffcc35;
-  color: #725300;
+  background: var(--solid-yellow, #ffcc35);
+  color: var(--ink-yellow, #725300);
   font-size: var(--font-xs);
   min-width: 14px;
   height: 14px;
@@ -107,11 +107,11 @@
   padding: 0;
   border: 0;
   background: none;
-  color: #7facc8;
+  color: var(--ink-blue, #7facc8);
   font-size: var(--font-xs);
 }
 .prioritize.active {
-  color: #ffce46;
+  color: var(--ink-yellow, #ffce46);
 }
 .total-heading {
   width: 40px;
@@ -119,33 +119,33 @@
 }
 .necessities-row th,
 .necessities-row td {
-  background: #f6faff;
+  background: var(--soft-blue, #f6faff);
   height: 37px;
   color: var(--brand);
   font-size: var(--font-xs);
 }
 .necessities-row th.sticky {
-  background: #f6faff;
+  background: var(--soft-blue, #f6faff);
   padding: 8px 15px;
 }
 .needs-label {
   float: right;
-  color: #ec2855;
+  color: var(--ink-red, #ec2855);
   text-transform: uppercase;
   font-size: 8px;
 }
 .necessities-row button {
-  border: 1px dashed #d5dfea;
-  background: #f8fafc;
-  color: #a8b5c3;
+  border: 1px dashed var(--edge-blue, #d5dfea);
+  background: var(--soft-neutral, #f8fafc);
+  color: var(--ink-muted, #a8b5c3);
   padding: 0;
   min-width: 18px;
   height: 18px;
   font-size: var(--font-xs);
 }
 .necessities-row button.has-needs {
-  color: #e63966;
-  border-color: #ffa4b9;
+  color: var(--ink-pink, #e63966);
+  border-color: var(--edge-red, #ffa4b9);
   background: var(--danger-soft);
 }
 .resource-cell {
@@ -180,21 +180,21 @@
   margin: 3px 0 0 5px;
 }
 .unallocated-label {
-  color: #eb275d;
-  background: #fff0f5;
+  color: var(--ink-pink, #eb275d);
+  background: var(--soft-pink, #fff0f5);
   font-size: 8px;
   padding: 2px 3px;
   font-weight: 400;
 }
 .difficulty-indicator {
-  background: #fff7dc;
-  color: #dcaa00;
+  background: var(--soft-yellow, #fff7dc);
+  color: var(--ink-yellow, #dcaa00);
   padding: 4px;
   border-radius: 4px;
 }
 .overload-indicator {
-  color: #ef7229;
-  background: #fff0e6;
+  color: var(--ink-orange, #ef7229);
+  background: var(--soft-orange, #fff0e6);
   padding: 4px;
   border-radius: 4px;
 }
@@ -203,7 +203,7 @@
   padding: 5px 6px;
 }
 .selected-column {
-  background: #edf8ff;
+  background: var(--soft-blue, #edf8ff);
 }
 .cell-roles {
   display: flex;
@@ -233,7 +233,7 @@
 }
 .add-allocation {
   border: 0;
-  color: #8da3b6;
+  color: var(--ink-muted, #8da3b6);
   font-size: 14px;
   padding: 0;
   background: none;
@@ -250,7 +250,7 @@
 .total {
   font-size: 11px;
   padding: 8px;
-  color: #304356;
+  color: var(--ink-blue, #304356);
 }
 .membership {
   width: 18px;
@@ -262,11 +262,11 @@
   color: var(--on-brand);
 }
 .membership:hover {
-  border-color: #a9cde8;
+  border-color: var(--edge-blue, #a9cde8);
 }
 .membership.assigned {
-  background: #3898df;
-  border-color: #3898df;
+  background: var(--solid-blue, #3898df);
+  border-color: var(--edge-blue, #3898df);
   font-size: 15px;
 }
 

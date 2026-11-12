@@ -107,7 +107,7 @@ class ProjectModal implements AfterViewInit {
 @Component({
   imports: [NgTemplateOutlet, DatePipe, FormsModule, Layout, AuthenticatedImage, ProjectModal],
   templateUrl: './projects.html',
-  styleUrls: ['./projects.css', './projects-modal.css'],
+  styleUrls: ['./projects.css', './projects-filters.css', './projects-modal.css'],
   host: { '(document:click)': 'closeMenu($event)' },
 })
 export class Projects {

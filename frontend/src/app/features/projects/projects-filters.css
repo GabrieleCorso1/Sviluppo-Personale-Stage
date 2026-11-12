@@ -1,0 +1,66 @@
+.column-filter-popover {
+  position:fixed;
+  z-index:30;
+  width:240px;
+  box-sizing:border-box;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:6px;
+  box-shadow:0 7px 24px #18334926;
+  padding:14px;
+}
+.column-filter-popover > div {
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:12px;
+}
+.applied-filters {
+  display:flex;
+  gap:12px;
+  align-items:center;
+  margin:-8px 0 12px;
+  color:var(--muted);
+  font-size:var(--font-xs);
+}
+.project-name strong {
+  font-size:11px;
+  min-width:100px;
+}
+td {
+  font-size:11px;
+  height:52px;
+}
+th {
+  border-right:1px solid #ffffff24;
+}
+th:last-child {
+  border-right:0;
+}
+.query {
+  text-decoration:underline;
+  font-size:11px;
+}
+.inline-actions button {
+  font-size:11px;
+}
+@media (max-width: 680px) {
+  .page-toolbar {
+    gap:16px;
+  }
+  .page-toolbar > .primary {
+    max-width:none;
+    min-width:175px;
+  }
+}
+
+.pagination .current-page {
+  border-color:var(--edge-blue, #75b6f0);
+  color:var(--ink-blue, #1479d3);
+}
+.pagination .page-ellipsis {
+  margin:0;
+  padding:4px 6px;
+}
+
+.primary:not(:disabled):hover { background:var(--action-hover); border-color:var(--brand-hover); }

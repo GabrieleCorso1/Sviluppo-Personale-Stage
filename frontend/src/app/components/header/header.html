@@ -5,6 +5,7 @@
       </div>
 
       <div class="topbar-actions">
+        <app-theme-picker />
         <div class="notification-bell">
           <button #bell type="button" class="header-button bell-button"
             [attr.aria-label]="unreadCount() ? 'Notifiche non lette: ' + unreadCount() : 'Notifiche'"

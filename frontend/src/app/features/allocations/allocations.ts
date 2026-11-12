@@ -112,7 +112,7 @@ class AllocationModal implements AfterViewInit {
 @Component({
   imports: [DatePipe, FormsModule, Layout, AuthenticatedImage, AllocationModal],
   templateUrl: './allocations.html',
-  styleUrls: ['./allocations-matrix.css', './allocations.css', './allocations-modal.css'],
+  styleUrls: ['./allocations-legend.css', './allocations-matrix.css', './allocations.css', './allocations-modal.css'],
 })
 export class Allocations {
   private readonly http = inject(HttpClient);
