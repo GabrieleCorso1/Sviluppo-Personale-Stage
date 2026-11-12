@@ -2,16 +2,16 @@
 
 use App\Http\Controllers\AdminNotificationController;
 use App\Http\Controllers\AllocationController;
-use App\Http\Controllers\SbiController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\NewPasswordController;
 use App\Http\Controllers\Auth\PasswordResetLinkController;
 use App\Http\Controllers\CalendarRequestController;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ProjectManagerOptionController;
 use App\Http\Controllers\ProjectParticipantAvatarController;
+use App\Http\Controllers\SbiController;
 use App\Http\Controllers\SprintCsvController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\UserLeaveController;
@@ -64,9 +64,9 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::patch('/admin/notifications', [AdminNotificationController::class, 'update']);
     Route::delete('/admin/notifications', [AdminNotificationController::class, 'destroy']);
 
-
     // Gestione Utenti Completa (Figma Sync)
     Route::get('/users/options', [UserController::class, 'options']);
+    Route::get('/users/{id}/avatar', [UserController::class, 'avatar'])->whereNumber('id')->name('users.avatar');
     Route::get('/users', [UserController::class, 'index']);
     Route::post('/users', [UserController::class, 'store']);
     Route::get('/user/profile', [ProfileController::class, 'show']);

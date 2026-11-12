@@ -6,23 +6,27 @@ use App\Http\Requests\IndexUserRequest;
 use App\Http\Requests\StoreUserRequest;
 use App\Http\Requests\UpdateUserRequest;
 use App\Models\AssignmentRole;
+use App\Models\FileStorage;
 use App\Models\Role;
 use App\Models\User;
+use App\Support\ProjectParticipantAvatar;
 use App\UserInvitation;
 use App\WorkSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserController extends Controller
 {
     public function index(IndexUserRequest $request): JsonResponse
     {
         $filters = $request->validated();
-        $query = User::with(['roles', 'assignmentRoles', 'contracts.workingDays']);
+        $query = User::with(['roles', 'assignmentRoles', 'contracts.workingDays', 'filestorage']);
 
         if (($filters['status'] ?? 'active') === 'disabled') {
             $query->onlyTrashed();
@@ -70,6 +74,15 @@ class UserController extends Controller
             ->paginate((int) ($filters['per_page'] ?? 10), ['*'], 'page', (int) ($filters['page'] ?? 1))
             ->appends($filters);
 
+        foreach ($users as $user) {
+            $private = ProjectParticipantAvatar::privatePath($user) !== null;
+            $user->setAttribute('avatar_url', $private
+                ? route('users.avatar', ['id' => $user->id])
+                : url('/images/defaults/default-avatar.svg'));
+            $user->setAttribute('avatar_requires_auth', $private);
+            $user->unsetRelation('filestorage');
+        }
+
         return response()->json([
             'success' => true,
             'data' => $users,
@@ -86,6 +99,20 @@ class UserController extends Controller
         ]);
     }
 
+    public function avatar(Request $request, int $id): BinaryFileResponse
+    {
+        $user = User::withTrashed()->with('filestorage')->findOrFail($id);
+        $this->authorize('view', $user);
+        $path = ProjectParticipantAvatar::privatePath($user);
+
+        return response()->file($path
+            ? Storage::disk('local')->path($path)
+            : public_path('images/defaults/default-avatar.svg'), [
+                'Cache-Control' => 'private, no-store',
+                'X-Content-Type-Options' => 'nosniff',
+            ]);
+    }
+
     public function options(): JsonResponse
     {
         $this->authorize('viewAny', User::class);
@@ -96,6 +123,10 @@ class UserController extends Controller
                 'roles' => Role::orderBy('alias')->get(['id', 'alias']),
                 'assignment_roles' => AssignmentRole::orderBy('alias')->get(['id', 'alias']),
                 'expertise' => ['junior', 'senior'],
+                'default_avatar_id' => FileStorage::where('path', 'images/defaults')
+                    ->where('name', 'default-avatar')
+                    ->where('extension', 'svg')
+                    ->value('id'),
             ],
         ]);
     }

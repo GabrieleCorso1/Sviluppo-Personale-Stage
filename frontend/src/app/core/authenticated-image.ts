@@ -17,7 +17,7 @@ export class AuthenticatedImage {
       const fallback = this.imageFallback();
       this.src.set(fallback);
       const { pathname: path, search } = new URL(this.authenticatedImage(), API_URL);
-      if (!path.startsWith('/api/sbis/') && !/^\/api\/notifications\/[a-f0-9-]+\/avatar$/i.test(path)) return;
+      if (!path.startsWith('/api/sbis/') && !/^\/api\/allocations\/(resources\/\d+\/avatar|projects\/\d+\/logo)$/.test(path) && !/^\/api\/users\/\d+\/avatar$/.test(path) && !/^\/api\/projects\/\d+\/(logo|users\/\d+\/avatar)$/.test(path) && !/^\/api\/notifications\/[a-f0-9-]+\/avatar$/i.test(path)) return;
       let objectUrl: string | undefined;
       const subscription = this.http.get(API_URL + path + search, { responseType: 'blob' }).subscribe({
         next: blob => {

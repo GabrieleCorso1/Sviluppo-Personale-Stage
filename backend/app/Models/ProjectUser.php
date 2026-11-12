@@ -51,7 +51,12 @@ class ProjectUser extends Model
                 }
             }
 
-            return parent::save($options);
+            $saved = parent::save($options);
+            if ($saved && ! $this->trashed() && $this->allocation_type === 'project') {
+                Necessity::closeCovered((int) $this->project_id);
+            }
+
+            return $saved;
         });
     }
 

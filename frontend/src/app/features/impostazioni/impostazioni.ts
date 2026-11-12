@@ -23,6 +23,10 @@ export class Impostazioni implements OnInit {
 
   protected readonly router = inject(Router);
   searchText = '';
+  openCard(title: string): void {
+    const paths: Record<string, string> = { 'Utenti': '/gestione-utenti', 'Progetti / Corsi': '/gestione-progetti', 'Risorse': '/gestione-allocazioni', 'Team': '/gestione-allocazioni' };
+    if (paths[title]) void this.router.navigate([paths[title]]);
+  }
 
   readonly sections = [
     {

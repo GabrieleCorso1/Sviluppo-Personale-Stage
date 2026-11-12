@@ -1,0 +1,1007 @@
+<app-layout
+  pageTitle="Gestione utenti"
+  [avatarUrl]="avatarUrl()"
+  [canAccessSettings]="true"
+  (openSettings)="router.navigate(['/impostazioni'])"
+>
+  <main class="users-page">
+    @if (!allowed()) {
+      <section class="empty">
+        <i aria-hidden="true" class="bi bi-shield-lock"></i>
+        <h1>Accesso riservato</h1>
+        <p>La gestione utenti è disponibile per Admin e HR autorizzati.</p>
+        <button (click)="router.navigate(['/home'])">Torna al profilo</button>
+      </section>
+    } @else {
+      <div class="page-toolbar">
+        @if (canManage()) {
+          <button class="primary" (click)="start()" [disabled]="!options()">
+            <i aria-hidden="true" class="bi bi-plus-circle"></i> Nuovo utente
+          </button>
+        }
+      </div>
+      @if (notice()) {
+        <p class="notice" role="status">
+          <i aria-hidden="true" class="bi bi-check-circle"></i> {{ notice() }}
+          <button class="icon-button" aria-label="Chiudi messaggio" (click)="notice.set('')">
+            ×
+          </button>
+        </p>
+      }
+      @if (hasFilters()) {
+        <div class="applied-filters">
+          <span>Filtri attivi</span
+          ><button class="text-link" (click)="reset()">Azzera filtri</button>
+        </div>
+      }
+      @if (columnFilter; as key) {
+        <form
+          class="column-filter-popover"
+          [style.top.px]="filterTop"
+          [style.left.px]="filterLeft"
+          (ngSubmit)="applyFilter()"
+        >
+          <label
+            >{{ filterLabel(key) }}
+            @switch (key) {
+              @case ('search') {
+                <input
+                  type="search"
+                  name="columnSearch"
+                  [(ngModel)]="filterDraft"
+                  placeholder="Cerca nome, cognome o email"
+                  maxlength="255"
+                />
+              }
+              @case ('role') {
+                <select name="columnRole" [(ngModel)]="filterDraft">
+                  <option value="">Tutti i ruoli</option>
+                  @for (item of options()?.roles; track item.id) {
+                    <option [value]="item.id">{{ item.alias }}</option>
+                  }
+                </select>
+              }
+              @case ('assignment') {
+                <select name="columnAssignment" [(ngModel)]="filterDraft">
+                  <option value="">Tutti gli incarichi</option>
+                  @for (item of options()?.assignment_roles; track item.id) {
+                    <option [value]="item.id">{{ item.alias }}</option>
+                  }
+                </select>
+              }
+              @case ('expertise') {
+                <select name="columnExpertise" [(ngModel)]="filterDraft">
+                  <option value="">Tutte</option>
+                  @for (item of options()?.expertise; track item) {
+                    <option [value]="item">{{ item === 'junior' ? 'Junior' : 'Senior' }}</option>
+                  }
+                </select>
+              }
+              @case ('visible') {
+                <select name="columnVisible" [(ngModel)]="filterDraft">
+                  <option value="">Tutti</option>
+                  <option value="1">Sì</option>
+                  <option value="0">No</option>
+                </select>
+              }
+            }
+          </label>
+          <div>
+            <button type="button" (click)="clearFilter()">Azzera</button
+            ><button class="primary" [disabled]="loading()">Filtra</button>
+          </div>
+        </form>
+      }
+      @if (error()) {
+        <p class="error" role="alert">
+          {{ error() }} <button (click)="initialize()">Riprova</button>
+        </p>
+      }
+      <section class="table-panel" aria-label="Utenti attivi" [attr.aria-busy]="loading()">
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th
+                  [attr.aria-sort]="
+                    sortBy === 'name'
+                      ? sortDirection === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  "
+                >
+                  <div class="column-heading">
+                    <span>Nome e Cognome</span>
+                    <button class="header-icon" (click)="sort('name')" aria-label="Ordina per nome">
+                      <i class="bi bi-arrow-down-up" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      class="header-icon column-filter-trigger"
+                      (click)="openFilter('search', $event)"
+                      [class.filtered]="!!search"
+                      aria-label="Cerca nome e cognome"
+                    >
+                      <i class="bi bi-search" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </th>
+                <th
+                  [attr.aria-sort]="
+                    sortBy === 'hiring_date'
+                      ? sortDirection === 'asc'
+                        ? 'ascending'
+                        : 'descending'
+                      : 'none'
+                  "
+                >
+                  <div class="column-heading">
+                    <span>Data di assunzione</span
+                    ><button
+                      class="header-icon"
+                      (click)="sort('hiring_date')"
+                      aria-label="Ordina per data di assunzione"
+                    >
+                      <i class="bi bi-arrow-down-up" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-heading">
+                    <span>Ruolo</span
+                    ><button
+                      class="header-icon column-filter-trigger"
+                      (click)="openFilter('role', $event)"
+                      [class.filtered]="!!role"
+                      aria-label="Filtra ruolo"
+                    >
+                      <i class="bi bi-caret-down-fill" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-heading">
+                    <span>Incarico</span
+                    ><button
+                      class="header-icon column-filter-trigger"
+                      (click)="openFilter('assignment', $event)"
+                      [class.filtered]="!!assignment"
+                      aria-label="Filtra incarico"
+                    >
+                      <i class="bi bi-caret-down-fill" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-heading">
+                    <span>Competenza</span
+                    ><button
+                      class="header-icon column-filter-trigger"
+                      (click)="openFilter('expertise', $event)"
+                      [class.filtered]="!!expertise"
+                      aria-label="Filtra competenza"
+                    >
+                      <i class="bi bi-caret-down-fill" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </th>
+                <th>
+                  <div class="column-heading">
+                    <span>Visibilità in allocazione</span
+                    ><button
+                      class="header-icon column-filter-trigger"
+                      (click)="openFilter('visible', $event)"
+                      [class.filtered]="!!visible"
+                      aria-label="Filtra visibilità in allocazione"
+                    >
+                      <i class="bi bi-caret-down-fill" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </th>
+                <th><span class="sr-only">Azioni</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (person of active()?.data; track person.id) {
+                <tr>
+                  <td>
+                    <div class="person">
+                      <img
+                        class="person-avatar"
+                        [authenticatedImage]="person.avatar_url ?? avatarFallback"
+                        [imageFallback]="avatarFallback"
+                        alt=""
+                      /><strong>{{ name(person) }}</strong>
+                    </div>
+                  </td>
+                  <td>{{ person.hiring_date | date: 'dd/MM/yyyy' }}</td>
+                  <td>{{ aliases(person.roles) }}</td>
+                  <td>{{ aliases(person.assignment_roles) }}</td>
+                  <td>{{ expertiseLabel(person) }}</td>
+                  <td>
+                    <span class="visibility" [class.off]="!person.isAllocation_visible">{{
+                      person.isAllocation_visible ? 'Sì' : 'No'
+                    }}</span>
+                  </td>
+                  <td class="row-actions">
+                    <button
+                      class="icon-button"
+                      [attr.aria-label]="'Azioni per ' + name(person)"
+                      [attr.aria-expanded]="menuId === person.id"
+                      (click)="toggleMenu(person, $event)"
+                    >
+                      <i aria-hidden="true" class="bi bi-three-dots-vertical"></i>
+                    </button>
+                    @if (menuId === person.id) {
+                      <div class="row-menu" [style.top.px]="menuTop" [style.left.px]="menuLeft">
+                        @if (canEdit(person)) {
+                          <button (click)="start(person)">
+                            <i aria-hidden="true" class="bi bi-pencil"></i> Modifica
+                          </button>
+                        }
+                        @if (canLeaves()) {
+                          <button (click)="openLeaves(person)">
+                            <i aria-hidden="true" class="bi bi-clock"></i> Ferie e permessi
+                          </button>
+                        }
+                        @if (canEdit(person) && person.id !== actor()?.id) {
+                          <button class="danger" (click)="confirm(person, false)">
+                            <i aria-hidden="true" class="bi bi-person-slash"></i> Disabilita
+                          </button>
+                        }
+                      </div>
+                    }
+                  </td>
+                </tr>
+              } @empty {
+                <tr>
+                  <td colspan="7" class="empty-cell">
+                    {{
+                      loading() ? 'Caricamento utenti…' : 'Nessun utente trovato con questi filtri.'
+                    }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+      @if (active(); as page) {
+        <nav class="pagination" aria-label="Pagine utenti attivi">
+          <span>{{ page.total }} risultati</span
+          ><button
+            [disabled]="loading() || page.current_page <= 1"
+            (click)="load(page.current_page - 1)"
+            aria-label="Pagina precedente"
+          >
+            ‹</button
+          ><b>{{ page.current_page }}</b
+          ><span>di {{ page.last_page }}</span
+          ><button
+            [disabled]="loading() || page.current_page >= page.last_page"
+            (click)="load(page.current_page + 1)"
+            aria-label="Pagina successiva"
+          >
+            ›
+          </button>
+        </nav>
+      }
+      <button
+        class="disabled-heading"
+        [attr.aria-expanded]="showDisabled"
+        (click)="toggleDisabled()"
+      >
+        <i aria-hidden="true" class="bi bi-person-slash"></i> Utenti disabilitati
+        <i
+          aria-hidden="true"
+          [class]="showDisabled ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"
+        ></i>
+      </button>
+      @if (showDisabled) {
+        @if (disabledError()) {
+          <p class="error" role="alert">
+            {{ disabledError() }} <button (click)="load(1, true)">Riprova</button>
+          </p>
+        }
+        <section class="table-panel disabled-table">
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome e Cognome</th>
+                  <th>Data di assunzione</th>
+                  <th>Data di dimissione</th>
+                  <th><span class="sr-only">Azioni</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (person of disabled()?.data; track person.id) {
+                  <tr>
+                    <td>
+                      <div class="person">
+                        <img
+                          class="person-avatar"
+                          [authenticatedImage]="person.avatar_url ?? avatarFallback"
+                          [imageFallback]="avatarFallback"
+                          alt=""
+                        /><strong>{{ name(person) }}</strong>
+                      </div>
+                    </td>
+                    <td>{{ person.hiring_date | date: 'dd/MM/yyyy' }}</td>
+                    <td>{{ person.resignation_date | date: 'dd/MM/yyyy' }}</td>
+                    <td class="restore-cell">
+                      @if (canEdit(person)) {
+                        <button class="primary small" (click)="confirm(person, true)">
+                          <i aria-hidden="true" class="bi bi-clock-history"></i> Riabilita utente
+                        </button>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="4" class="empty-cell">
+                      {{ disabledLoading() ? 'Caricamento…' : 'Nessun utente disabilitato.' }}
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+        @if (disabled(); as page) {
+          <nav class="pagination" aria-label="Pagine utenti disabilitati">
+            <span>{{ page.total }} risultati</span
+            ><button
+              [disabled]="disabledLoading() || page.current_page <= 1"
+              (click)="load(page.current_page - 1, true)"
+            >
+              ‹</button
+            ><b>{{ page.current_page }}</b
+            ><span>di {{ page.last_page }}</span
+            ><button
+              [disabled]="disabledLoading() || page.current_page >= page.last_page"
+              (click)="load(page.current_page + 1, true)"
+            >
+              ›
+            </button>
+          </nav>
+        }
+      }
+    }
+  </main>
+
+  @if (draft; as form) {
+    <dialog userModal class="overlay" (cancel)="$event.preventDefault(); closeEditor()">
+      <section
+        class="modal editor-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="user-title"
+      >
+        <header class="modal-header">
+          <h2 id="user-title">{{ editing ? 'Modifica utente' : 'Nuovo utente' }}</h2>
+          <button
+            class="icon-button"
+            (click)="closeEditor()"
+            [disabled]="busy()"
+            aria-label="Chiudi"
+          >
+            ×
+          </button>
+        </header>
+        <nav class="tabs" aria-label="Dati utente">
+          <button [class.selected]="tab === 'personal'" (click)="tab = 'personal'">
+            Anagrafica</button
+          ><button [class.selected]="tab === 'contract'" (click)="tab = 'contract'">
+            Contratto
+          </button>
+        </nav>
+        <form (ngSubmit)="save()">
+          <fieldset [disabled]="busy()">
+            @if (tab === 'personal') {
+              <div class="form-grid">
+                <label
+                  >Nome <span class="required">*</span
+                  ><input
+                    name="firstName"
+                    [(ngModel)]="form.first_name"
+                    autocomplete="given-name"
+                    maxlength="255"
+                    placeholder="Nome utente"
+                    [attr.aria-invalid]="fieldErrors()['first_name'] ? true : null" /></label
+                ><label
+                  >Cognome <span class="required">*</span
+                  ><input
+                    name="lastName"
+                    [(ngModel)]="form.last_name"
+                    autocomplete="family-name"
+                    maxlength="255"
+                    placeholder="Cognome utente"
+                    [attr.aria-invalid]="fieldErrors()['last_name'] ? true : null"
+                /></label>
+                <label
+                  >Genere<select name="gender" [(ngModel)]="form.gender">
+                    <option value="">Seleziona</option>
+                    <option value="male">Maschile</option>
+                    <option value="female">Femminile</option>
+                  </select></label
+                ><label
+                  >Data di nascita <span class="required">*</span
+                  ><input type="date" name="birthDate" [(ngModel)]="form.birth_date" [max]="today"
+                /></label>
+                <label
+                  >Email di accesso <span class="required">*</span
+                  ><input
+                    type="email"
+                    name="email"
+                    [(ngModel)]="form.email"
+                    maxlength="255"
+                    placeholder="email@esempio.it"
+                    autocomplete="off" /></label
+                ><label
+                  >Email Azure<input
+                    type="email"
+                    name="azureEmail"
+                    [(ngModel)]="form.azure_email"
+                    maxlength="255"
+                    placeholder="Facoltativa" /></label
+                ><label
+                  >Email aziendale<input
+                    type="email"
+                    name="companyEmail"
+                    [(ngModel)]="form.company_email"
+                    maxlength="255"
+                    placeholder="Facoltativa"
+                /></label>
+              </div>
+              @if (!editing) {
+                <p class="help">
+                  Il nuovo utente riceve un invito per impostare la propria password.
+                </p>
+              }
+            } @else {
+              @if (editing && editing.contracts.length > 1) {
+                <label class="contract-choice"
+                  >Contratto da modificare<select
+                    name="contractId"
+                    [ngModel]="selectedContract"
+                    (ngModelChange)="selectContract($event)"
+                  >
+                    <option [ngValue]="null">Seleziona contratto</option>
+                    @for (contract of editing.contracts; track contract.id) {
+                      <option [ngValue]="contract.id">
+                        {{ contract.contract_start_date | date: 'dd/MM/yyyy' }} ·
+                        {{ contract.weekly_hours }} ore
+                      </option>
+                    }
+                  </select></label
+                >
+              }
+              <div class="form-grid">
+                <label
+                  >Data di assunzione <span class="required">*</span
+                  ><input type="date" name="hiringDate" [(ngModel)]="form.hiring_date" /></label
+                ><label
+                  >Data di inizio contratto <span class="required">*</span
+                  ><input
+                    type="date"
+                    name="contractStart"
+                    [(ngModel)]="form.contract_start_date"
+                    [min]="form.hiring_date"
+                /></label>
+                <label
+                  >Fine contratto<input
+                    type="date"
+                    name="contractEnd"
+                    [(ngModel)]="form.contract_end_date"
+                    [min]="form.contract_start_date" /></label
+                ><label
+                  >Tipologia contratto<input
+                    name="contractType"
+                    [(ngModel)]="form.contract_type"
+                    maxlength="255"
+                    placeholder="Es. Tempo indeterminato"
+                /></label>
+                <label
+                  >Ore settimanali <span class="required">*</span
+                  ><input
+                    type="number"
+                    name="weeklyHours"
+                    [(ngModel)]="form.weekly_hours"
+                    (ngModelChange)="hoursChanged()"
+                    min="1"
+                    max="40"
+                    step="1" /></label
+                ><label
+                  >Ruolo <span class="required">*</span
+                  ><select name="roleId" [(ngModel)]="form.role_id">
+                    <option [ngValue]="null">Seleziona</option>
+                    @for (item of assignableRoles; track item.id) {
+                      <option [ngValue]="item.id">{{ item.alias }}</option>
+                    }
+                  </select></label
+                >
+                <label
+                  >Incarico<select
+                    name="assignmentId"
+                    [(ngModel)]="form.assignment_role_id"
+                    (ngModelChange)="!$event && (form.expertise = '')"
+                  >
+                    <option [ngValue]="null">Nessun incarico</option>
+                    @for (item of options()?.assignment_roles; track item.id) {
+                      <option [ngValue]="item.id">{{ item.alias }}</option>
+                    }
+                  </select></label
+                ><label
+                  >Competenza<select
+                    name="level"
+                    [(ngModel)]="form.expertise"
+                    [disabled]="!form.assignment_role_id"
+                  >
+                    <option value="">Seleziona</option>
+                    @for (item of options()?.expertise; track item) {
+                      <option [value]="item">{{ item === 'junior' ? 'Junior' : 'Senior' }}</option>
+                    }
+                  </select></label
+                >
+                <div>
+                  <span class="field-label">Altro</span
+                  ><label class="check"
+                    ><input type="checkbox" name="intern" [(ngModel)]="form.is_intern" />
+                    Tirocinante</label
+                  ><label class="check"
+                    ><input type="checkbox" name="rol" [(ngModel)]="form.has_rol" /> Diritto ai
+                    R.O.L.</label
+                  >
+                </div>
+                <div>
+                  <label class="check"
+                    ><input
+                      type="checkbox"
+                      name="allocationVisible"
+                      [(ngModel)]="form.isAllocation_visible"
+                    />
+                    Visibilità in allocazione</label
+                  >
+                  <p class="help">L’utente sarà visibile nella sezione Allocazione risorse.</p>
+                </div>
+              </div>
+              <h3>Distribuzione oraria</h3>
+              <p class="help">
+                {{
+                  form.weekly_hours === 40
+                    ? 'Orario fisso 09:00–18:00, con un’ora di pausa.'
+                    : 'Per giornate superiori a 6 ore viene sottratta un’ora di pausa.'
+                }}
+              </p>
+              <div class="schedule">
+                @for (day of form.working_days; track day.day_of_week; let i = $index) {
+                  <div class="schedule-row">
+                    <span>{{ weekdays[i].label }}</span><input
+                      type="time"
+                      [name]="'start-' + i"
+                      [(ngModel)]="day.start_time"
+                      [disabled]="!day.is_working_day || form.weekly_hours === 40"
+                      [attr.aria-label]="'Inizio ' + weekdays[i].label"
+                    /><input
+                      type="time"
+                      [name]="'end-' + i"
+                      [(ngModel)]="day.end_time"
+                      [disabled]="!day.is_working_day || form.weekly_hours === 40"
+                      [attr.aria-label]="'Fine ' + weekdays[i].label"
+                    /><span class="hours"
+                      ><i aria-hidden="true" class="bi bi-clock"></i>
+                      {{ dayHours(day) | number: '1.0-2' }} h</span
+                    ><label class="check"
+                      ><input
+                        type="checkbox"
+                        [name]="'off-' + i"
+                        [ngModel]="!day.is_working_day"
+                        (ngModelChange)="day.is_working_day = !$event"
+                        [disabled]="form.weekly_hours === 40"
+                      />
+                      Non lavorativo</label
+                    >
+                  </div>
+                }
+              </div>
+              <p class="schedule-total" [class.error]="!scheduleValid">
+                Totale {{ totalHours | number: '1.0-2' }} / {{ form.weekly_hours }} ore settimanali
+              </p>
+            }
+          </fieldset>
+          @if (modalError()) {
+            <p class="error" role="alert">{{ modalError() }}</p>
+          }
+          <footer class="modal-actions">
+            <button type="button" (click)="closeEditor()" [disabled]="busy()">Annulla</button>
+            @if (tab === 'personal' && !editing) {
+              <button type="button" class="primary" (click)="tab = 'contract'" [disabled]="busy()">
+                Continua
+              </button>
+            } @else {
+              <button class="primary" [disabled]="busy() || !scheduleValid">
+                {{ busy() ? 'Salvataggio…' : 'Salva' }}
+              </button>
+            }
+          </footer>
+        </form>
+      </section>
+    </dialog>
+  }
+  @if (confirmation; as action) {
+    <dialog userModal class="overlay" (cancel)="$event.preventDefault(); closeConfirm()">
+      <section
+        class="modal confirmation"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+      >
+        <header class="modal-header">
+          <h2 id="confirm-title">
+            {{ action.restore ? 'Riabilita utente' : 'Disabilita utente' }}
+          </h2>
+          <button
+            class="icon-button"
+            (click)="closeConfirm()"
+            [disabled]="busy()"
+            aria-label="Chiudi"
+          >
+            ×
+          </button>
+        </header>
+        <i
+          aria-hidden="true"
+          [class]="
+            action.restore
+              ? 'status-icon bi bi-clock-history'
+              : 'status-icon danger bi bi-person-slash'
+          "
+        ></i>
+        <p>Sei sicuro di voler {{ action.restore ? 'riabilitare' : 'disabilitare' }} l’utente?</p>
+        <div class="person confirmation-person">
+          <img
+            class="person-avatar"
+            [authenticatedImage]="action.person.avatar_url ?? avatarFallback"
+            [imageFallback]="avatarFallback"
+            alt=""
+          />
+          <div>
+            <strong>{{ name(action.person) }}</strong><small>{{
+              aliases(action.person.roles)
+            }}</small>
+          </div>
+        </div>
+        @if (!action.restore) {
+          <p class="warning">
+            L’accesso verrà revocato e le assegnazioni saranno concluse alla data di dimissione. La
+            riabilitazione dell’account non riapre le assegnazioni.
+          </p>
+          <label
+            >Data di dimissioni<input
+              type="date"
+              [(ngModel)]="resignationDate"
+              [min]="action.person.hiring_date.slice(0, 10)"
+              [max]="today"
+              [disabled]="busy()"
+          /></label>
+        }
+        @if (modalError()) {
+          <p class="error" role="alert">{{ modalError() }}</p>
+        }
+        <footer class="modal-actions">
+          <button (click)="closeConfirm()" [disabled]="busy()">Annulla</button
+          ><button
+            [class]="action.restore ? 'primary' : 'danger-solid'"
+            [disabled]="busy() || countdown() > 0 || (!action.restore && !resignationDate)"
+            (click)="confirmSave()"
+          >
+            {{
+              busy()
+                ? 'Salvataggio…'
+                : countdown()
+                  ? 'Attendi ' + countdown()
+                  : action.restore
+                    ? 'Riabilita utente'
+                    : 'Disabilita'
+            }}
+          </button>
+        </footer>
+      </section>
+    </dialog>
+  }
+  @if (success) {
+    <dialog
+      userModal
+      class="overlay"
+      (cancel)="$event.preventDefault(); success = ''; invitationUrl = ''"
+    >
+      <section
+        class="modal success"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="success-title"
+      >
+        <button
+          class="close-success icon-button"
+          (click)="success = ''; invitationUrl = ''"
+          aria-label="Chiudi"
+        >
+          ×</button
+        ><i aria-hidden="true" class="bi bi-check-circle status-icon"></i>
+        <h2 id="success-title">{{ success }}</h2>
+        <p>L’operazione è stata eseguita con successo.</p>
+        @if (invitationUrl) {
+          <a [href]="invitationUrl" target="_blank" rel="noopener">Apri invito di prova</a>
+        }
+        <button class="primary" (click)="success = ''; invitationUrl = ''">Ok</button>
+      </section>
+    </dialog>
+  }
+  @if (leaveUser; as person) {
+    <dialog userModal class="overlay" (cancel)="$event.preventDefault(); closeLeaves()">
+      <section
+        class="modal leave-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="leaves-title"
+      >
+        <header class="modal-header">
+          <div>
+            <h2 id="leaves-title">Gestione Ferie e Permessi</h2>
+            <p class="subtitle">
+              {{ name(person) }} <span>· {{ aliases(person.assignment_roles) }}</span>
+            </p>
+          </div>
+          <button
+            class="icon-button"
+            (click)="closeLeaves()"
+            [disabled]="busy()"
+            aria-label="Chiudi"
+          >
+            ×
+          </button>
+        </header>
+        <nav class="tabs" aria-label="Contatori">
+          <button
+            [class.selected]="leaveTab === 'ferie'"
+            (click)="changeLeaveTab('ferie')"
+            [disabled]="busy() || leavesLoading()"
+          >
+            Ferie</button
+          ><button
+            [class.selected]="leaveTab === 'permesso'"
+            (click)="changeLeaveTab('permesso')"
+            [disabled]="busy() || leavesLoading()"
+          >
+            Permessi</button
+          ><button
+            [class.selected]="leaveTab === 'rol'"
+            (click)="changeLeaveTab('rol')"
+            [disabled]="busy() || leavesLoading()"
+          >
+            R.O.L.</button
+          ><button
+            [class.selected]="leaveTab === 'history'"
+            (click)="changeLeaveTab('history')"
+            [disabled]="busy() || leavesLoading()"
+          >
+            Storico
+          </button>
+        </nav>
+        @if (leaveNotice) {
+          <p class="notice" role="status">{{ leaveNotice }}</p>
+        }
+        @if (leavesLoading()) {
+          <p role="status">Caricamento contatori…</p>
+        }
+        @if (modalError()) {
+          <p class="error" role="alert">{{ modalError() }}</p>
+        }
+        @if (!leavesLoading() && leaveData) {
+          @if (leaveTab === 'ferie') {
+            <div class="balance-banner">
+              <i aria-hidden="true" class="bi bi-calendar-check"></i
+              ><span
+                >Ferie residue <strong>{{ vacationSummary }}</strong></span
+              ><i aria-hidden="true" class="bi bi-clock"></i>
+            </div>
+            <div class="leave-toolbar">
+              <div class="year-picker">
+                <button
+                  (click)="changeYear(-1)"
+                  [disabled]="busy() || year <= 1900"
+                  aria-label="Anno precedente"
+                >
+                  ‹</button
+                ><b>{{ year }}</b
+                ><button
+                  (click)="changeYear(1)"
+                  [disabled]="busy() || year >= +today.slice(0, 4)"
+                  aria-label="Anno successivo"
+                >
+                  ›
+                </button>
+              </div>
+              <label class="check"
+                ><input
+                  type="radio"
+                  name="unit"
+                  [checked]="leaveUnits === 'hours'"
+                  (change)="changeUnits('hours')"
+                  [disabled]="busy()"
+                />
+                Ore</label
+              ><label class="check"
+                ><input
+                  type="radio"
+                  name="unit"
+                  [checked]="leaveUnits === 'days'"
+                  (change)="changeUnits('days')"
+                  [disabled]="busy() || !canUseDays"
+                />
+                Giorni (full-time)</label
+              >
+            </div>
+            <p class="help">
+              I valori sono quelli della singola mensilità. I campi vuoti indicano contatori non
+              ancora inseriti.
+            </p>
+            <div class="table-scroll">
+              <table class="leave-table">
+                <thead>
+                  <tr>
+                    <th>Mese</th>
+                    <th>{{ leaveUnits === 'days' ? 'Giorni' : 'Ore' }} residue</th>
+                    <th>Rateo mensile</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of leaveRows; track row.month) {
+                    <tr>
+                      <td>{{ row.label }}</td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          [(ngModel)]="row.remaining"
+                          (ngModelChange)="row.dirty = true"
+                          [disabled]="busy() || row.month > today"
+                          [attr.aria-label]="'Residui ' + row.label"
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          min="0"
+                          step="0.01"
+                          [(ngModel)]="row.rate"
+                          (ngModelChange)="row.dirty = true"
+                          [disabled]="busy() || row.month > today"
+                          [attr.aria-label]="'Rateo ' + row.label"
+                        />
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          } @else if (leaveTab === 'history') {
+            <div class="table-scroll">
+              <table class="history-table">
+                <thead>
+                  <tr>
+                    <th>Data</th>
+                    <th>Operatore</th>
+                    <th>Tipo / mese</th>
+                    <th>Campo</th>
+                    <th>Prima → Dopo</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of history?.data; track row.id) {
+                    <tr>
+                      <td>{{ row.created_at | date: 'dd/MM/yyyy HH:mm' }}</td>
+                      <td>{{ row.admin?.first_name }} {{ row.admin?.last_name }}</td>
+                      <td>{{ row.leave_type }} · {{ row.reference_month | date: 'MM/yyyy' }}</td>
+                      <td>{{ row.field_name }}</td>
+                      <td>{{ row.old_value ?? '—' }} → {{ row.new_value ?? '—' }}</td>
+                    </tr>
+                  } @empty {
+                    <tr>
+                      <td colspan="5">Nessuna modifica registrata per {{ year }}.</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            @if (history; as page) {
+              <nav class="pagination">
+                <button
+                  [disabled]="page.current_page <= 1"
+                  (click)="loadHistory(page.current_page - 1)"
+                >
+                  ‹</button
+                ><span>{{ page.current_page }} / {{ page.last_page }}</span
+                ><button
+                  [disabled]="page.current_page >= page.last_page"
+                  (click)="loadHistory(page.current_page + 1)"
+                >
+                  ›
+                </button>
+              </nav>
+            }
+          } @else {
+            @if (leaveTab === 'rol' && !rolAvailable) {
+              <p class="warning">
+                Nell’anno selezionato non risulta un contratto con diritto ai R.O.L. Il backend
+                verifica il diritto alla data di riferimento.
+              </p>
+            }
+            <div class="balance-banner">
+              <i aria-hidden="true" class="bi bi-clock"></i
+              ><span
+                >Residui <strong>{{ remaining ?? '—' }} h</strong></span
+              >
+              @if (leaveTab === 'rol') {
+                <span
+                  >Maturati <strong>{{ accrued ?? '—' }} h</strong></span
+                >
+              }
+            </div>
+            <h3>Modifica dati</h3>
+            <div class="form-grid">
+              <label
+                >Data di riferimento<input
+                  type="date"
+                  [(ngModel)]="referenceDate"
+                  (ngModelChange)="referenceChanged()"
+                  [max]="today"
+                  min="1900-01-01"
+                  [disabled]="busy()" /></label
+              ><label
+                >Ore residue<input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="remaining"
+                  [disabled]="busy()"
+              /></label>
+              @if (leaveTab === 'rol') {
+                <label
+                  >Ore maturate<input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    [(ngModel)]="accrued"
+                    [disabled]="busy()"
+                /></label>
+              }
+              <label
+                >Rateo mensile (ore)<input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  [(ngModel)]="rate"
+                  [disabled]="busy()"
+              /></label>
+            </div>
+          }
+        }
+        <footer class="modal-actions">
+          <button (click)="closeLeaves()" [disabled]="busy()">Chiudi</button>
+          @if (leaveTab !== 'history') {
+            <button
+              class="primary"
+              (click)="saveLeaves()"
+              [disabled]="busy() || leavesLoading() || !leaveData"
+            >
+              {{ busy() ? 'Salvataggio…' : 'Salva' }}
+            </button>
+          }
+        </footer>
+      </section>
+    </dialog>
+  }
+</app-layout>

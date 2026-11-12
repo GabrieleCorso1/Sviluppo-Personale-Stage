@@ -19,6 +19,7 @@
           @for (card of section.cards; track card.title) {
             <button
               class="setting-card"
+              (click)="openCard(card.title)"
               type="button"
               [attr.aria-label]="'Gestione ' + card.title"
             >

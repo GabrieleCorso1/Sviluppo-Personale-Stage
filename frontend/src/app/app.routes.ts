@@ -4,6 +4,9 @@ import { Home } from './features/home/home';
 import { authGuardGuard } from './core/guards/auth-guard-guard';
 
 export const routes: Routes = [
+  { path: 'gestione-allocazioni', canActivate: [authGuardGuard], loadComponent: () => import('./features/allocations/allocations').then(m => m.Allocations) },
+  { path: 'gestione-progetti', canActivate: [authGuardGuard], loadComponent: () => import('./features/projects/projects').then(m => m.Projects) },
+  { path: 'gestione-utenti', canActivate: [authGuardGuard], loadComponent: () => import('./features/users/users').then(m => m.Users) },
   { path: 'bacheca', canActivate: [authGuardGuard], loadComponent: () => import('./features/dashboard/dashboard').then(m => m.Dashboard) },
   { path: 'sbi', canActivate: [authGuardGuard], loadComponent: () => import('./features/sbi/sbi').then(m => m.Sbi) },
   {

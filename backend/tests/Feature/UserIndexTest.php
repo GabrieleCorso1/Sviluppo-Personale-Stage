@@ -1,10 +1,12 @@
 <?php
 
 use App\Models\AssignmentRole;
+use App\Models\FileStorage;
 use App\Models\Permission;
 use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\LazilyRefreshDatabase;
+use Illuminate\Support\Facades\Storage;
 
 uses(LazilyRefreshDatabase::class);
 
@@ -202,4 +204,50 @@ test('disabled users support the same filters without including active users', f
     $this->withToken($actor->createToken('test')->plainTextToken)
         ->getJson('/api/users?status=disabled&search=Target&isAllocation_visible=0&role_id='.$role->id)
         ->assertOk()->assertJsonPath('data.total', 1)->assertJsonPath('data.data.0.id', $match->id);
+});
+
+test('user lists expose default avatars and protected custom avatars for active and disabled users', function () {
+    Storage::fake('local');
+    $actor = userListViewer();
+    $default = User::factory()->create(['first_name' => 'Avatar', 'last_name' => 'Default']);
+    $image = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=');
+    Storage::disk('local')->put('users/avatars/example.png', $image);
+    $file = FileStorage::create([
+        'path' => 'users/avatars', 'name' => 'example', 'extension' => 'png', 'type' => 'image',
+    ]);
+    $custom = User::factory()->create(['first_name' => 'Avatar', 'last_name' => 'Custom', 'filestorage_id' => $file->id]);
+    $this->withToken($actor->createToken('test')->plainTextToken);
+
+    $this->getJson('/api/users?search=Avatar%20Default')->assertOk()
+        ->assertJsonPath('data.data.0.id', $default->id)
+        ->assertJsonPath('data.data.0.avatar_url', url('/images/defaults/default-avatar.svg'))
+        ->assertJsonPath('data.data.0.avatar_requires_auth', false);
+    $this->getJson('/api/users?search=Avatar%20Custom')->assertOk()
+        ->assertJsonPath('data.data.0.avatar_url', route('users.avatar', ['id' => $custom->id]))
+        ->assertJsonPath('data.data.0.avatar_requires_auth', true)
+        ->assertJsonMissingPath('data.data.0.filestorage');
+    $this->get('/api/users/'.$custom->id.'/avatar')->assertOk()
+        ->assertHeader('Content-Type', 'image/png');
+    $custom->delete();
+    $this->getJson('/api/users?status=disabled&search=Avatar%20Custom')->assertOk()
+        ->assertJsonPath('data.data.0.avatar_requires_auth', true);
+    $this->get('/api/users/'.$custom->id.'/avatar')->assertOk();
+
+    Storage::disk('local')->delete('users/avatars/example.png');
+    $this->getJson('/api/users?status=disabled&search=Avatar%20Custom')->assertOk()
+        ->assertJsonPath('data.data.0.avatar_url', url('/images/defaults/default-avatar.svg'));
+    $this->get('/api/users/'.$custom->id.'/avatar')->assertOk()
+        ->assertHeader('Content-Type', 'image/svg+xml');
+});
+
+test('ordinary users cannot read another user avatar through user management', function () {
+    $actor = User::factory()->create();
+    $target = User::factory()->create();
+    $this->withToken($actor->createToken('test')->plainTextToken)
+        ->getJson('/api/users/'.$target->id.'/avatar')->assertForbidden();
+});
+
+test('user management avatars require authentication', function () {
+    $target = User::factory()->create();
+    $this->getJson('/api/users/'.$target->id.'/avatar')->assertUnauthorized();
 });

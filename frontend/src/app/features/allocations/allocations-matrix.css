@@ -1,0 +1,284 @@
+.matrix-panel {
+  border: 1px solid #e3eaf3;
+  border-radius: 9px;
+  background: white;
+  overflow: hidden;
+}
+.matrix-scroll {
+  position: relative;
+  overflow: auto;
+  max-height: 65vh;
+}
+.matrix {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 550px;
+  text-align: center;
+}
+.matrix th,
+.matrix td {
+  border-right: 1px solid #edf1f6;
+  border-bottom: 1px solid #edf1f6;
+}
+.matrix thead th {
+  background: #004575;
+  color: white;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+}
+.matrix th.sticky {
+  position: sticky;
+  left: 0;
+  z-index: 2;
+  width: 245px;
+  min-width: 245px;
+  text-align: left;
+  background: white;
+}
+.matrix thead th.sticky {
+  background: #004575;
+  z-index: 4;
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 15px;
+}
+.project-heading {
+  min-width: 65px;
+  height: 76px;
+  padding: 7px 10px;
+  position: relative;
+}
+.project-logo {
+  position: relative;
+  border: 2px solid #00c49b;
+  padding: 0;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  background: #e8f2fa;
+}
+.project-logo img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.logo-manutenzione {
+  border-color: #ff942f;
+}
+.logo-sospeso {
+  border-color: #ff386c;
+}
+.logo-concluso {
+  border-color: #389bed;
+}
+.resource-count {
+  position: absolute;
+  top: -9px;
+  right: -7px;
+  border-radius: 50%;
+  background: white;
+  color: #294c67;
+  font-size: 9px;
+  min-width: 15px;
+  height: 15px;
+  display: grid;
+  place-items: center;
+}
+.project-difficulty {
+  position: absolute;
+  left: -6px;
+  top: -6px;
+  border-radius: 50%;
+  background: #ffcc35;
+  color: #725300;
+  font-size: 10px;
+  min-width: 14px;
+  height: 14px;
+}
+.dimmed > .project-logo {
+  opacity: 0.45;
+}
+.prioritize {
+  display: block;
+  margin: 4px auto -3px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #7facc8;
+  font-size: 9px;
+}
+.prioritize.active {
+  color: #ffce46;
+}
+.total-heading {
+  width: 40px;
+  min-width: 40px;
+}
+.necessities-row th,
+.necessities-row td {
+  background: #f6faff;
+  height: 37px;
+  color: #004575;
+  font-size: 9px;
+}
+.necessities-row th.sticky {
+  background: #f6faff;
+  padding: 8px 15px;
+}
+.needs-label {
+  float: right;
+  color: #ec2855;
+  text-transform: uppercase;
+  font-size: 8px;
+}
+.necessities-row button {
+  border: 1px dashed #d5dfea;
+  background: #f8fafc;
+  color: #a8b5c3;
+  padding: 0;
+  min-width: 18px;
+  height: 18px;
+  font-size: 10px;
+}
+.necessities-row button.has-needs {
+  color: #e63966;
+  border-color: #ffa4b9;
+  background: #fff0f4;
+}
+.resource-cell {
+  padding: 9px 12px;
+  height: 42px;
+  box-sizing: border-box;
+}
+.resource-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #24384c;
+  font-size: 10px;
+  font-weight: 400;
+  max-width: 185px;
+  text-align: left;
+}
+.resource-name img {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+.resource-indicators {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  float: right;
+  margin: 3px 0 0 5px;
+}
+.unallocated-label {
+  color: #eb275d;
+  background: #fff0f5;
+  font-size: 8px;
+  padding: 2px 3px;
+  font-weight: 400;
+}
+.difficulty-indicator {
+  background: #fff7dc;
+  color: #dcaa00;
+  padding: 4px;
+  border-radius: 4px;
+}
+.overload-indicator {
+  color: #ef7229;
+  background: #fff0e6;
+  padding: 4px;
+  border-radius: 4px;
+}
+.assignment-cell {
+  height: 42px;
+  padding: 5px 6px;
+}
+.selected-column {
+  background: #edf8ff;
+}
+.cell-roles {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.allocation-actions {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+}
+.edit-allocation {
+  position: absolute;
+  right: -11px;
+  top: -7px;
+  border: 0;
+  background: white;
+  padding: 1px;
+  font-size: 8px;
+  opacity: 0;
+}
+.allocation-actions:hover .edit-allocation,
+.allocation-actions:focus-within .edit-allocation {
+  opacity: 1;
+}
+.add-allocation {
+  border: 0;
+  color: #8da3b6;
+  font-size: 14px;
+  padding: 0;
+  background: none;
+  opacity: 0;
+}
+.assignment-cell:hover .add-allocation,
+.add-allocation:focus-visible {
+  opacity: 1;
+}
+.empty-cell {
+  width: 100%;
+  min-height: 25px;
+}
+.total {
+  font-size: 11px;
+  padding: 8px;
+  color: #304356;
+}
+.membership {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid transparent;
+  background: transparent;
+  border-radius: 3px;
+  color: white;
+}
+.membership:hover {
+  border-color: #a9cde8;
+}
+.membership.assigned {
+  background: #3898df;
+  border-color: #3898df;
+  font-size: 15px;
+}
+
+.allocation-actions {
+  padding-right: 11px;
+}
+.edit-allocation {
+  right: 0;
+  top: -8px;
+  z-index: 2;
+}
+.add-allocation {
+  position: relative;
+  z-index: 0;
+}

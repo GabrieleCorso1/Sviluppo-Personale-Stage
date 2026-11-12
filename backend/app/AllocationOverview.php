@@ -134,6 +134,9 @@ class AllocationOverview
 
     public function necessityQuery(): Builder
     {
+        // Also reconcile future assignments that have become current since the last visit.
+        Necessity::closeCovered();
+
         return Necessity::whereHas('assignmentRole', fn ($query) => $query->whereIn('alias', array_keys(self::ROLES)));
     }
 

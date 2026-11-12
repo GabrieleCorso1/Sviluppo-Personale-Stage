@@ -1,0 +1,782 @@
+<app-layout
+  pageTitle="Gestione allocazioni"
+  [avatarUrl]="avatarUrl()"
+  [canAccessSettings]="allowed()"
+  (openSettings)="router.navigate(['/impostazioni'])"
+>
+  <main class="allocations-page">
+    @if (!allowed()) {
+      <section class="empty">
+        <i class="bi bi-shield-lock" aria-hidden="true"></i>
+        <h1>Accesso riservato</h1>
+        <p>La gestione allocazioni è disponibile per gli amministratori.</p>
+        <button (click)="router.navigate(['/home'])">Torna al profilo</button>
+      </section>
+    } @else {
+      <p class="last-update">
+        Ultimo aggiornamento: {{ (summary()?.last_updated_at | date: 'dd/MM/yyyy HH:mm') ?? '—' }}
+      </p>
+      @if (summaryError()) {
+        <p class="error" role="alert">
+          {{ summaryError() }} <button (click)="loadSummary()">Riprova</button>
+        </p>
+      }
+      <section class="kpis" aria-label="Riepilogo allocazioni progetti">
+        <article class="kpi allocated">
+          <i class="bi bi-people" aria-hidden="true"></i>
+          <h2>Risorse allocate</h2>
+          <p>
+            <strong>{{ summary()?.allocated_resources ?? '—' }}</strong>
+            <span>su {{ summary()?.total_resources ?? '—' }}</span>
+          </p>
+        </article>
+        <article class="kpi unallocated">
+          <i class="bi bi-people" aria-hidden="true"></i>
+          <h2>Risorse non allocate</h2>
+          <p>
+            <strong>{{ summary()?.unallocated_resources ?? '—' }}</strong>
+          </p>
+          <small>risorse</small>
+        </article>
+        <article class="kpi difficulty">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+          <h2>Difficoltà allocazione</h2>
+          <p>
+            <strong>{{ summary()?.resources_with_difficulty ?? '—' }}</strong>
+            <span>segnalate</span>
+          </p>
+        </article>
+        <article class="kpi overloaded">
+          <i class="bi bi-exclamation-triangle" aria-hidden="true"></i>
+          <h2>Sovraccarico</h2>
+          <p>
+            <strong>{{ summary()?.overloaded_resources ?? '—' }}</strong> <span>risorse</span>
+          </p>
+          <small>≥ 3 progetti</small>
+        </article>
+        <article class="kpi needs">
+          <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+          <h2>Necessità aperte</h2>
+          <p>
+            <strong>{{ summary()?.open_necessities ?? '—' }}</strong> <span>ruoli da coprire</span>
+          </p>
+        </article>
+      </section>
+      <section class="legend" [class.collapsed]="!legendExpanded">
+        <button
+          class="legend-heading"
+          (click)="legendExpanded = !legendExpanded"
+          [attr.aria-expanded]="legendExpanded"
+        >
+          <span>Legenda</span
+          ><i
+            [class]="legendExpanded ? 'bi bi-chevron-up' : 'bi bi-chevron-down'"
+            aria-hidden="true"
+          ></i>
+        </button>
+        <div class="legend-content">
+          <div class="legend-group">
+            <span class="legend-label">Ruoli</span>
+            <div class="legend-items">
+              @for (role of roles; track role.id) {
+                <span
+                  ><b [class]="roleClass(role)">{{ role.code }}</b> {{ roleLabel(role) }}</span
+                >
+              }
+            </div>
+          </div>
+          <div class="legend-group">
+            <span class="legend-label">Progetti</span>
+            <div class="legend-items">
+              @for (state of options()?.statuses; track state) {
+                <span
+                  ><i [class]="'state-dot state-' + state" aria-hidden="true"></i
+                  >{{ stateLabel(state) }}</span
+                >
+              }
+            </div>
+          </div>
+          <div class="legend-group">
+            <span class="difficulty-example"></span><span>Difficoltà</span>
+          </div>
+        </div>
+      </section>
+      <nav class="tabs" aria-label="Tipologia allocazione">
+        @for (tab of tabs; track tab.type) {
+          <button
+            [class.selected]="type === tab.type"
+            (click)="switchTab(tab.type)"
+            [disabled]="busy()"
+          >
+            {{ tab.label }}
+          </button>
+        }
+      </nav>
+      @if (notice()) {
+        <p class="notice" role="status">
+          {{ notice()
+          }}<button class="icon-button" (click)="notice.set('')" aria-label="Chiudi messaggio">
+            ×
+          </button>
+        </p>
+      }
+      <form class="filters" (ngSubmit)="applyFilters()">
+        <label class="search-label"
+          >Cerca
+          <div class="search">
+            <i class="bi bi-search" aria-hidden="true"></i
+            ><input
+              type="search"
+              name="search"
+              [(ngModel)]="search"
+              placeholder="Cerca risorsa"
+              maxlength="255"
+            /></div></label
+        ><label
+          >Ruolo<select
+            name="role"
+            [(ngModel)]="roleFilter"
+            (ngModelChange)="applyFilters()"
+            [disabled]="type !== 'project' || busy()"
+          >
+            <option value="">{{ type === 'project' ? 'Seleziona' : 'Non previsto' }}</option>
+            @for (role of roles; track role.id) {
+              <option [value]="role.id">{{ role.name }}</option>
+            }
+          </select></label
+        ><label
+          >Stato<select
+            name="status"
+            [(ngModel)]="status"
+            (ngModelChange)="applyFilters()"
+            [disabled]="type !== 'project' || busy()"
+          >
+            <option value="">{{ type === 'project' ? 'Seleziona' : 'Non previsto' }}</option>
+            @for (state of options()?.statuses; track state) {
+              <option [value]="state">{{ stateLabel(state) }}</option>
+            }
+          </select></label
+        ><button class="search-submit" aria-label="Cerca risorse">
+          <i class="bi bi-search" aria-hidden="true"></i>
+        </button>
+      </form>
+      @if (search || roleFilter || status || selectedProject) {
+        <div class="filter-summary">
+          <button class="text-link" (click)="reset()">Azzera filtri e selezione</button>
+        </div>
+      }
+      @if (optionsError()) {
+        <p class="error" role="alert">
+          {{ optionsError() }} <button (click)="loadOptions()">Riprova</button>
+        </p>
+      }
+      @if (error()) {
+        <p class="error" role="alert">
+          {{ error() }}
+          <button (click)="load(grid()?.resources?.current_page ?? 1)">Riprova</button>
+        </p>
+      }
+      @if (loading()) {
+        <p class="loading" role="status">Caricamento allocazioni…</p>
+      }
+      @if (grid(); as data) {
+        <section class="matrix-panel" [attr.aria-busy]="loading()">
+          <div class="matrix-scroll">
+            <table class="matrix" [class.memberships]="type !== 'project'">
+              <thead>
+                <tr>
+                  <th class="sticky resource-heading">
+                    {{ type === 'course' ? 'Corsi' : 'Progetti' }} ({{ data.projects.length }})
+                  </th>
+                  @for (project of data.projects; track project.id) {
+                    <th
+                      class="project-heading"
+                      [class.dimmed]="selectedProject && selectedProject !== project.id"
+                    >
+                      <button
+                        class="project-logo"
+                        [class]="'project-logo logo-' + project.status"
+                        (click)="openProject(project)"
+                        [title]="project.name"
+                        [attr.aria-label]="'Dettaglio ' + project.name"
+                      >
+                        <img
+                          [authenticatedImage]="project.logo_url"
+                          [imageFallback]="fallbackLogo"
+                          alt=""
+                        /><span class="resource-count">{{ project.resources_count }}</span>
+                        @if (project.has_difficulty) {
+                          <span class="project-difficulty" title="Allocazioni in difficoltà"
+                            >!</span
+                          >
+                        }</button
+                      ><button
+                        class="prioritize"
+                        [class.active]="selectedProject === project.id"
+                        (click)="prioritize(project)"
+                        [attr.aria-label]="'Metti in evidenza ' + project.name"
+                      >
+                        <i class="bi bi-arrow-up" aria-hidden="true"></i>
+                      </button>
+                    </th>
+                  }
+                  <th class="total-heading"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @if (type === 'project') {
+                  <tr class="necessities-row">
+                    <th class="sticky">
+                      <span>Risorse ({{ data.resources.total }})</span
+                      ><span class="needs-label">Necessità</span>
+                    </th>
+                    @for (project of data.projects; track project.id) {
+                      <td>
+                        <button
+                          [class.has-needs]="project.necessities_count > 0"
+                          (click)="openNeeds(project)"
+                          [attr.aria-label]="'Necessità di ' + project.name"
+                        >
+                          {{ project.necessities_count || '+' }}
+                        </button>
+                      </td>
+                    }
+                    <td>TOT.</td>
+                  </tr>
+                }
+                @for (resource of data.resources.data; track resource.id) {
+                  <tr>
+                    <th class="sticky resource-cell">
+                      <button class="resource-name" (click)="openResource(resource)">
+                        <img
+                          [authenticatedImage]="resource.avatar_url"
+                          [imageFallback]="fallbackAvatar"
+                          alt=""
+                        /><span>{{ resource.full_name }}</span>
+                      </button>
+                      @if (type === 'project') {
+                        <span class="resource-indicators">
+                          @if (resource.is_unallocated) {
+                            <span
+                              class="unallocated-label"
+                              title="Nessuna assegnazione in corso o in manutenzione"
+                              >Non allocato</span
+                            >
+                          }
+                          @if (resource.has_difficulty) {
+                            <i
+                              class="bi bi-exclamation-circle difficulty-indicator"
+                              title="Difficoltà di allocazione"
+                              aria-label="Difficoltà di allocazione"
+                            ></i>
+                          }
+                          @if (resource.is_overloaded) {
+                            <i
+                              class="bi bi-exclamation-triangle overload-indicator"
+                              title="Sovraccarico: almeno 3 progetti in corso o manutenzione"
+                              aria-label="Sovraccarico"
+                            ></i>
+                          }
+                        </span>
+                      }
+                    </th>
+                    @for (project of data.projects; track project.id) {
+                      <td
+                        class="assignment-cell"
+                        [class.selected-column]="selectedProject === project.id"
+                      >
+                        @if (type === 'project') {
+                          <div class="cell-roles">
+                            @for (
+                              assignment of assignments(resource, project.id);
+                              track assignment.id
+                            ) {
+                              <span class="allocation-actions"
+                                ><button
+                                  [class]="roleClass(assignment.role)"
+                                  [class.difficult]="assignment.is_difficult"
+                                  (click)="toggleDifficulty(assignment)"
+                                  [disabled]="busy()"
+                                  [attr.aria-label]="
+                                    (assignment.is_difficult
+                                      ? 'Rimuovi difficoltà '
+                                      : 'Segnala difficoltà ') +
+                                    resource.full_name +
+                                    ' in ' +
+                                    project.name +
+                                    ' come ' +
+                                    assignment.role?.name
+                                  "
+                                  [title]="
+                                    assignment.role?.name + ' · clic per cambiare difficoltà'
+                                  "
+                                >
+                                  {{ assignment.role?.code }}</button
+                                ><button
+                                  class="edit-allocation"
+                                  (click)="openAssignment(resource, project, assignment)"
+                                  [attr.aria-label]="
+                                    'Modifica ' +
+                                    resource.full_name +
+                                    ' in ' +
+                                    project.name +
+                                    ' come ' +
+                                    assignment.role?.name
+                                  "
+                                  [disabled]="busy()"
+                                >
+                                  <i class="bi bi-pencil" aria-hidden="true"></i></button
+                              ></span>
+                            }
+                            <button
+                              class="add-allocation"
+                              [class.empty-cell]="!assignments(resource, project.id).length"
+                              (click)="openAssignment(resource, project)"
+                              [disabled]="busy() || !options()"
+                              [attr.aria-label]="
+                                'Assegna ' + resource.full_name + ' a ' + project.name
+                              "
+                            >
+                              +
+                            </button>
+                          </div>
+                        } @else {
+                          @if (assignments(resource, project.id)[0]; as assignment) {
+                            <button
+                              class="membership assigned"
+                              (click)="openAssignment(resource, project, assignment)"
+                              [disabled]="busy()"
+                              [attr.aria-label]="
+                                'Modifica assegnazione ' + resource.full_name + ' a ' + project.name
+                              "
+                            >
+                              <i class="bi bi-check" aria-hidden="true"></i>
+                            </button>
+                          } @else {
+                            <button
+                              class="membership"
+                              (click)="openAssignment(resource, project)"
+                              [disabled]="busy()"
+                              [attr.aria-label]="
+                                'Assegna ' + resource.full_name + ' a ' + project.name
+                              "
+                            >
+                              <span class="sr-only">Assegna</span>
+                            </button>
+                          }
+                        }
+                      </td>
+                    }
+                    <td class="total">{{ resource.projects_count }}</td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td class="empty-message" [attr.colspan]="data.projects.length + 2">
+                      Nessuna risorsa trovata.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+        @if (!data.projects.length) {
+          <p class="empty-message">
+            Nessun
+            {{ type === 'course' ? 'corso' : type === 'timesheet' ? 'timesheet' : 'progetto' }}
+            disponibile con questi filtri.
+          </p>
+        }
+        <nav class="pagination" aria-label="Pagine risorse">
+          <span>{{ data.resources.total }} risorse</span
+          ><button
+            (click)="load(data.resources.current_page - 1)"
+            [disabled]="loading() || data.resources.current_page <= 1"
+            aria-label="Pagina precedente"
+          >
+            ‹</button
+          ><b>{{ data.resources.current_page }}</b
+          ><span>di {{ data.resources.last_page }}</span
+          ><button
+            (click)="load(data.resources.current_page + 1)"
+            [disabled]="loading() || data.resources.current_page >= data.resources.last_page"
+            aria-label="Pagina successiva"
+          >
+            ›
+          </button>
+        </nav>
+      }
+    }
+  </main>
+  @if (modal; as current) {
+    <dialog
+      allocationModal
+      class="overlay"
+      (cancel)="$event.preventDefault(); closeModal()"
+      [attr.aria-labelledby]="
+        current.kind === 'assignment' ? 'allocation-person-name' : 'allocation-title'
+      "
+    >
+      <section
+        class="modal"
+        [class.resource-modal]="current.kind === 'resource'"
+        [class.project-modal]="current.kind === 'project'"
+      >
+        @if (current.kind === 'assignment') {
+          <header class="assignment-header">
+            <img
+              [authenticatedImage]="current.resource.avatar_url"
+              [imageFallback]="fallbackAvatar"
+              alt=""
+            />
+            <div>
+              <h2 id="allocation-person-name">{{ current.resource.full_name }}</h2>
+              @if (current.assignment) {
+                <small>Collocato su: {{ current.project.name }}</small>
+              }
+            </div>
+            @if (!current.assignment) {
+              <i class="bi bi-arrow-right" aria-hidden="true"></i
+              ><img
+                class="small-logo"
+                [authenticatedImage]="current.project.logo_url"
+                [imageFallback]="fallbackLogo"
+                alt=""
+              /><strong>{{ current.project.name }}</strong>
+            } @else if (action === 'edit') {
+              <button
+                class="delete-trigger icon-button"
+                (click)="action = 'delete'; modalError.set('')"
+                aria-label="Elimina o concludi collaborazione"
+              >
+                <i class="bi bi-trash3" aria-hidden="true"></i>
+              </button>
+            } @else {
+              <button
+                class="text-link"
+                (click)="action = 'edit'; modalError.set('')"
+                [disabled]="busy()"
+              >
+                ← Indietro
+              </button>
+            }
+          </header>
+          @if (action === 'edit') {
+            <form (ngSubmit)="saveAssignment()">
+              <label
+                >Data di inizio *<input
+                  type="date"
+                  name="startDate"
+                  [(ngModel)]="startDate"
+                  required
+                  [disabled]="busy()"
+              /></label>
+              @if (type === 'project') {
+                <label
+                  >Ruolo *<select
+                    name="assignmentRole"
+                    [(ngModel)]="roleId"
+                    required
+                    [disabled]="busy()"
+                  >
+                    <option [ngValue]="null">Seleziona il ruolo</option>
+                    @for (role of roles; track role.id) {
+                      <option [ngValue]="role.id">{{ role.name }} ({{ role.code }})</option>
+                    }
+                  </select></label
+                >
+              }
+              @if (modalError()) {
+                <p class="error" role="alert">{{ modalError() }}</p>
+              }
+              <footer class="modal-actions">
+                <button type="button" (click)="closeModal()" [disabled]="busy()">Annulla</button
+                ><button class="primary" [disabled]="busy()">
+                  {{ busy() ? 'Salvataggio…' : 'Conferma' }}
+                </button>
+              </footer>
+            </form>
+          } @else {
+            <form (ngSubmit)="terminate()">
+              <div class="termination-options">
+                <label class="check"
+                  ><input
+                    type="radio"
+                    name="termination"
+                    [(ngModel)]="action"
+                    value="delete"
+                    [disabled]="busy()"
+                  />
+                  Elimina collaboratore</label
+                ><label class="check"
+                  ><input
+                    type="radio"
+                    name="termination"
+                    [(ngModel)]="action"
+                    value="conclude"
+                    [disabled]="busy()"
+                  />
+                  Concludi collaborazione</label
+                >
+              </div>
+              <p class="warning">
+                <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+                {{
+                  action === 'delete'
+                    ? 'La risorsa sarà rimossa da questa assegnazione.'
+                    : 'La collaborazione rimarrà nello storico con la data di conclusione.'
+                }}
+              </p>
+              @if (action === 'conclude') {
+                <label
+                  >Data fine collaborazione *<input
+                    type="date"
+                    name="endDate"
+                    [(ngModel)]="endDate"
+                    [min]="current.assignment?.start_date ?? ''"
+                    required
+                    [disabled]="busy()"
+                /></label>
+              }
+              @if (modalError()) {
+                <p class="error" role="alert">{{ modalError() }}</p>
+              }
+              <footer class="modal-actions">
+                <button type="button" (click)="closeModal()" [disabled]="busy()">Annulla</button
+                ><button class="primary" [disabled]="busy()">
+                  {{ busy() ? 'Salvataggio…' : 'Conferma' }}
+                </button>
+              </footer>
+            </form>
+          }
+        } @else {
+          <header class="modal-header">
+            <h2 id="allocation-title">
+              {{
+                current.kind === 'resource'
+                  ? 'Dettaglio risorsa'
+                  : current.kind === 'needs'
+                    ? 'Necessità aperte'
+                    : 'Dettaglio progetto'
+              }}
+            </h2>
+            <button
+              class="icon-button"
+              (click)="closeModal()"
+              [disabled]="busy()"
+              aria-label="Chiudi"
+            >
+              ×
+            </button>
+          </header>
+          @if (modalLoading()) {
+            <p class="empty-message" role="status">Caricamento…</p>
+          }
+          @if (modalError()) {
+            <p class="error" role="alert">{{ modalError() }}</p>
+          }
+          @if (!modalLoading()) {
+            @if (current.kind === 'resource') {
+              @if (resourceDetail(); as resource) {
+                <div class="person-summary">
+                  <img
+                    [authenticatedImage]="resource.avatar_url"
+                    [imageFallback]="fallbackAvatar"
+                    alt=""
+                  />
+                  <div>
+                    <h3>{{ resource.full_name }}</h3>
+                    <small
+                      >{{ resource.projects_count }}
+                      {{
+                        type === 'course'
+                          ? 'corsi'
+                          : type === 'timesheet'
+                            ? 'timesheet'
+                            : 'progetti'
+                      }}
+                      @if (type === 'project') {
+                        · {{ resource.difficult_projects_count }} con difficoltà
+                      }
+                    </small>
+                  </div>
+                </div>
+                <div class="detail-list">
+                  @for (assignment of resource.allocations; track assignment.id) {
+                    <div class="detail-row">
+                      <i
+                        [class]="'state-dot state-' + assignment.project?.status"
+                        aria-hidden="true"
+                      ></i>
+                      <div>
+                        <strong>{{ assignment.project?.name }}</strong><small
+                          >{{ assignment.start_date | date: 'dd/MM/yyyy' }}
+                          @if (assignment.end_date) {
+                            – {{ assignment.end_date | date: 'dd/MM/yyyy' }}
+                          }
+                          @if (!assignment.is_current) {
+                            · {{ assignment.start_date > today ? 'Pianificata' : 'Conclusa' }}
+                          }
+                        </small>
+                      </div>
+                      @if (assignment.role) {
+                        <button
+                          [class]="roleClass(assignment.role)"
+                          [class.difficult]="assignment.is_difficult"
+                          (click)="toggleDifficulty(assignment)"
+                          [disabled]="busy()"
+                          [title]="assignment.role.name"
+                        >
+                          {{ assignment.role.code }}
+                        </button>
+                      } @else {
+                        <i class="bi bi-check yes" aria-hidden="true"></i>
+                      }
+                    </div>
+                  } @empty {
+                    <p class="empty-message">Nessuna assegnazione.</p>
+                  }
+                </div>
+                @if (resource.is_overloaded) {
+                  <p class="warning">Sovraccarico: almeno 3 progetti in corso o manutenzione.</p>
+                }
+              }
+              <button class="wide" (click)="closeModal()" [disabled]="busy()">Chiudi</button>
+            } @else if (projectDetail(); as project) {
+              <div class="project-summary">
+                <img
+                  [authenticatedImage]="project.logo_url"
+                  [imageFallback]="fallbackLogo"
+                  alt=""
+                />
+                <div>
+                  <h3>{{ project.name }}</h3>
+                  <small
+                    ><i [class]="'state-dot state-' + project.status" aria-hidden="true"></i
+                    >{{ stateLabel(project.status) }}</small
+                  >
+                </div>
+              </div>
+              @if (current.kind === 'project') {
+                <p class="help">{{ project.resources_count }} risorse allocate</p>
+                <div class="detail-list">
+                  @for (resource of project.resources; track resource.id) {
+                    <div class="detail-row">
+                      <img
+                        [authenticatedImage]="resource.avatar_url"
+                        [imageFallback]="fallbackAvatar"
+                        alt=""
+                      /><strong>{{ resource.full_name }}</strong>
+                      <div class="detail-roles">
+                        @for (assignment of resource.allocations; track assignment.id) {
+                          @if (assignment.role) {
+                            <button
+                              [class]="roleClass(assignment.role)"
+                              [class.difficult]="assignment.is_difficult"
+                              (click)="toggleDifficulty(assignment)"
+                              [disabled]="busy()"
+                              [title]="assignment.role.name"
+                            >
+                              {{ assignment.role.code }}
+                            </button>
+                          } @else {
+                            <i class="bi bi-check yes" aria-hidden="true"></i>
+                          }
+                        }
+                      </div>
+                    </div>
+                  } @empty {
+                    <p class="empty-message">Nessuna risorsa assegnata.</p>
+                  }
+                </div>
+                @if (type === 'project') {
+                  <h4>Necessità aperte · {{ project.necessities.length }}</h4>
+                  <div class="needs-preview">
+                    @for (need of project.necessities; track need.id) {
+                      <span
+                        ><b [class]="roleClass(need.role)">{{ need.role?.code }}</b>
+                        {{ need.role?.name }}</span
+                      >
+                    } @empty {
+                      <small>Nessuna necessità aperta.</small>
+                    }
+                  </div>
+                  <button class="wide" (click)="openNeeds(current.project)">
+                    Gestisci necessità
+                  </button>
+                }
+                <footer class="modal-actions">
+                  <button (click)="closeModal()">Chiudi</button
+                  ><button class="primary" (click)="prioritize(current.project); closeModal()">
+                    {{
+                      selectedProject === current.project.id
+                        ? 'Rimuovi evidenza'
+                        : 'Metti in evidenza'
+                    }}
+                  </button>
+                </footer>
+              } @else {
+                <div class="needs-list">
+                  @for (id of needs; track id) {
+                    @if (needRole(id); as role) {
+                      <div class="need-row">
+                        <b [class]="roleClass(role)">{{ role.code }}</b><span>{{ role.name }}</span>
+                        @if (removingNeed === id) {
+                          <button class="danger small" (click)="removeNeed(id)" [disabled]="busy()">
+                            Elimina</button
+                          ><button class="small" (click)="removingNeed = null">Annulla</button>
+                        } @else {
+                          <button
+                            class="icon-button"
+                            (click)="removingNeed = id"
+                            [disabled]="busy()"
+                            [attr.aria-label]="'Rimuovi necessità ' + role.name"
+                          >
+                            <i class="bi bi-trash3" aria-hidden="true"></i>
+                          </button>
+                        }
+                      </div>
+                    }
+                  } @empty {
+                    <p class="empty-message">Nessuna necessità aperta.</p>
+                  }
+                </div>
+                <button
+                  class="add-need wide"
+                  (click)="addNeed = !addNeed"
+                  [disabled]="busy() || !availableNeeds.length"
+                >
+                  + Aggiungi necessità
+                </button>
+                @if (addNeed) {
+                  <div class="need-picker">
+                    <label
+                      >Ruolo mancante<select
+                        name="needRole"
+                        [(ngModel)]="newNeedId"
+                        [disabled]="busy()"
+                      >
+                        <option [ngValue]="null">Seleziona ruolo</option>
+                        @for (role of availableNeeds; track role.id) {
+                          <option [ngValue]="role.id">{{ role.name }} ({{ role.code }})</option>
+                        }
+                      </select></label
+                    ><button (click)="appendNeed()" [disabled]="busy() || !newNeedId">
+                      Aggiungi
+                    </button>
+                  </div>
+                }
+                <footer class="modal-actions">
+                  <button (click)="closeModal()" [disabled]="busy()">Annulla</button
+                  ><button class="primary" (click)="saveNeeds()" [disabled]="busy()">
+                    {{ busy() ? 'Salvataggio…' : 'Salva' }}
+                  </button>
+                </footer>
+              }
+            }
+          }
+        }
+      </section>
+    </dialog>
+  }
+</app-layout>

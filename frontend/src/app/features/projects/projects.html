@@ -1,0 +1,918 @@
+<app-layout
+  pageTitle="Gestione Progetti"
+  [avatarUrl]="avatarUrl()"
+  [canAccessSettings]="allowed()"
+  (openSettings)="router.navigate(['/impostazioni'])"
+>
+  <main class="projects-page">
+    @if (!allowed()) {
+      <section class="empty">
+        <i class="bi bi-shield-lock" aria-hidden="true"></i>
+        <h1>Accesso riservato</h1>
+        <p>La gestione progetti è disponibile per gli amministratori.</p>
+        <button (click)="router.navigate(['/home'])">Torna al profilo</button>
+      </section>
+    } @else {
+      <div class="page-toolbar">
+        <nav class="tabs main-tabs" aria-label="Tipologia progetto">
+          <button [class.selected]="!isTimesheet" (click)="switchTab(false)" [disabled]="busy()">
+            Progetti <b>{{ page()?.counts?.projects ?? '—' }}</b></button
+          ><button [class.selected]="isTimesheet" (click)="switchTab(true)" [disabled]="busy()">
+            Timesheet <b>{{ page()?.counts?.timesheets ?? '—' }}</b>
+          </button>
+        </nav>
+        <button class="primary" (click)="start()" [disabled]="busy()">
+          <i class="bi bi-plus-circle" aria-hidden="true"></i>
+          {{ isTimesheet ? 'Nuovo progetto timesheet' : 'Nuovo progetto' }}
+        </button>
+      </div>
+      @if (notice()) {
+        <p class="notice" role="status">
+          {{ notice() }}
+          <button class="icon-button" aria-label="Chiudi messaggio" (click)="notice.set('')">
+            ×
+          </button>
+        </p>
+      }
+      @if (managerError()) {
+        <p class="error" role="alert">
+          Opzioni utenti: {{ managerError() }} <button (click)="loadManagers()">Riprova</button>
+        </p>
+      }
+      @if (error()) {
+        <p class="error" role="alert">
+          {{ error() }} <button (click)="load(page()?.current_page ?? 1)">Riprova</button>
+        </p>
+      }
+      @if (hasFilters()) {
+        <div class="applied-filters">
+          <span>Filtri attivi</span
+          ><button class="text-link" (click)="reset()">Azzera filtri</button>
+        </div>
+      }
+      @if (columnFilter; as filter) {
+        <form
+          class="column-filter-popover"
+          [style.top.px]="filterTop"
+          [style.left.px]="filterLeft"
+          (ngSubmit)="applyFilter()"
+        >
+          <label
+            >{{ filterLabel(filter) }}
+            @if (filter === 'search') {
+              <input
+                type="search"
+                name="columnSearch"
+                [(ngModel)]="filterDraft"
+                placeholder="Cerca progetto"
+                maxlength="255"
+                autofocus
+              />
+            } @else if (filter === 'status') {
+              <select name="columnStatus" [(ngModel)]="filterDraft">
+                <option value="">Tutti gli stati</option>
+                @for (value of states; track value) {
+                  <option [value]="value">{{ stateLabel(value) }}</option>
+                }
+              </select>
+            } @else if (filter === 'priority') {
+              <select name="columnPriority" [(ngModel)]="filterDraft">
+                <option value="">Tutte le priorità</option>
+                @for (value of priorities; track value) {
+                  <option [value]="value">{{ stateLabel(value) }}</option>
+                }
+              </select>
+            } @else {
+              <select name="columnPerson" [(ngModel)]="filterDraft">
+                <option value="">Tutti</option>
+                @for (person of managers(); track person.id) {
+                  <option [value]="person.id">{{ name(person) }}</option>
+                }
+              </select>
+            }
+          </label>
+          <div>
+            <button type="button" (click)="clearFilter()">Azzera</button
+            ><button class="primary" [disabled]="loading()">Filtra</button>
+          </div>
+        </form>
+      }
+      <section class="table-panel" [attr.aria-busy]="loading()">
+        <div class="table-scroll">
+          <table [class.timesheet-table]="isTimesheet">
+            <thead>
+              <tr>
+                <th>
+                  <div class="column-heading">
+                    <span>{{ isTimesheet ? 'Nome' : 'Progetti' }}</span>
+                    <button class="header-icon" (click)="sort()" aria-label="Ordina per nome">
+                      <i class="bi bi-arrow-down-up" aria-hidden="true"></i>
+                    </button>
+                    <button
+                      class="header-icon column-filter-trigger"
+                      (click)="openFilter('search', $event)"
+                      aria-label="Cerca progetto"
+                      [class.filtered]="!!search"
+                    >
+                      <i class="bi bi-search" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </th>
+                @if (isTimesheet) {
+                  <th>Utenti</th>
+                  <th class="right"><span class="sr-only">Azioni</span></th>
+                } @else {
+                  @for (column of peopleColumns; track column.key) {
+                    <th>
+                      <div class="column-heading">
+                        <span>{{ column.label }}</span><button
+                          class="header-icon column-filter-trigger"
+                          (click)="openFilter(column.key, $event)"
+                          [attr.aria-label]="'Filtra ' + column.label"
+                          [class.filtered]="!!filterValue(column.key)"
+                        >
+                          <i class="bi bi-search" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </th>
+                  }
+                  <th>
+                    <div class="column-heading">
+                      <span>Stato</span
+                      ><button
+                        class="header-icon column-filter-trigger"
+                        (click)="openFilter('status', $event)"
+                        aria-label="Filtra stato"
+                        [class.filtered]="!!status"
+                      >
+                        <i class="bi bi-funnel-fill" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </th>
+                  <th>
+                    <div class="column-heading">
+                      <span>Priorità</span
+                      ><button
+                        class="header-icon column-filter-trigger"
+                        (click)="openFilter('priority', $event)"
+                        aria-label="Filtra priorità"
+                        [class.filtered]="!!priority"
+                      >
+                        <i class="bi bi-funnel-fill" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                  </th>
+                  <th class="center compact-heading">
+                    <span>Delivery plan</span><i class="bi bi-calendar2" aria-hidden="true"></i>
+                  </th>
+                  <th class="center compact-heading">
+                    <span>Daily</span><i class="bi bi-people-fill" aria-hidden="true"></i>
+                  </th>
+                  <th class="center compact-heading">
+                    <span>Sprint review</span><i class="bi bi-easel" aria-hidden="true"></i>
+                  </th>
+                  <th class="center">
+                    <i class="bi bi-bug bug-heading" aria-hidden="true"></i
+                    ><span class="sr-only">Bug</span>
+                  </th>
+                  <th class="center">
+                    <i class="bi bi-clipboard-fill" aria-hidden="true"></i
+                    ><span class="sr-only">PBI</span>
+                  </th>
+                  <th><span class="sr-only">Azioni</span></th>
+                }
+              </tr>
+            </thead>
+            <tbody>
+              @for (project of page()?.data; track project.id) {
+                <tr>
+                  <td>
+                    <button class="project-name" (click)="start(project)">
+                      <img
+                        [authenticatedImage]="project.logo_url"
+                        [imageFallback]="fallbackLogo"
+                        alt=""
+                      /><strong>{{ project.alias }}</strong>
+                    </button>
+                  </td>
+                  @if (isTimesheet) {
+                    <td>
+                      <button
+                        class="participants"
+                        (click)="open(project, 'people')"
+                        [attr.aria-label]="'Utenti di ' + project.alias"
+                      >
+                        @for (
+                          person of (previews()[project.id] ?? []).slice(0, 4);
+                          track person.id
+                        ) {
+                          <img
+                            [authenticatedImage]="person.avatar_url ?? fallbackAvatar"
+                            [imageFallback]="fallbackAvatar"
+                            [alt]="name(person)"
+                          />
+                        }
+                        <span>{{
+                          previews()[project.id]
+                            ? previews()[project.id].length > 4
+                              ? '+' + (previews()[project.id].length - 4)
+                              : previews()[project.id].length + ' utenti'
+                            : 'Visualizza utenti'
+                        }}</span>
+                      </button>
+                    </td>
+                    <td class="inline-actions">
+                      <button [class.has-note]="!!project.note" (click)="open(project, 'note')">
+                        <i class="bi bi-sticky" aria-hidden="true"></i> Nota</button
+                      ><button (click)="start(project)">
+                        <i class="bi bi-pencil" aria-hidden="true"></i> Modifica</button
+                      ><button class="danger" (click)="open(project, 'delete')">
+                        <i class="bi bi-trash3" aria-hidden="true"></i> Elimina
+                      </button>
+                    </td>
+                  } @else {
+                    <td>{{ managerNames(project) }}</td>
+                    <td>{{ name(project.team_leader) }}</td>
+                    <td>{{ name(project.scrum_master) }}</td>
+                    <td>
+                      <span class="status" [class]="'status status-' + project.status"
+                        ><span>●</span> {{ stateLabel(project.status) }}</span
+                      >
+                    </td>
+                    <td>
+                      <span [class]="'priority priority-' + project.priority"
+                        ><i
+                          [class]="
+                            project.priority === 'alta'
+                              ? 'bi bi-reception-4'
+                              : project.priority === 'media'
+                                ? 'bi bi-reception-3'
+                                : 'bi bi-reception-2'
+                          "
+                          aria-hidden="true"
+                        ></i>
+                        {{ stateLabel(project.priority) }}</span
+                      >
+                    </td>
+                    <td class="center">
+                      @if (project.delivery_plan_url) {
+                        <button class="text-link" [disabled]="busy()" (click)="openFile(project)">
+                          <i class="bi bi-file-earmark-pdf" aria-hidden="true"></i> Vedi plan
+                        </button>
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    </td>
+                    <td class="center">
+                      <i
+                        [class]="project.is_daily ? 'bi bi-check-lg yes' : 'bi bi-x-lg no'"
+                        [attr.aria-label]="project.is_daily ? 'Sì' : 'No'"
+                      ></i>
+                    </td>
+                    <td class="center">
+                      {{ (project.next_sprint_review_date | date: 'dd/MM/yyyy') ?? '—' }}
+                    </td>
+                    <td class="center">
+                      @if (project.bug_count_url) {
+                        <a
+                          [href]="project.bug_count_url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="danger query"
+                          [attr.aria-label]="'Apri query bug di ' + project.alias"
+                          ><span title="Conteggio bug non disponibile">—</span></a
+                        >
+                      } @else {
+                        <span class="muted">—</span>
+                      }
+                    </td>
+                    <td class="center">
+                      <button
+                        class="text-link"
+                        (click)="open(project, 'pbi')"
+                        [attr.aria-label]="'PBI di ' + project.alias"
+                      >
+                        <span title="Conteggio PBI non disponibile">—</span>
+                      </button>
+                    </td>
+                    <td class="project-actions">
+                      <button
+                        class="icon-button"
+                        [attr.aria-label]="'Azioni per ' + project.alias"
+                        [attr.aria-expanded]="menuId === project.id"
+                        (click)="toggleMenu(project, $event)"
+                      >
+                        <i class="bi bi-three-dots-vertical" aria-hidden="true"></i>
+                        <span class="menu-indicators">
+                          @if (project.note) {
+                            <span
+                              class="menu-dot note-indicator"
+                              title="Nota presente"
+                              aria-hidden="true"
+                            ></span>
+                          }
+                          @if (project.missing_csv_count) {
+                            <span class="menu-dot" title="CSV mancanti" aria-hidden="true"></span>
+                          }
+                        </span>
+                      </button>
+                      @if (menuId === project.id) {
+                        <div class="row-menu" [style.top.px]="menuTop" [style.left.px]="menuLeft">
+                          <button (click)="start(project)">
+                            <i class="bi bi-pencil" aria-hidden="true"></i> Modifica</button
+                          ><button (click)="open(project, 'note')">
+                            <i class="bi bi-sticky" aria-hidden="true"></i> Note
+                            @if (project.note) {
+                              <span class="dot orange"></span>
+                            }</button
+                          ><button (click)="open(project, 'csv')">
+                            <i class="bi bi-filetype-csv" aria-hidden="true"></i> Gestione CSV
+                            @if (project.missing_csv_count) {
+                              <span class="count-danger">{{ project.missing_csv_count }}</span>
+                            }</button
+                          ><button class="danger" (click)="open(project, 'delete')">
+                            <i class="bi bi-trash3" aria-hidden="true"></i> Elimina
+                          </button>
+                        </div>
+                      }
+                    </td>
+                  }
+                </tr>
+              } @empty {
+                <tr>
+                  <td [attr.colspan]="isTimesheet ? 3 : 12" class="empty-cell">
+                    {{ loading() ? 'Caricamento…' : 'Nessun progetto trovato.' }}
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+      @if (page(); as result) {
+        <nav class="pagination" aria-label="Pagine progetti">
+          <button
+            [disabled]="loading() || result.current_page <= 1"
+            (click)="load(result.current_page - 1)"
+            aria-label="Pagina precedente"
+          >
+            ‹
+          </button>
+          @for (number of paginationPages(); track $index) {
+            @if (number === 'ellipsis') {
+              <span class="page-ellipsis">…</span>
+            } @else {
+              <button
+                [class.current-page]="number === result.current_page"
+                [attr.aria-current]="number === result.current_page ? 'page' : null"
+                [disabled]="loading()"
+                (click)="load(number)"
+                [attr.aria-label]="'Pagina ' + number"
+              >
+                {{ number }}
+              </button>
+            }
+          }
+          <button
+            [disabled]="loading() || result.current_page >= result.last_page"
+            (click)="load(result.current_page + 1)"
+            aria-label="Pagina successiva"
+          >
+            ›
+          </button>
+        </nav>
+      }
+    }
+  </main>
+  @if (draft; as form) {
+    <dialog projectModal class="overlay" (cancel)="$event.preventDefault(); closeEditor()">
+      <section
+        class="modal editor-modal"
+        [class.timesheet-editor]="draftTimesheet"
+        aria-labelledby="project-form-title"
+      >
+        <header class="modal-header">
+          <h2 id="project-form-title">
+            {{ editing ? 'Modifica' : 'Nuovo' }}
+            {{ draftTimesheet ? 'progetto timesheet' : 'progetto' }}
+          </h2>
+          <button
+            class="icon-button"
+            (click)="closeEditor()"
+            [disabled]="busy()"
+            aria-label="Chiudi"
+          >
+            ×
+          </button>
+        </header>
+        <form (ngSubmit)="save()">
+          <fieldset [disabled]="busy()">
+            <div class="logo-picker">
+              <input
+                #logoInput
+                hidden
+                type="file"
+                accept="image/png,image/jpeg,image/webp"
+                (change)="selectLogo(logoInput)"
+              /><button
+                type="button"
+                class="logo-button"
+                (click)="logoInput.click()"
+                aria-label="Modifica logo progetto"
+              >
+                @if (logoPreview) {
+                  <img [src]="logoPreview" alt="Anteprima logo" />
+                } @else {
+                  <img
+                    [authenticatedImage]="editing?.logo_url ?? fallbackLogo"
+                    [imageFallback]="fallbackLogo"
+                    alt="Logo progetto"
+                  />
+                }
+                <span><i class="bi bi-pencil" aria-hidden="true"></i></span>
+              </button>
+              @if (logoFile) {
+                <small>{{ logoFile.name }} · da caricare</small>
+              }
+            </div>
+            <div class="form-grid">
+              <label [class.full-width]="draftTimesheet"
+                >Nome <span class="required">*</span
+                ><input
+                  name="alias"
+                  [(ngModel)]="form.alias"
+                  maxlength="255"
+                  required
+                  placeholder="Nome progetto"
+                  [attr.aria-invalid]="fieldErrors()['alias'] ? true : null"
+              /></label>
+              @if (!draftTimesheet) {
+                <label
+                  >Project manager
+                  @if (!editing) {
+                    <span class="required">*</span>
+                  }
+                  @if (editing) {
+                    <input readonly [value]="managerNames(editing)" />
+                  } @else {
+                    <select
+                      name="projectManager"
+                      [(ngModel)]="form.project_manager_id"
+                      required
+                      [disabled]="managersLoading()"
+                    >
+                      <option [ngValue]="null">Seleziona utente</option>
+                      @for (person of managers(); track person.id) {
+                        <option [ngValue]="person.id">{{ name(person) }}</option>
+                      }
+                    </select>
+                  }</label
+                ><label
+                  >Data di inizio <span class="required">*</span
+                  ><input type="date" name="startDate" [(ngModel)]="form.start_date" required
+                /></label>
+                <div>
+                  <span class="field-label">Caratteristiche</span>
+                  <div class="checkboxes">
+                    <label class="check"
+                      ><input type="checkbox" name="daily" [(ngModel)]="form.is_daily" />
+                      Daily</label
+                    ><label class="check"
+                      ><input type="checkbox" name="azure" [(ngModel)]="form.is_azure" />
+                      Azure</label
+                    ><label class="check"
+                      ><input type="checkbox" name="uxui" [(ngModel)]="form.is_ux_ui" />
+                      UX-UI</label
+                    >
+                  </div>
+                </div>
+                <label
+                  >Stato <span class="required">*</span
+                  ><select name="projectStatus" [(ngModel)]="form.status" required>
+                    <option value="">Seleziona</option>
+                    @for (value of states; track value) {
+                      <option [value]="value">{{ stateLabel(value) }}</option>
+                    }
+                  </select></label
+                ><label
+                  >Priorità <span class="required">*</span
+                  ><select name="projectPriority" [(ngModel)]="form.priority" required>
+                    <option value="">Seleziona</option>
+                    @for (value of priorities; track value) {
+                      <option [value]="value">{{ stateLabel(value) }}</option>
+                    }
+                  </select></label
+                >
+              }
+              <p class="info full-width">
+                <i class="bi bi-info-circle" aria-hidden="true"></i> Inserire anche il nome del team
+                nel caso il progetto sia configurato in più team.
+              </p>
+              <label
+                >Nome progetto Azure<input
+                  name="azureProject"
+                  [(ngModel)]="form.azure_project_name"
+                  maxlength="255"
+                  placeholder="Nome progetto" /></label
+              ><label
+                >Nome team Azure<input
+                  name="azureTeam"
+                  [(ngModel)]="form.azure_team_name"
+                  maxlength="255"
+                  placeholder="Nome team" /></label
+              ><label [class.full-width]="draftTimesheet"
+                >Link bug count<input
+                  type="url"
+                  name="bugUrl"
+                  [(ngModel)]="form.bug_count_url"
+                  maxlength="255"
+                  placeholder="https://…" /></label
+              ><label [class.full-width]="draftTimesheet"
+                >Link PBI senza feature<input
+                  type="url"
+                  name="withoutFeature"
+                  [(ngModel)]="form.pbi_without_feature_url"
+                  maxlength="255"
+                  placeholder="https://…" /></label
+              ><label [class.full-width]="draftTimesheet"
+                >Link PBI con feature passata<input
+                  type="url"
+                  name="pastFeature"
+                  [(ngModel)]="form.pbi_past_feature_url"
+                  maxlength="255"
+                  placeholder="https://…"
+              /></label>
+              @if (!draftTimesheet) {
+                <div class="plan-picker">
+                  <input
+                    #planInput
+                    hidden
+                    type="file"
+                    accept="application/pdf"
+                    (change)="selectPlan(planInput)"
+                  /><button class="text-link" type="button" (click)="planInput.click()">
+                    <i class="bi bi-upload" aria-hidden="true"></i>
+                    {{
+                      planFile
+                        ? 'Cambia PDF selezionato'
+                        : editing?.delivery_plan_url
+                          ? 'Sostituisci delivery plan'
+                          : 'Carica il delivery plan'
+                    }}
+                  </button>
+                  @if (planFile) {
+                    <small>{{ planFile.name }} · da caricare</small>
+                  } @else if (editing?.delivery_plan_url) {
+                    <small>Delivery plan presente</small>
+                  }
+                </div>
+              }
+              <label class="full-width"
+                >Descrizione<textarea
+                  name="description"
+                  [(ngModel)]="form.description"
+                  maxlength="250"
+                  rows="4"
+                  placeholder="Scrivi qui…"
+                ></textarea
+                ><small class="character-count">{{ form.description.length }}/250</small></label
+              >
+            </div>
+          </fieldset>
+          @if (modalError()) {
+            <p class="error" role="alert">{{ modalError() }}</p>
+          }
+          @if (managerError() && !draftTimesheet && !editing) {
+            <p class="error">
+              {{ managerError() }} <button type="button" (click)="loadManagers()">Riprova</button>
+            </p>
+          }
+          <footer class="modal-actions">
+            <button type="button" (click)="closeEditor()" [disabled]="busy()">Annulla</button
+            ><button
+              class="primary"
+              [disabled]="busy() || (!editing && !draftTimesheet && !managers().length)"
+            >
+              {{ busy() ? 'Salvataggio…' : 'Salva' }}
+            </button>
+          </footer>
+        </form>
+      </section>
+    </dialog>
+  }
+  @if (modal; as current) {
+    <dialog projectModal class="overlay" (cancel)="$event.preventDefault(); closeModal()">
+      <section
+        class="modal"
+        [class.compact]="current.kind === 'delete'"
+        [class.csv-modal]="current.kind === 'csv'"
+        [class.note-modal]="current.kind === 'note'"
+        [class.people-modal]="current.kind === 'people'"
+        [class.pbi-modal]="current.kind === 'pbi'"
+        aria-labelledby="project-modal-title"
+      >
+        <header class="modal-header">
+          <h2 id="project-modal-title">
+            {{
+              current.kind === 'note'
+                ? 'Nuova nota'
+                : current.kind === 'delete'
+                  ? 'Elimina progetto'
+                  : current.kind === 'people'
+                    ? 'Utenti'
+                    : current.kind === 'csv'
+                      ? 'Gestione CSV'
+                      : 'PBI di rework'
+            }}
+          </h2>
+          <button
+            class="icon-button"
+            (click)="closeModal()"
+            [disabled]="busy()"
+            aria-label="Chiudi"
+          >
+            ×
+          </button>
+        </header>
+        @if (current.kind !== 'delete' && current.kind !== 'pbi') {
+          <div class="project-summary">
+            <img
+              [authenticatedImage]="current.project.logo_url"
+              [imageFallback]="fallbackLogo"
+              alt=""
+            /><strong>{{ current.project.alias }}</strong>
+          </div>
+        }
+        @if (modalError()) {
+          <p class="error" role="alert">{{ modalError() }}</p>
+        }
+        @if (modalNotice()) {
+          <p class="notice" role="status">{{ modalNotice() }}</p>
+        }
+        @switch (current.kind) {
+          @case ('note') {
+            <form (ngSubmit)="saveNote()">
+              <label
+                ><span class="sr-only">Nota</span
+                ><textarea
+                  name="note"
+                  [(ngModel)]="note"
+                  maxlength="255"
+                  rows="5"
+                  placeholder="Inserisci una nota"
+                  [disabled]="busy()"
+                ></textarea
+                ><small class="character-count">{{ note.length }}/255</small></label
+              >
+              <footer class="modal-actions">
+                <button type="button" (click)="closeModal()" [disabled]="busy()">Annulla</button
+                ><button class="primary" [disabled]="busy()">
+                  {{ busy() ? 'Salvataggio…' : 'Salva' }}
+                </button>
+              </footer>
+            </form>
+          }
+          @case ('delete') {
+            <i class="bi bi-trash3 delete-icon" aria-hidden="true"></i>
+            <h3 class="delete-title">
+              Elimina {{ current.project.is_timesheet ? 'timesheet' : 'progetto' }}
+            </h3>
+            <p class="delete-project">{{ current.project.alias }}</p>
+            <p class="help">Non è previsto il ripristino da questa pagina.</p>
+            <footer class="modal-actions">
+              <button (click)="closeModal()" [disabled]="busy()">Annulla</button
+              ><button class="danger-solid" (click)="remove()" [disabled]="busy()">
+                {{ busy() ? 'Eliminazione…' : 'Elimina' }}
+              </button>
+            </footer>
+          }
+          @case ('people') {
+            <p class="help">Partecipanti attualmente assegnati al progetto.</p>
+            <form class="people-search" (ngSubmit)="loadPeople()">
+              <label
+                ><span class="sr-only">Cerca utente</span
+                ><input
+                  type="search"
+                  name="peopleSearch"
+                  [(ngModel)]="peopleSearch"
+                  maxlength="255"
+                  placeholder="Cerca utente" /></label
+              ><button [disabled]="modalLoading()">Cerca</button>
+            </form>
+            @if (modalLoading()) {
+              <p role="status">Caricamento utenti…</p>
+            } @else {
+              <div class="people-list">
+                @for (person of people(); track person.id) {
+                  <div class="person">
+                    <img
+                      [authenticatedImage]="person.avatar_url ?? fallbackAvatar"
+                      [imageFallback]="fallbackAvatar"
+                      alt=""
+                    />
+                    <div>
+                      <strong>{{ name(person) }}</strong><small>{{ roles(person) }}</small>
+                    </div>
+                  </div>
+                } @empty {
+                  <p class="empty-message">Nessun partecipante trovato.</p>
+                }
+              </div>
+            }
+            <button class="wide" (click)="closeModal()">Chiudi</button>
+          }
+          @case ('pbi') {
+            <div class="pbi-grid">
+              <section>
+                <i class="bi bi-diagram-2" aria-hidden="true"></i>
+                <h3>Da feature in Done</h3>
+                <p class="pbi-count" title="Conteggio non disponibile">—</p>
+                @if (current.project.pbi_past_feature_url) {
+                  <a
+                    [href]="current.project.pbi_past_feature_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Apri query <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i
+                  ></a>
+                } @else {
+                  <small>Link non configurato</small>
+                }
+              </section>
+              <section>
+                <i class="bi bi-x-circle" aria-hidden="true"></i>
+                <h3>Senza feature</h3>
+                <p class="pbi-count" title="Conteggio non disponibile">—</p>
+                @if (current.project.pbi_without_feature_url) {
+                  <a
+                    [href]="current.project.pbi_without_feature_url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    >Apri query <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i
+                  ></a>
+                } @else {
+                  <small>Link non configurato</small>
+                }
+              </section>
+            </div>
+            <button class="wide" (click)="closeModal()">Chiudi</button>
+          }
+          @case ('csv') {
+            <nav class="tabs csv-tabs" aria-label="Stato CSV">
+              @for (tab of csvTabs; track tab.key) {
+                <button
+                  [class.selected]="csvTab === tab.key"
+                  (click)="csvTab = tab.key"
+                  [disabled]="busy() || modalLoading()"
+                >
+                  {{ tab.label }}
+                  <b [class.count-danger]="tab.key === 'missing' && !!csv()?.counts?.missing">{{
+                    csv()?.counts?.[tab.key] ?? '—'
+                  }}</b>
+                </button>
+              }
+            </nav>
+            @if (modalLoading()) {
+              <p role="status">Caricamento sprint…</p>
+            } @else if (csv(); as result) {
+              <div class="sprint-list">
+                @for (sprint of result.data[csvTab]; track sprint.id) {
+                  <ng-container
+                    [ngTemplateOutlet]="sprintRow"
+                    [ngTemplateOutletContext]="{
+                      $implicit: sprint,
+                      uploaded: csvTab === 'uploaded',
+                    }"
+                  ></ng-container>
+                } @empty {
+                  <p class="empty-message">Nessun risultato.</p>
+                }
+              </div>
+              @if (csvTab === 'missing' && additionalSprints().length) {
+                <details class="csv-other">
+                  <summary>Altri sprint · {{ additionalSprints().length }}</summary>
+                  <p class="help">
+                    Sprint in corso o di fatturazione, per i quali il CSV non risulta mancante.
+                  </p>
+                  @for (sprint of additionalSprints(); track sprint.id) {
+                    <ng-container
+                      [ngTemplateOutlet]="sprintRow"
+                      [ngTemplateOutletContext]="{ $implicit: sprint, uploaded: false }"
+                    ></ng-container>
+                  }
+                </details>
+              }
+            }
+            <ng-template #sprintRow let-sprint let-uploaded="uploaded">
+              <article class="sprint" [class.uploaded-sprint]="uploaded">
+                <div class="sprint-row">
+                  <span class="sprint-icon"
+                    ><i class="bi bi-person-workspace" aria-hidden="true"></i
+                  ></span>
+                  <h3>SPRINT {{ sprint.number }}</h3>
+                  @if (uploaded) {
+                    <label class="check"
+                      ><input
+                        type="checkbox"
+                        [ngModel]="sprint.is_pilot"
+                        (ngModelChange)="setSprintType(sprint, $event ? 'pilot' : 'normal')"
+                        [disabled]="busy()"
+                      />
+                      Sprint pilota</label
+                    >
+                    <button
+                      class="text-link download-csv"
+                      (click)="openFile(current.project, sprint)"
+                      [disabled]="busy()"
+                      aria-label="Scarica CSV"
+                    >
+                      <i class="bi bi-download" aria-hidden="true"></i>
+                    </button>
+                  } @else {
+                    <button
+                      class="sprint-toggle"
+                      [attr.aria-label]="'Opzioni sprint ' + sprint.number"
+                      [attr.aria-expanded]="expandedSprints.has(sprint.id)"
+                      (click)="toggleSprint(sprint.id)"
+                    >
+                      <i
+                        [class]="
+                          expandedSprints.has(sprint.id) ? 'bi bi-chevron-up' : 'bi bi-chevron-down'
+                        "
+                        aria-hidden="true"
+                      ></i>
+                    </button>
+                  }
+                </div>
+                @if (uploaded || expandedSprints.has(sprint.id)) {
+                  <div class="sprint-actions">
+                    @if (!uploaded) {
+                      <label class="check"
+                        ><input
+                          type="radio"
+                          [name]="'sprint-type-' + sprint.id"
+                          [ngModel]="sprintChoice(sprint)"
+                          (ngModelChange)="sprintChoices[sprint.id] = $event"
+                          value="pilot"
+                          [disabled]="busy()"
+                        />
+                        Sprint pilota</label
+                      >
+                      <label class="check"
+                        ><input
+                          type="radio"
+                          [name]="'sprint-type-' + sprint.id"
+                          [ngModel]="sprintChoice(sprint)"
+                          (ngModelChange)="sprintChoices[sprint.id] = $event"
+                          value="billing"
+                          [disabled]="busy()"
+                        />
+                        Sprint fatturazione</label
+                      >
+                    }
+                    @if (sprintChoice(sprint) === 'billing' && !uploaded) {
+                      <button
+                        class="text-link"
+                        (click)="setSprintType(sprint, 'billing')"
+                        [disabled]="busy()"
+                      >
+                        Conferma
+                      </button>
+                    } @else {
+                      <input
+                        #csvInput
+                        hidden
+                        type="file"
+                        accept=".csv,text/csv"
+                        (change)="uploadCsv(sprint, csvInput)"
+                      />
+                      <button class="text-link" (click)="csvInput.click()" [disabled]="busy()">
+                        <i class="bi bi-upload" aria-hidden="true"></i>
+                        {{ uploaded ? 'Sostituisci CSV' : 'Carica file CSV' }}
+                      </button>
+                    }
+                    @if (!uploaded && sprint.is_billing) {
+                      <p class="help">Sprint di fatturazione: CSV non richiesto.</p>
+                    }
+                  </div>
+                }
+              </article>
+            </ng-template>
+            <button class="wide" (click)="closeModal()" [disabled]="busy()">Chiudi</button>
+          }
+        }
+      </section>
+    </dialog>
+  }
+  @if (success) {
+    <dialog projectModal class="overlay" (cancel)="$event.preventDefault(); success = ''">
+      <section class="modal success" aria-labelledby="project-success-title">
+        <button class="icon-button close-success" aria-label="Chiudi" (click)="success = ''">
+          ×</button
+        ><i class="bi bi-check-circle" aria-hidden="true"></i>
+        <h2 id="project-success-title">{{ success }}</h2>
+        <p>L’operazione è stata eseguita con successo.</p>
+        <button class="primary" (click)="success = ''">Ok</button>
+      </section>
+    </dialog>
+  }
+</app-layout>

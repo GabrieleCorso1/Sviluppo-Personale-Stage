@@ -11,6 +11,42 @@ use Illuminate\Support\Facades\DB;
 
 uses(LazilyRefreshDatabase::class);
 
+test('current assignments close only the matching project necessity and do not reopen it on removal', function () {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $admin = allocationAdmin();
+    $user = User::factory()->create(['isAllocation_visible' => true]);
+    $project = allocationProject($admin);
+    $otherProject = allocationProject($admin);
+    $backend = allocationRole();
+    $frontend = allocationRole('Sviluppatore Front-end');
+    foreach ([[$project, $backend], [$project, $frontend], [$otherProject, $backend]] as [$target, $role]) {
+        Necessity::create(['project_id' => $target->id, 'assignmentrole_id' => $role->id]);
+    }
+    $this->actingAs($admin)->postJson('/api/allocations', [
+        'type' => 'project', 'project_id' => $project->id, 'user_id' => $user->id,
+        'assignment_role_id' => $backend->id, 'start_date' => '2026-11-02',
+    ])->assertCreated();
+    $this->assertDatabaseMissing('necessities', ['project_id' => $project->id, 'assignmentrole_id' => $backend->id]);
+    $this->assertDatabaseHas('necessities', ['project_id' => $project->id, 'assignmentrole_id' => $frontend->id]);
+    $this->assertDatabaseHas('necessities', ['project_id' => $otherProject->id, 'assignmentrole_id' => $backend->id]);
+    ProjectUser::where('project_id', $project->id)->where('user_id', $user->id)->firstOrFail()->delete();
+    $this->getJson('/api/allocations/summary')->assertOk()->assertJsonPath('data.open_necessities', 2);
+});
+
+test('future assignments close necessities only when their start date is reached', function () {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $admin = allocationAdmin();
+    $user = User::factory()->create(['isAllocation_visible' => true]);
+    $project = allocationProject($admin);
+    $role = allocationRole();
+    Necessity::create(['project_id' => $project->id, 'assignmentrole_id' => $role->id]);
+    allocationRow($project, $user, ['startwork_date' => '2026-11-03']);
+    $this->actingAs($admin)->getJson('/api/allocations/summary')->assertOk()->assertJsonPath('data.open_necessities', 1);
+    $this->travel(1)->days();
+    $this->getJson('/api/allocations/summary')->assertOk()->assertJsonPath('data.open_necessities', 0);
+    $this->assertDatabaseMissing('necessities', ['project_id' => $project->id, 'assignmentrole_id' => $role->id]);
+});
+
 function allocationAdmin(): User
 {
     $user = User::factory()->create(['isAllocation_visible' => false]);
@@ -141,7 +177,7 @@ test('summary counts distinct working projects and excludes hidden disabled futu
     allocationRow($projects[0], $hidden, ['is_difficult' => true]);
     allocationRow($projects[0], $disabled, ['is_difficult' => true]);
     $disabled->delete();
-    Necessity::create(['project_id' => $projects[0]->id, 'assignmentrole_id' => allocationRole()->id]);
+    Necessity::create(['project_id' => $projects[0]->id, 'assignmentrole_id' => allocationRole('Sviluppatore Front-end')->id]);
 
     $this->withToken($admin->createToken('test')->plainTextToken)->getJson('/api/allocations/summary')->assertOk()
         ->assertJsonPath('data.total_resources', 4)->assertJsonPath('data.allocated_resources', 1)
