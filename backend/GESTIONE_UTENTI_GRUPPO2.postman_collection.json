@@ -2,7 +2,7 @@
   "info": {
     "name": "Gruppo 2 - Gestione utenti - Prove complete",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "PERMESSI HR: prima delle prove applicare php artisan migrate. Admin e HR Manager hanno users.leaves.manage; users.manage da solo non basta per i contatori.\n\nPRIMO ACCESSO AGGIORNATO: la creazione non accetta password. Per eseguire automaticamente questa collezione imposta nel tuo .env locale APP_ENV=local, APP_DEBUG=true, AUTH_EXPOSE_RESET_URL=true e MAIL_MAILER=log, quindi php artisan config:clear. Il link di invito è acquisito dalla risposta di creazione e usato solo per impostare la password del demo. Negli ambienti reali il link non è esposto: viene inviato via email.\n\nProve locali della gestione utenti Laravel - Gruppo 2.\n\nPRIMA DI INIZIARE\n1. Avvia il backend e MySQL con migration già applicate. Non eseguire seeder o migrate:fresh per queste prove.\n2. Importa questo JSON in Postman. Nelle Variables della COLLEZIONE imposta admin_email e admin_password con le credenziali attuali del tuo account demo Admin. Non usare una password segnaposto. base_url è http://localhost:8000.\n3. Non serve un Environment: token e ID vengono acquisiti automaticamente. Non creare variabili Environment con gli stessi nomi.\n4. Esegui prima la cartella 00, poi le altre in ordine. Puoi usare Run sull'intera collezione, 1 iterazione. Se una risposta ha uno stato inatteso il Runner si ferma. Gli errori 401/403/422 previsti sono test superati, non guasti.\n\nCOSA CAMBIA\nViene creato UN utente demo con email postman.stage.<identificativo>@example.com, ruolo User, contratto e contatori propri. Il filestorage_id viene letto dall'Admin e riutilizzato come riferimento avatar, senza modificare il file. Nessun collega viene modificato, viene generata la notifica di invito (usare MAIL_MAILER=log per queste prove), nessuna password esistente viene cambiata. Al termine il demo rimane disabilitato, con dati e storico consultabili; l'accesso Admin creato dalla prova viene disconnesso. Le altre sessioni Admin restano attive.\n\nRIPETIZIONE E INTERRUZIONI\nOgni esecuzione dalla cartella 00 genera un nuovo demo. Se ti fermi prima della chiusura, il demo può rimanere attivo: puoi completare le richieste rimaste con le variabili conservate. Se il token è scaduto, accedi di nuovo manualmente e aggiorna solo admin_token: non rieseguire la richiesta 02 mentre vuoi riprendere la stessa prova, perché azzera gli ID. La collezione non elimina definitivamente i record.\n\nREQUISITI DATI DEMO\nL'Admin deve avere users.view e users.manage; deve esistere il ruolo User e almeno un incarico. La preparazione controlla queste condizioni e non esegue seeder. I saldi usano gennaio dell'anno precedente e le conversioni usano il primo lunedì/martedì di gennaio. I 12 mesi sono valori distinti: non si sommano i residui mensili.\n\nCONDIVISIONE\nIl file distribuito non contiene credenziali o token. Dopo le prove non esportare valori compilati. Le prove reali sul tuo database NON sono state eseguite durante la creazione della collezione. Questa collezione non verifica interfaccia Angular, CORS nel browser, reset password o concorrenza; i relativi test automatici restano separati."
+    "description": "PERMESSI HR: prima delle prove applicare php artisan migrate. Admin e HR Manager hanno users.leaves.manage; users.manage da solo non basta per i contatori.\n\nPRIMO ACCESSO: ogni nuovo utente accede con Password123! e può modificarla dal profilo. La creazione non accetta una password scelta dall’admin. La collection legge la password iniziale dalla risposta e non richiede link di invito.\n\nProve locali della gestione utenti Laravel - Gruppo 2.\n\nPRIMA DI INIZIARE\n1. Avvia il backend e MySQL con migration già applicate. Non eseguire seeder o migrate:fresh per queste prove.\n2. Importa questo JSON in Postman. Nelle Variables della COLLEZIONE imposta admin_email e admin_password con le credenziali attuali del tuo account demo Admin. Non usare una password segnaposto. base_url è http://localhost:8000.\n3. Non serve un Environment: token e ID vengono acquisiti automaticamente. Non creare variabili Environment con gli stessi nomi.\n4. Esegui prima la cartella 00, poi le altre in ordine. Puoi usare Run sull'intera collezione, 1 iterazione. Se una risposta ha uno stato inatteso il Runner si ferma. Gli errori 401/403/422 previsti sono test superati, non guasti.\n\nCOSA CAMBIA\nViene creato UN utente demo con email postman.stage.<identificativo>@example.com, ruolo User, contratto e contatori propri. Il filestorage_id viene letto dall'Admin e riutilizzato come riferimento avatar, senza modificare il file. Nessun collega viene modificato, la creazione non invia email e nessuna password esistente viene cambiata. Al termine il demo rimane disabilitato, con dati e storico consultabili; l'accesso Admin creato dalla prova viene disconnesso. Le altre sessioni Admin restano attive.\n\nRIPETIZIONE E INTERRUZIONI\nOgni esecuzione dalla cartella 00 genera un nuovo demo. Se ti fermi prima della chiusura, il demo può rimanere attivo: puoi completare le richieste rimaste con le variabili conservate. Se il token è scaduto, accedi di nuovo manualmente e aggiorna solo admin_token: non rieseguire la richiesta 02 mentre vuoi riprendere la stessa prova, perché azzera gli ID. La collezione non elimina definitivamente i record.\n\nREQUISITI DATI DEMO\nL'Admin deve avere users.view e users.manage; deve esistere il ruolo User e almeno un incarico. La preparazione controlla queste condizioni e non esegue seeder. I saldi usano gennaio dell'anno precedente e le conversioni usano il primo lunedì/martedì di gennaio. I 12 mesi sono valori distinti: non si sommano i residui mensili.\n\nCONDIVISIONE\nIl file distribuito non contiene credenziali o token. Dopo le prove non esportare valori compilati. Le prove reali sul tuo database NON sono state eseguite durante la creazione della collezione. Questa collezione non verifica interfaccia Angular, CORS nel browser, reset password o concorrenza; i relativi test automatici restano separati."
   },
   "auth": {
     "type": "noauth"
@@ -151,12 +151,6 @@
       "value": "",
       "type": "string",
       "description": "Compilata automaticamente: non modificare."
-    },
-    {
-      "key": "invitation_token",
-      "value": "",
-      "type": "string",
-      "description": "Token del primo accesso, acquisito solo dal link di debug locale. Non esportare."
     }
   ],
   "event": [
@@ -254,7 +248,6 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.collectionVariables.unset('invitation_token');",
                   "",
                   "for (const key of ['admin_token','user_token','fresh_user_token','admin_id','test_user_id','created_user_id','test_contract_id','role_user_id','assignment_role_id','filestorage_id','history_count']) pm.collectionVariables.unset(key);",
                   "if (!pm.collectionVariables.get('admin_email') || !pm.collectionVariables.get('admin_password')) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Compilare admin_email e admin_password nelle Variables della collezione.'); }",
@@ -668,7 +661,7 @@
                 }
               ]
             },
-            "description": "Crea il demo senza password. La notifica di invito viene registrata nel log con MAIL_MAILER=log. Richiede debug locale completo per acquisire automaticamente il link in Postman.",
+            "description": "Crea un utente con password iniziale Password123!, modificabile dal profilo.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"first_name\": \"Postman\",\n  \"last_name\": \"ProvaStage\",\n  \"gender\": \"male\",\n  \"email\": \"{{test_email}}\",\n  \"azure_email\": \"{{test_email}}\",\n  \"company_email\": \"{{test_email}}\",\n  \"birth_date\": \"1995-01-01\",\n  \"hiring_date\": \"{{contract_start}}\",\n  \"filestorage_id\": {{filestorage_id}},\n  \"role_id\": {{role_user_id}},\n  \"assignment_role_id\": {{assignment_role_id}},\n  \"expertise\": \"junior\",\n  \"is_intern\": true,\n  \"isAllocation_visible\": false,\n  \"remember_me\": false,\n  \"contract_start_date\": \"{{contract_start}}\",\n  \"weekly_hours\": 40,\n  \"has_rol\": true,\n  \"contract_type\": \"postman-demo\"\n}",
@@ -722,214 +715,8 @@
                   "pm.collectionVariables.set('created_user_id', String(j.data.id));",
                   "pm.collectionVariables.set('test_contract_id', String(j.data.contracts[0].id));",
                   "pm.test('Full-time automatico: cinque giorni lavorativi', () => pm.expect(j.data.contracts[0].working_days.filter(d => d.is_working_day).length).to.eql(5));",
-                  "pm.test('Invito inviato', () => pm.expect(j.invitation.status).to.eql('sent'));\nif (j.invitation.status !== 'sent' || !j.invitation.reset_url) { pm.execution.setNextRequest(null); throw new Error('Utente creato: per la prova automatica serve APP_ENV=local, APP_DEBUG=true, AUTH_EXPOSE_RESET_URL=true e MAIL_MAILER=log. Il link è anche nel log email. Non ricreare lo stesso account.'); }\nconst invitationQuery = Object.fromEntries(j.invitation.reset_url.split('?')[1].split('&').map(p => {const [k,v]=p.split('='); return [decodeURIComponent(k),decodeURIComponent(v.replace(/\\+/g,' '))];}));\nif (invitationQuery.email !== pm.collectionVariables.get('test_email') || !invitationQuery.token) { pm.execution.setNextRequest(null); throw new Error('Invito non associato al demo.'); }\npm.collectionVariables.set('invitation_token', invitationQuery.token);"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "09a - Primo login senza password impostata: 422",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/api/login",
-            "auth": {
-              "type": "noauth"
-            },
-            "description": "Prova del primo accesso. Eseguire dopo la creazione demo e prima delle cartelle successive.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n    \"email\": \"{{test_email}}\",\n    \"password\": \"{{test_password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (!pm.collectionVariables.get(\"test_user_id\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_user_id. Eseguire le cartelle in ordine.'); }",
-                  "if (!pm.collectionVariables.get(\"test_email\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_email. Eseguire le cartelle in ordine.'); }",
-                  "if (!pm.collectionVariables.get(\"test_password\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_password. Eseguire le cartelle in ordine.'); }",
-                  "",
-                  "",
-                  "const bodyTemplate = {\"email\":\"{{test_email}}\",\"password\":\"{{test_password}}\"};",
-                  "function resolveBody(value) {",
-                  "    if (Array.isArray(value)) return value.map(resolveBody);",
-                  "    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, resolveBody(val)]));",
-                  "    if (typeof value !== 'string') return value;",
-                  "    const match = value.match(/^\\{\\{([a-z_]+)\\}\\}$/);",
-                  "    if (!match) return value;",
-                  "    const resolved = pm.collectionVariables.get(match[1]);",
-                  "    if (resolved === undefined || resolved === '') { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile body mancante: ' + match[1]); }",
-                  "    return ['role_user_id','assignment_role_id','filestorage_id','test_contract_id'].includes(match[1]) ? Number(resolved) : resolved;",
-                  "}",
-                  "pm.request.body.update(JSON.stringify(resolveBody(bodyTemplate)));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 422 prima dell’impostazione password', () => pm.response.to.have.status(422));",
-                  "if(pm.response.code!==422){pm.execution.setNextRequest(null);throw new Error('Il nuovo account non deve accedere con la password scelta per la prova prima del reset.');}",
-                  "pm.test('Credenziali non ancora valide', () => pm.expect(pm.response.json().errors).to.have.property('email'));"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "09b - Imposta la prima password tramite invito",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/api/reset-password",
-            "auth": {
-              "type": "noauth"
-            },
-            "description": "Prova del primo accesso. Eseguire dopo la creazione demo e prima delle cartelle successive.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"token\": \"{{invitation_token}}\",\n  \"password\": \"{{test_password}}\",\n  \"password_confirmation\": \"{{test_password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (!pm.collectionVariables.get(\"test_user_id\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_user_id. Eseguire le cartelle in ordine.'); }",
-                  "if (!pm.collectionVariables.get(\"test_email\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_email. Eseguire le cartelle in ordine.'); }",
-                  "if (!pm.collectionVariables.get(\"test_password\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_password. Eseguire le cartelle in ordine.'); }",
-                  "",
-                  "",
-                  "const bodyTemplate = {\"email\":\"{{test_email}}\",\"token\":\"{{invitation_token}}\",\"password\":\"{{test_password}}\",\"password_confirmation\":\"{{test_password}}\"};",
-                  "function resolveBody(value) {",
-                  "    if (Array.isArray(value)) return value.map(resolveBody);",
-                  "    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, resolveBody(val)]));",
-                  "    if (typeof value !== 'string') return value;",
-                  "    const match = value.match(/^\\{\\{([a-z_]+)\\}\\}$/);",
-                  "    if (!match) return value;",
-                  "    const resolved = pm.collectionVariables.get(match[1]);",
-                  "    if (resolved === undefined || resolved === '') { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile body mancante: ' + match[1]); }",
-                  "    return ['role_user_id','assignment_role_id','filestorage_id','test_contract_id'].includes(match[1]) ? Number(resolved) : resolved;",
-                  "}",
-                  "pm.request.body.update(JSON.stringify(resolveBody(bodyTemplate)));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 200', () => pm.response.to.have.status(200));",
-                  "if(pm.response.code!==200){pm.execution.setNextRequest(null);throw new Error('Impostazione prima password fallita.');}",
-                  "pm.test('Password impostata', () => pm.expect(pm.response.json().message).to.eql('Password aggiornata. Accedi con la nuova password.'));"
-                ]
-              }
-            }
-          ],
-          "response": []
-        },
-        {
-          "name": "09c - Link di invito già usato: 422",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "Accept",
-                "value": "application/json"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "url": "{{base_url}}/api/reset-password",
-            "auth": {
-              "type": "noauth"
-            },
-            "description": "Prova del primo accesso. Eseguire dopo la creazione demo e prima delle cartelle successive.",
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"{{test_email}}\",\n  \"token\": \"{{invitation_token}}\",\n  \"password\": \"{{test_password}}\",\n  \"password_confirmation\": \"{{test_password}}\"\n}",
-              "options": {
-                "raw": {
-                  "language": "json"
-                }
-              }
-            }
-          },
-          "event": [
-            {
-              "listen": "prerequest",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "if (!pm.collectionVariables.get(\"test_user_id\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_user_id. Eseguire le cartelle in ordine.'); }",
-                  "if (!pm.collectionVariables.get(\"test_email\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_email. Eseguire le cartelle in ordine.'); }",
-                  "if (!pm.collectionVariables.get(\"test_password\")) { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile mancante: test_password. Eseguire le cartelle in ordine.'); }",
-                  "",
-                  "",
-                  "const bodyTemplate = {\"email\":\"{{test_email}}\",\"token\":\"{{invitation_token}}\",\"password\":\"{{test_password}}\",\"password_confirmation\":\"{{test_password}}\"};",
-                  "function resolveBody(value) {",
-                  "    if (Array.isArray(value)) return value.map(resolveBody);",
-                  "    if (value && typeof value === 'object') return Object.fromEntries(Object.entries(value).map(([key, val]) => [key, resolveBody(val)]));",
-                  "    if (typeof value !== 'string') return value;",
-                  "    const match = value.match(/^\\{\\{([a-z_]+)\\}\\}$/);",
-                  "    if (!match) return value;",
-                  "    const resolved = pm.collectionVariables.get(match[1]);",
-                  "    if (resolved === undefined || resolved === '') { pm.execution.setNextRequest(null); pm.execution.skipRequest(); throw new Error('Variabile body mancante: ' + match[1]); }",
-                  "    return ['role_user_id','assignment_role_id','filestorage_id','test_contract_id'].includes(match[1]) ? Number(resolved) : resolved;",
-                  "}",
-                  "pm.request.body.update(JSON.stringify(resolveBody(bodyTemplate)));"
-                ]
-              }
-            },
-            {
-              "listen": "test",
-              "script": {
-                "type": "text/javascript",
-                "exec": [
-                  "pm.test('HTTP 422', () => pm.response.to.have.status(422));",
-                  "if(pm.response.code!==422){pm.execution.setNextRequest(null);throw new Error('Il link deve essere utilizzabile una sola volta.');}",
-                  "pm.test('Link rifiutato', () => pm.expect(pm.response.json().errors).to.have.property('email'));"
+                  "pm.test('Password iniziale della demo', () => { pm.expect(j.initial_password).to.eql('Password123!'); pm.expect(j).not.to.have.property('invitation'); });",
+                  "pm.collectionVariables.set('test_password',j.initial_password);"
                 ]
               }
             }
@@ -4533,8 +4320,7 @@
                   "pm.test('HTTP 401', function () { pm.response.to.have.status(401); });",
                   "if (pm.response.code !== 401) { pm.execution.setNextRequest(null); throw new Error('Risposta inattesa: esecuzione fermata. Consultare il body.'); }",
                   "const j = pm.response.json();",
-                  "for (const key of ['admin_token','user_token','fresh_user_token','test_password']) pm.collectionVariables.unset(key);",
-                  "pm.collectionVariables.unset('invitation_token');"
+                  "for (const key of ['admin_token','user_token','fresh_user_token','test_password']) pm.collectionVariables.unset(key);"
                 ]
               }
             }

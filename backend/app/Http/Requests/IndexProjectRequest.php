@@ -34,6 +34,7 @@ class IndexProjectRequest extends FormRequest
             'per_page' => ['sometimes', 'integer', 'min:1', 'max:100'],
             'search' => ['sometimes', 'nullable', 'string', 'max:255'],
             'sort_direction' => ['sometimes', 'in:asc,desc'],
+            'sort_by' => ['sometimes', Rule::in($isTimesheet ? ['name'] : ['name', 'project_manager', 'team_leader', 'scrum_master', 'status', 'priority'])],
             'status' => [
                 'sometimes',
                 'nullable',

@@ -201,7 +201,7 @@ export class Users {
   readonly countdown = signal(0);
   private countdownTimer?: ReturnType<typeof setInterval>;
   success = '';
-  invitationUrl = '';
+  initialPassword = '';
   leaveUser: Person | null = null;
   leaveNotice = '';
   leaveTab: LeaveType | 'history' = 'ferie';
@@ -533,14 +533,14 @@ export class Users {
       body['filestorage_id'] = avatarId;
     }
     try {
-      const result = await this.request<{ message: string; invitation?: { reset_url?: string } }>(
+      const result = await this.request<{ message: string; initial_password?: string }>(
         this.editing ? 'PUT' : 'POST',
         this.editing ? '/' + this.editing.id : '',
         body,
       );
       this.success = this.editing ? 'Utente aggiornato' : 'Utente creato';
       this.notice.set(result.message);
-      this.invitationUrl = result.invitation?.reset_url ?? '';
+      this.initialPassword = result.initial_password ?? '';
       this.draft = null;
       await this.load(this.active()?.current_page ?? 1);
     } catch (error) {

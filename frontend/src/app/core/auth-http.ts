@@ -1,4 +1,8 @@
 import { HttpContextToken } from '@angular/common/http';
 
-export const API_URL = 'http://localhost:8090';
+// The browser uses the same origin on both desktop and phone.
+// During development, proxy.conf.cjs forwards backend requests locally.
+export const API_URL = typeof window === 'undefined'
+  ? 'http://localhost:4200'
+  : window.location.origin;
 export const SKIP_AUTH_REDIRECT = new HttpContextToken<boolean>(() => false);

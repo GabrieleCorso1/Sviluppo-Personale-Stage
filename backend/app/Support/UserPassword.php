@@ -8,6 +8,8 @@ use Illuminate\Support\Str;
 
 class UserPassword
 {
+    public const INITIAL_PASSWORD = 'Password123!';
+
     public static function rules(): array
     {
         return ['required', 'string', 'min:8', 'confirmed'];

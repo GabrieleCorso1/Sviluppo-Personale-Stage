@@ -456,7 +456,7 @@
               </div>
               @if (!editing) {
                 <p class="help">
-                  Il nuovo utente riceve un invito per impostare la propria password.
+                  Il nuovo utente accede con una password iniziale comune e può modificarla dal profilo.
                 </p>
               }
             } @else {
@@ -714,7 +714,7 @@
     <dialog
       userModal
       class="overlay"
-      (cancel)="$event.preventDefault(); success = ''; invitationUrl = ''"
+      (cancel)="$event.preventDefault(); success = ''; initialPassword = ''"
     >
       <section
         class="modal success"
@@ -724,17 +724,18 @@
       >
         <button
           class="close-success icon-button"
-          (click)="success = ''; invitationUrl = ''"
+          (click)="success = ''; initialPassword = ''"
           aria-label="Chiudi"
         >
           ×</button
         ><i aria-hidden="true" class="bi bi-check-circle status-icon"></i>
         <h2 id="success-title">{{ success }}</h2>
         <p>L’operazione è stata eseguita con successo.</p>
-        @if (invitationUrl) {
-          <a [href]="invitationUrl" target="_blank" rel="noopener">Apri invito di prova</a>
+        @if (success === 'Utente creato' && initialPassword) {
+          <p>Password iniziale: <strong>{{ initialPassword }}</strong><br />
+            L’utente può modificarla dal proprio profilo.</p>
         }
-        <button class="primary" (click)="success = ''; invitationUrl = ''">Ok</button>
+        <button class="primary" (click)="success = ''; initialPassword = ''">Ok</button>
       </section>
     </dialog>
   }

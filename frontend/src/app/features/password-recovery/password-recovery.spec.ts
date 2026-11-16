@@ -52,6 +52,57 @@ describe('Password recovery', () => {
     http.expectNone(API_URL + '/api/forgot-password');
   });
 
+  it.each([undefined, null])('keeps demo controls hidden without a backend link: %s', async reset_url => {
+    const fixture = TestBed.createComponent(ForgotPassword);
+    fixture.detectChanges();
+    fixture.componentInstance.email = 'mario@example.com';
+    fixture.componentInstance.invia();
+    http.expectOne(API_URL + '/api/forgot-password').flush({ message: RECOVERY_MESSAGE, reset_url });
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.demo-recovery')).toBeNull();
+    expect(fixture.nativeElement.querySelector('[role="status"]').textContent).toContain(RECOVERY_MESSAGE);
+  });
+
+  it('opens a valid demo reset on the current frontend instead of the backend configured host', async () => {
+    const fixture = TestBed.createComponent(ForgotPassword);
+    fixture.detectChanges();
+    const component = fixture.componentInstance;
+    component.email = 'mario@example.com';
+    component.invia();
+    http.expectOne(API_URL + '/api/forgot-password').flush({
+      message: RECOVERY_MESSAGE,
+      reset_url: 'http://localhost:4200/reset-password?token=demo-token&email=mario%40example.com'
+    });
+    await fixture.whenStable();
+    const link = fixture.nativeElement.querySelector('.demo-reset-button') as HTMLAnchorElement;
+    expect(link.textContent).toContain('Reimposta password');
+    const destination = new URL(link.getAttribute('href')!, window.location.origin);
+    expect(destination.origin).toBe(window.location.origin);
+    expect(destination.pathname).toBe('/reset-password');
+    expect(destination.searchParams.get('token')).toBe('demo-token');
+    expect(destination.searchParams.get('email')).toBe('mario@example.com');
+    expect(fixture.nativeElement.textContent).toContain('Modalità dimostrativa');
+    component.invia();
+    expect(component.demoReset()).toBeNull();
+    http.expectOne(API_URL + '/api/forgot-password').flush({ message: RECOVERY_MESSAGE, reset_url: null });
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.demo-recovery')).toBeNull();
+  });
+
+  it.each([
+    'javascript:alert(1)',
+    'http://localhost:4200/reset-password?email=mario@example.com',
+    'http://localhost:4200/other-page?token=secret&email=mario@example.com',
+  ])('does not offer malformed demo links: %s', async reset_url => {
+    const fixture = TestBed.createComponent(ForgotPassword);
+    fixture.detectChanges();
+    fixture.componentInstance.email = 'mario@example.com';
+    fixture.componentInstance.invia();
+    http.expectOne(API_URL + '/api/forgot-password').flush({ message: RECOVERY_MESSAGE, reset_url });
+    await fixture.whenStable();
+    expect(fixture.nativeElement.querySelector('.demo-recovery')).toBeNull();
+  });
+
   it.each([422, 429, 503])('displays request-link error %s and enables retry', async status => {
     const fixture = TestBed.createComponent(ForgotPassword);
     fixture.detectChanges();

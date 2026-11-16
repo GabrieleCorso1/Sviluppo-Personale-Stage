@@ -16,12 +16,14 @@ export class ForgotPassword {
   caricamento = signal(false);
   errore = signal('');
   messaggio = signal('');
+  demoReset = signal<{ token: string; email: string } | null>(null);
   private recovery = inject(PasswordRecovery);
 
   invia(): void {
     if (this.caricamento()) return;
     this.errore.set('');
     this.messaggio.set('');
+    this.demoReset.set(null);
     const email = this.email.trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       this.errore.set('Inserisci un indirizzo email valido.');
@@ -29,9 +31,22 @@ export class ForgotPassword {
     }
     this.caricamento.set(true);
     this.recovery.requestLink(email).subscribe({
-      next: () => {
+      next: response => {
         this.caricamento.set(false);
         this.messaggio.set(RECOVERY_MESSAGE);
+        if (response.reset_url) {
+          try {
+            const url = new URL(response.reset_url);
+            const token = url.searchParams.get('token');
+            const email = url.searchParams.get('email');
+            if (['http:', 'https:'].includes(url.protocol) &&
+                url.pathname === '/reset-password' && token && email) {
+              this.demoReset.set({ token, email });
+            }
+          } catch {
+            // An incomplete demo link must not replace the normal recovery flow.
+          }
+        }
       },
       error: err => {
         this.caricamento.set(false);

@@ -271,67 +271,6 @@ input[type='checkbox'] {
 .pbi-grid a {
   color: var(--brand);
 }
-.csv-modal {
-  max-width: 580px;
-}
-.csv-tabs {
-  flex-wrap: wrap;
-  gap: 15px;
-}
-.csv-tabs button {
-  font-size: var(--font-xs);
-}
-.sprint-list {
-  margin-top: 18px;
-}
-.sprint {
-  padding: 13px;
-  margin: 10px 0;
-  border: 1px solid var(--border-soft);
-  border-radius: 6px;
-}
-.sprint header {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.sprint h3 {
-  margin: 0;
-  font-size: 11px;
-  font-weight: 500;
-}
-.sprint-icon {
-  display: grid;
-  place-items: center;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  color: var(--ink-teal, #00a982);
-  background: var(--soft-green, #e7f8f3);
-}
-.sprint-state {
-  margin-left: auto;
-  font-size: var(--font-xs);
-  color: var(--ink-muted, #91a0af);
-}
-.sprint-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: end;
-  gap: 12px;
-  margin-top: 12px;
-}
-.sprint-actions label {
-  flex: 1;
-  min-width: 140px;
-  font-size: var(--font-xs);
-}
-.sprint-actions select {
-  font-size: var(--font-xs);
-}
-.sprint-actions button {
-  margin-bottom: 8px;
-}
 .success {
   max-width: 450px;
   text-align: center;
@@ -433,81 +372,12 @@ input[type='checkbox'] {
 .pbi-grid small {
   font-size: var(--font-xs);
 }
-.sprint-row {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.sprint-toggle {
-  border: 0;
-  padding: 3px;
-  margin-left: auto;
-  background: transparent;
-  font-size: 11px;
-}
-.sprint-row > .check {
-  margin-left: auto;
-  font-size: var(--font-xs);
-}
-.download-csv {
-  margin-left: 4px;
-}
-.sprint-actions {
-  align-items: center;
-  gap: 12px;
-}
-.sprint-actions > .check {
-  flex: initial;
-  min-width: 0;
-  font-size: var(--font-xs);
-}
-.sprint-actions > .text-link {
-  margin: 0 0 0 auto;
-}
-.sprint-actions input[type='radio'] {
-  accent-color: var(--ink-blue, #005386);
-  margin: 0;
-}
-.sprint-actions > .help {
-  width: 100%;
-  margin: 0;
-}
-.uploaded-sprint {
-  display: grid;
-  grid-template-columns: 1fr;
-}
-.uploaded-sprint .sprint-actions {
-  justify-content: flex-end;
-  margin-top: 7px;
-}
-.csv-tabs {
-  gap: 20px;
-}
-.csv-modal .empty-message {
-  min-height: 170px;
-  display: grid;
-  place-items: center;
-}
-.csv-other {
-  margin-top: 14px;
-  color: var(--ink-muted, #8091a2);
-  font-size: var(--font-xs);
-}
-.csv-other > summary {
-  cursor: pointer;
-}
-.csv-other .sprint {
-  color: var(--text);
-}
 .compact .project-summary {
   display: none;
 }
 @media (max-width: 420px) {
   .pbi-grid {
     grid-template-columns: 1fr;
-  }
-  .sprint-actions {
-    gap: 10px;
   }
 }
 
@@ -520,9 +390,6 @@ input[type='checkbox'] {
   margin: 0;
   flex: 0 0 12px;
   accent-color: var(--ink-blue, #005386);
-}
-.sprint-actions > .check {
-  flex-wrap: nowrap;
 }
 .compact .modal-header {
   border: 0;

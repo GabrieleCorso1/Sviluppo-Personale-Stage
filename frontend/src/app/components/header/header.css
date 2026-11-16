@@ -110,6 +110,13 @@
   object-fit: cover;
 }
 
+.avatar:has(.avatar-photo) {
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
 .avatar {
   display: grid;
   place-items: center;

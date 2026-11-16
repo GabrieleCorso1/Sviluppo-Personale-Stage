@@ -10,14 +10,13 @@ use App\Models\FileStorage;
 use App\Models\Role;
 use App\Models\User;
 use App\Support\ProjectParticipantAvatar;
-use App\UserInvitation;
+use App\Support\UserPassword;
 use App\WorkSchedule;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -139,7 +138,7 @@ class UserController extends Controller
         return $this->disable($request, $id);
     }
 
-    public function store(StoreUserRequest $request, UserInvitation $invitations): JsonResponse
+    public function store(StoreUserRequest $request): JsonResponse
     {
         $result = DB::transaction(function () use ($request) {
 
@@ -150,7 +149,7 @@ class UserController extends Controller
                 'email' => $request->validated('email'),
                 'azure_email' => $request->validated('azure_email'),
                 'company_email' => $request->validated('company_email'),
-                'password' => Str::random(64),
+                'password' => UserPassword::INITIAL_PASSWORD,
                 'gender' => $request->validated('gender'),
                 'birth_date' => $request->validated('birth_date'),
                 'hiring_date' => $request->validated('hiring_date'),
@@ -175,16 +174,12 @@ class UserController extends Controller
             return $user;
         });
 
-        $invitation = $invitations->send($result);
-
         // Ricarichiamo le relazioni includendo anche i giorni lavorativi nella risposta
         $result->load(['roles', 'assignmentRoles', 'contracts.workingDays']);
 
         return response()->json([
-            'message' => $invitation['status'] === 'sent'
-                ? 'Utente creato. Invito per impostare la password inviato.'
-                : 'Utente creato, ma invito non inviato. Richiedere un nuovo link dalla pagina Password dimenticata.',
-            'invitation' => $invitation,
+            'message' => 'Utente creato. La password iniziale può essere modificata dal profilo utente.',
+            'initial_password' => UserPassword::INITIAL_PASSWORD,
             'data' => $result,
         ], 201);
     }

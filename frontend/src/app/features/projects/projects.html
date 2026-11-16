@@ -102,11 +102,11 @@
           <table [class.timesheet-table]="isTimesheet">
             <thead>
               <tr>
-                <th>
+                <th [attr.aria-sort]="sortOrder('name')">
                   <div class="column-heading">
                     <span>{{ isTimesheet ? 'Nome' : 'Progetti' }}</span>
                     <button class="header-icon" (click)="sort()" aria-label="Ordina per nome">
-                      <i class="bi bi-arrow-down-up" aria-hidden="true"></i>
+                      <i [class]="sortIcon('name')" aria-hidden="true"></i>
                     </button>
                     <button
                       class="header-icon column-filter-trigger"
@@ -123,9 +123,12 @@
                   <th class="right"><span class="sr-only">Azioni</span></th>
                 } @else {
                   @for (column of peopleColumns; track column.key) {
-                    <th>
+                    <th [attr.aria-sort]="sortOrder(column.sort)">
                       <div class="column-heading">
-                        <span>{{ column.label }}</span><button
+                        <span>{{ column.label }}</span>
+                        <button class="header-icon" (click)="sort(column.sort)" [attr.aria-label]="'Ordina per ' + column.label">
+                          <i [class]="sortIcon(column.sort)" aria-hidden="true"></i>
+                        </button><button
                           class="header-icon column-filter-trigger"
                           (click)="openFilter(column.key, $event)"
                           [attr.aria-label]="'Filtra ' + column.label"
@@ -136,10 +139,12 @@
                       </div>
                     </th>
                   }
-                  <th>
+                  <th [attr.aria-sort]="sortOrder('status')">
                     <div class="column-heading">
-                      <span>Stato</span
-                      ><button
+                      <span>Stato</span>
+                      <button class="header-icon" (click)="sort('status')" aria-label="Ordina per stato">
+                        <i [class]="sortIcon('status')" aria-hidden="true"></i>
+                      </button><button
                         class="header-icon column-filter-trigger"
                         (click)="openFilter('status', $event)"
                         aria-label="Filtra stato"
@@ -149,10 +154,12 @@
                       </button>
                     </div>
                   </th>
-                  <th>
+                  <th [attr.aria-sort]="sortOrder('priority')">
                     <div class="column-heading">
-                      <span>Priorità</span
-                      ><button
+                      <span>Priorità</span>
+                      <button class="header-icon" (click)="sort('priority')" aria-label="Ordina per priorità">
+                        <i [class]="sortIcon('priority')" aria-hidden="true"></i>
+                      </button><button
                         class="header-icon column-filter-trigger"
                         (click)="openFilter('priority', $event)"
                         aria-label="Filtra priorità"
@@ -172,12 +179,12 @@
                     <span>Sprint review</span><i class="bi bi-easel" aria-hidden="true"></i>
                   </th>
                   <th class="center">
-                    <i class="bi bi-bug bug-heading" aria-hidden="true"></i
-                    ><span class="sr-only">Bug</span>
+                    <span class="metric-icon"><i class="bi bi-bug bug-heading" aria-hidden="true"></i></span>
+                    <span class="sr-only">Bug</span>
                   </th>
                   <th class="center">
-                    <i class="bi bi-clipboard-fill" aria-hidden="true"></i
-                    ><span class="sr-only">PBI</span>
+                    <span class="metric-icon"><i class="bi bi-clipboard-fill" aria-hidden="true"></i></span>
+                    <span class="sr-only">PBI</span>
                   </th>
                   <th><span class="sr-only">Azioni</span></th>
                 }
@@ -234,7 +241,7 @@
                     <td>{{ managerNames(project) }}</td>
                     <td>{{ name(project.team_leader) }}</td>
                     <td>{{ name(project.scrum_master) }}</td>
-                    <td>
+                    <td class="center">
                       <span class="status" [class]="'status status-' + project.status"
                         ><span>●</span> {{ stateLabel(project.status) }}</span
                       >
@@ -771,11 +778,12 @@
                 </button>
               }
             </nav>
+            <div class="csv-content">
             @if (modalLoading()) {
               <p role="status">Caricamento sprint…</p>
             } @else if (csv(); as result) {
               <div class="sprint-list">
-                @for (sprint of result.data[csvTab]; track sprint.id) {
+                @for (sprint of csvRows(); track sprint.id) {
                   <ng-container
                     [ngTemplateOutlet]="sprintRow"
                     [ngTemplateOutletContext]="{
@@ -802,13 +810,16 @@
                 </details>
               }
             }
+            </div>
             <ng-template #sprintRow let-sprint let-uploaded="uploaded">
               <article class="sprint" [class.uploaded-sprint]="uploaded">
                 <div class="sprint-row">
+                  <div class="sprint-identity">
                   <span class="sprint-icon"
-                    ><i class="bi bi-person-workspace" aria-hidden="true"></i
+                    ><i class="bi bi-person-check" aria-hidden="true"></i
                   ></span>
                   <h3>SPRINT {{ sprint.number }}</h3>
+                  </div>
                   @if (uploaded) {
                     <label class="check"
                       ><input
@@ -819,14 +830,23 @@
                       />
                       Sprint pilota</label
                     >
-                    <button
+                    <div class="uploaded-files">
+                      <input #uploadedCsvInput hidden type="file" accept=".csv,text/csv"
+                        (change)="uploadCsv(sprint, uploadedCsvInput)" />
+                      <button class="text-link csv-upload" (click)="uploadedCsvInput.click()" [disabled]="busy()"
+                        [attr.aria-label]="'Sostituisci CSV dello sprint ' + sprint.number" title="Sostituisci il CSV già caricato">
+                        <i class="bi bi-upload" aria-hidden="true"></i><span>Carica file CSV</span>
+                      </button>
+                      <button
                       class="text-link download-csv"
                       (click)="openFile(current.project, sprint)"
                       [disabled]="busy()"
-                      aria-label="Scarica CSV"
+                      [attr.aria-label]="'Scarica CSV dello sprint ' + sprint.number"
+                      title="Scarica CSV"
                     >
                       <i class="bi bi-download" aria-hidden="true"></i>
                     </button>
+                    </div>
                   } @else {
                     <button
                       class="sprint-toggle"
@@ -843,9 +863,8 @@
                     </button>
                   }
                 </div>
-                @if (uploaded || expandedSprints.has(sprint.id)) {
+                @if (!uploaded && expandedSprints.has(sprint.id)) {
                   <div class="sprint-actions">
-                    @if (!uploaded) {
                       <label class="check"
                         ><input
                           type="radio"
@@ -868,8 +887,7 @@
                         />
                         Sprint fatturazione</label
                       >
-                    }
-                    @if (sprintChoice(sprint) === 'billing' && !uploaded) {
+                    @if (sprintChoice(sprint) === 'billing') {
                       <button
                         class="text-link"
                         (click)="setSprintType(sprint, 'billing')"
@@ -887,17 +905,17 @@
                       />
                       <button class="text-link" (click)="csvInput.click()" [disabled]="busy()">
                         <i class="bi bi-upload" aria-hidden="true"></i>
-                        {{ uploaded ? 'Sostituisci CSV' : 'Carica file CSV' }}
+                        Carica file CSV
                       </button>
                     }
-                    @if (!uploaded && sprint.is_billing) {
+                    @if (sprint.is_billing) {
                       <p class="help">Sprint di fatturazione: CSV non richiesto.</p>
                     }
                   </div>
                 }
               </article>
             </ng-template>
-            <button class="wide" (click)="closeModal()" [disabled]="busy()">Chiudi</button>
+            <button class="wide csv-close" (click)="closeModal()" [disabled]="busy()">Chiudi</button>
           }
         }
       </section>

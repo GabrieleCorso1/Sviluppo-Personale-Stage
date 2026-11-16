@@ -151,8 +151,19 @@ app-theme-picker.public-appearance {
   color: var(--text);
 }
 
-:root[data-theme='dark'] app-navbar :is(.brand img, .nav-button img) {
+:root[data-theme='dark'] app-navbar .nav-button img {
   filter: brightness(0) saturate(100%) invert(84%) sepia(12%) saturate(1100%) hue-rotate(175deg);
+}
+
+:root[data-theme='dark'] app-navbar .brand { position: relative; }
+:root[data-theme='dark'] app-navbar .brand img { opacity: 0; }
+:root[data-theme='dark'] app-navbar .brand::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: #ff8a24;
+  mask: url('/img/impostazioni/LogoContainer.png') center / contain no-repeat;
+  pointer-events: none;
 }
 
 :root[data-theme='dark'] :is(app-login .login-img img, app-forgot-password .logo, app-reset-password .logo) {

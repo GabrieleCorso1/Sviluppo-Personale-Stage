@@ -12,6 +12,14 @@ class Necessity extends Model
 {
     use HasFactory;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Necessity $necessity) {
+            // IDs distinguish operations even when they happen within the same second.
+            $necessity->allocation_baseline_id = DB::table('project_user')->max('id') ?? 0;
+        });
+    }
+
     public static function closeCovered(?int $projectId = null): void
     {
         $today = ProjectCalendar::today();
@@ -23,6 +31,7 @@ class Necessity extends Model
                     ->join('users', 'users.id', '=', 'project_user.user_id')
                     ->whereColumn('project_user.project_id', 'necessities.project_id')
                     ->whereColumn('project_user.assignmentrole_id', 'necessities.assignmentrole_id')
+                    ->whereColumn('project_user.id', '>', 'necessities.allocation_baseline_id')
                     ->where('project_user.allocation_type', 'project')
                     ->whereNull('project_user.deleted_at')->whereNull('users.deleted_at')
                     ->where('users.isAllocation_visible', true)

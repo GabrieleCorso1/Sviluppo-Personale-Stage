@@ -64,3 +64,13 @@ th:last-child {
 }
 
 .primary:not(:disabled):hover { background:var(--action-hover); border-color:var(--brand-hover); }
+
+.metric-icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-inline: auto;
+}
+.metric-icon i { margin: 0; line-height: 1; }
+.status { justify-content: center; line-height: 1.4; }

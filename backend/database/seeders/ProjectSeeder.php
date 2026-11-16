@@ -152,45 +152,7 @@ class ProjectSeeder extends Seeder
         $projectIds['Attivita interne'] = DB::table('projects')->where('alias', 'Attivita interne')
             ->where('is_timesheet', true)->where('is_course', false)->value('id');
 
-        // 2. Necessità di competenze per progetto
-        $necessities = [
-            'Portale Clienti' => [
-                'Sviluppatore Front-end',
-                'Sviluppatore Back-end',
-                'UX-UI Designer',
-            ],
-            'API Aziendali' => [
-                'Sviluppatore Back-end',
-                'Sviluppatore Full-stack',
-            ],
-        ];
-
-        foreach ($necessities as $projectAlias => $assignmentAliases) {
-            foreach ($assignmentAliases as $assignmentAlias) {
-                $assignmentRoleId = DB::table('assignmentroles')
-                    ->where('alias', $assignmentAlias)
-                    ->value('id');
-
-                if (! $assignmentRoleId) {
-                    throw new \RuntimeException(
-                        "Competenza '{$assignmentAlias}' non trovata."
-                    );
-                }
-
-                DB::table('necessities')->updateOrInsert(
-                    [
-                        'project_id' => $projectIds[$projectAlias],
-                        'assignmentrole_id' => $assignmentRoleId,
-                    ],
-                    [
-                        'updated_at' => $now,
-                        'created_at' => $now,
-                    ]
-                );
-            }
-        }
-
-        // 3. Assegnazioni delle persone ai progetti
+        // 2. Assegnazioni delle persone ai progetti
         $assignments = [
             [
                 'project' => 'Portale Clienti',
@@ -298,5 +260,45 @@ class ProjectSeeder extends Seeder
                 ]
             );
         }
+
+        // 3. Necessità di competenze per progetto
+        $necessities = [
+            'Portale Clienti' => [
+                'Sviluppatore Front-end',
+                'Sviluppatore Back-end',
+                'UX-UI Designer',
+            ],
+            'API Aziendali' => [
+                'Sviluppatore Back-end',
+                'Sviluppatore Full-stack',
+            ],
+        ];
+
+        foreach ($necessities as $projectAlias => $assignmentAliases) {
+            foreach ($assignmentAliases as $assignmentAlias) {
+                $assignmentRoleId = DB::table('assignmentroles')
+                    ->where('alias', $assignmentAlias)
+                    ->value('id');
+
+                if (! $assignmentRoleId) {
+                    throw new \RuntimeException(
+                        "Competenza '{$assignmentAlias}' non trovata."
+                    );
+                }
+
+                DB::table('necessities')->updateOrInsert(
+                    [
+                        'project_id' => $projectIds[$projectAlias],
+                        'assignmentrole_id' => $assignmentRoleId,
+                    ],
+                    [
+                        'updated_at' => $now,
+                        'created_at' => $now,
+                        'allocation_baseline_id' => DB::table('project_user')->max('id') ?? 0,
+                    ]
+                );
+            }
+        }
+
     }
 }

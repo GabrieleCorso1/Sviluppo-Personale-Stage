@@ -9,7 +9,7 @@ export class PasswordRecovery {
   private http = inject(HttpClient);
 
   requestLink(email: string) {
-    return this.http.post<{ message: string }>(`${API_URL}/api/forgot-password`, { email });
+    return this.http.post<{ message: string; reset_url?: string | null }>(`${API_URL}/api/forgot-password`, { email });
   }
 
   resetPassword(token: string, email: string, password: string, confirmation: string) {

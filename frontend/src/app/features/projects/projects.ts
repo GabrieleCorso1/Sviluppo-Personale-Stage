@@ -20,6 +20,8 @@ import { AuthenticatedImage } from '../../core/authenticated-image';
 import { Auth } from '../../core/services/auth';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
 
+type ProjectSort = 'name' | 'project_manager' | 'team_leader' | 'scrum_master' | 'status' | 'priority';
+
 interface Person {
   id: number;
   first_name: string;
@@ -107,7 +109,7 @@ class ProjectModal implements AfterViewInit {
 @Component({
   imports: [NgTemplateOutlet, DatePipe, FormsModule, Layout, AuthenticatedImage, ProjectModal],
   templateUrl: './projects.html',
-  styleUrls: ['./projects.css', './projects-filters.css', './projects-modal.css'],
+  styleUrls: ['./projects.css', './projects-filters.css', './projects-modal.css', './projects-csv.css'],
   host: { '(document:click)': 'closeMenu($event)' },
 })
 export class Projects {
@@ -147,6 +149,7 @@ export class Projects {
   leader = '';
   scrumMaster = '';
   sortDirection = 'asc';
+  sortField: ProjectSort = 'name';
   menuId: number | null = null;
   menuTop = 0;
   menuLeft = 0;
@@ -160,15 +163,15 @@ export class Projects {
   planFile: File | null = null;
   logoPreview = '';
   success = '';
-  csvTab: CsvGroup = 'missing';
+  csvTab: CsvGroup = 'uploaded';
   readonly csvTabs: { key: CsvGroup; label: string }[] = [
     { key: 'uploaded', label: 'CSV caricati' },
     { key: 'missing', label: 'CSV mancanti' },
   ];
-  readonly peopleColumns: { key: FilterKey; label: string }[] = [
-    { key: 'manager', label: 'Project manager' },
-    { key: 'leader', label: 'Team leader' },
-    { key: 'scrumMaster', label: 'Scrum master' },
+  readonly peopleColumns: { key: FilterKey; label: string; sort: ProjectSort }[] = [
+    { key: 'manager', label: 'Project manager', sort: 'project_manager' },
+    { key: 'leader', label: 'Team leader', sort: 'team_leader' },
+    { key: 'scrumMaster', label: 'Scrum master', sort: 'scrum_master' },
   ];
   columnFilter: FilterKey | null = null;
   filterDraft = '';
@@ -259,6 +262,12 @@ export class Projects {
     const groups = this.csv()?.data;
     return groups ? [...groups.not_required, ...groups.pending] : [];
   }
+  csvRows(): Sprint[] {
+    const rows = this.csv()?.data[this.csvTab] ?? [];
+    return this.csvTab === 'missing'
+      ? [...rows].sort((a, b) => a.number - b.number || a.id - b.id)
+      : rows;
+  }
   readonly states = ['in corso', 'manutenzione', 'concluso', 'sospeso'];
   readonly priorities = ['alta', 'media', 'bassa'];
 
@@ -336,6 +345,7 @@ export class Projects {
       per_page: 10,
       search: this.search.trim(),
       sort_direction: this.sortDirection,
+      sort_by: this.sortField,
     };
     if (!this.isTimesheet) {
       for (const [key, value] of Object.entries({
@@ -379,6 +389,8 @@ export class Projects {
   switchTab(timesheet: boolean) {
     if (timesheet === this.isTimesheet) return;
     this.isTimesheet = timesheet;
+    this.sortField = 'name';
+    this.sortDirection = 'asc';
     this.page.set(null);
     this.reset();
   }
@@ -387,9 +399,16 @@ export class Projects {
     this.search = this.status = this.priority = this.manager = this.leader = this.scrumMaster = '';
     void this.load();
   }
-  sort() {
-    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+  sort(field: ProjectSort = 'name') {
+    this.sortDirection = this.sortField === field && this.sortDirection === 'asc' ? 'desc' : 'asc';
+    this.sortField = field;
     void this.load();
+  }
+  sortOrder(field: ProjectSort): 'ascending' | 'descending' | 'none' {
+    return this.sortField !== field ? 'none' : this.sortDirection === 'asc' ? 'ascending' : 'descending';
+  }
+  sortIcon(field: ProjectSort): string {
+    return 'bi bi-' + (this.sortField !== field ? 'arrow-down-up' : this.sortDirection === 'asc' ? 'arrow-up' : 'arrow-down');
   }
   async loadManagers() {
     this.managersLoading.set(true);
@@ -561,7 +580,7 @@ export class Projects {
     this.peopleSearch = '';
     this.people.set([]);
     this.csv.set(null);
-    this.csvTab = 'missing';
+    this.csvTab = 'uploaded';
     this.expandedSprints = new Set<number>();
     this.sprintChoices = {};
     if (kind === 'people') void this.loadPeople();

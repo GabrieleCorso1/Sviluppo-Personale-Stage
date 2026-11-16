@@ -68,9 +68,36 @@ class ProjectController extends Controller
                 $query->whereHas('currentScrumMasterAssignment', function ($assignment) use ($data) {
                     $assignment->where('user_id', $data['scrum_master_id']);
                 });
-            })
-            ->orderBy('alias', $data['sort_direction'] ?? 'asc')
-            ->orderBy('id')
+            });
+
+        $direction = $data['sort_direction'] ?? 'asc';
+        $sort = $data['sort_by'] ?? 'name';
+        $role = [
+            'project_manager' => 'Project Manager',
+            'team_leader' => 'Team Leader',
+            'scrum_master' => 'Scrum Master',
+        ][$sort] ?? null;
+
+        if ($role !== null) {
+            $person = DB::table('project_user')
+                ->join('users', 'users.id', '=', 'project_user.user_id')
+                ->join('assignmentroles', 'assignmentroles.id', '=', 'project_user.assignmentrole_id')
+                ->whereColumn('project_user.project_id', 'projects.id')
+                ->where('assignmentroles.alias', $role)->whereNull('assignmentroles.deleted_at')
+                ->whereNull('project_user.deleted_at')->whereNull('users.deleted_at')
+                ->whereDate('project_user.startwork_date', '<=', ProjectCalendar::today())
+                ->where(fn ($period) => $period->whereNull('project_user.endwork_date')
+                    ->orWhereDate('project_user.endwork_date', '>=', ProjectCalendar::today()))
+                ->orderBy('users.first_name')->orderBy('users.last_name')->orderBy('project_user.id')->limit(1);
+            $projects->orderBy((clone $person)->select('users.first_name'), $direction)
+                ->orderBy((clone $person)->select('users.last_name'), $direction);
+        } elseif ($sort === 'priority') {
+            $projects->orderByRaw("CASE priority WHEN 'alta' THEN 1 WHEN 'media' THEN 2 WHEN 'bassa' THEN 3 ELSE 4 END ".$direction);
+        } elseif ($sort === 'status') {
+            $projects->orderByRaw("CASE status WHEN 'in corso' THEN 1 WHEN 'manutenzione' THEN 2 WHEN 'concluso' THEN 3 WHEN 'sospeso' THEN 4 ELSE 5 END ".$direction);
+        }
+
+        $projects = $projects->orderBy('alias', $sort === 'name' ? $direction : 'asc')->orderBy('id')
             ->paginate($data['per_page'] ?? 10)
             ->withQueryString();
 

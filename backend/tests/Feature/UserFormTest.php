@@ -45,7 +45,7 @@ test('creation persists the selected role assignment and expertise with user and
         ->assertJsonMissingPath('data.password')->assertJsonMissingPath('data.remember_token');
     $user = User::findOrFail($response->json('data.id'));
 
-    expect(Hash::check('Password123!', $user->password))->toBeFalse();
+    expect(Hash::check('Password123!', $user->password))->toBeTrue();
     $this->assertDatabaseHas('role_user', ['user_id' => $user->id, 'role_id' => $role->id]);
     $this->assertDatabaseHas('assignmentrole_user', ['user_id' => $user->id, 'assignmentrole_id' => $assignment->id, 'expertise' => 'junior']);
     $this->assertDatabaseHas('contract_working_days', ['contract_id' => $user->contracts()->firstOrFail()->id, 'day_of_week' => 'monday']);

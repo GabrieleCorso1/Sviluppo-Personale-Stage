@@ -47,6 +47,58 @@ test('future assignments close necessities only when their start date is reached
     $this->assertDatabaseMissing('necessities', ['project_id' => $project->id, 'assignmentrole_id' => $role->id]);
 });
 
+test('an additional necessity survives existing members and unrelated edits until a new assignment covers it', function () {
+    $this->freezeTime();
+    $admin = allocationAdmin();
+    $mario = User::factory()->create(['isAllocation_visible' => true]);
+    $luca = User::factory()->create(['isAllocation_visible' => true]);
+    $project = allocationProject($admin);
+    $role = allocationRole();
+    $existing = allocationRow($project, $mario);
+    $url = '/api/allocations/projects/'.$project->id.'/necessities';
+
+    // All operations share a timestamp: existing rows must still be distinguished.
+    $this->actingAs($admin)->putJson($url, ['assignment_role_ids' => [$role->id]])
+        ->assertOk()->assertJsonCount(1, 'data');
+    $existing->update(['is_difficult' => true]);
+    $this->getJson('/api/allocations/projects/'.$project->id)->assertOk()->assertJsonCount(1, 'data.necessities');
+    $this->putJson($url, ['assignment_role_ids' => [$role->id]])->assertOk()->assertJsonCount(1, 'data');
+    $this->postJson('/api/allocations', ['type' => 'project', 'project_id' => $project->id,
+        'user_id' => $luca->id, 'assignment_role_id' => $role->id, 'start_date' => now()->toDateString()])
+        ->assertCreated();
+    $this->getJson('/api/allocations/projects/'.$project->id)->assertOk()->assertJsonCount(0, 'data.necessities');
+
+    // A further request for the same role is a fresh need, not already fulfilled.
+    $this->putJson($url, ['assignment_role_ids' => [$role->id]])->assertOk()->assertJsonCount(1, 'data');
+});
+
+test('only future assignments added after the necessity can fulfill it', function () {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $admin = allocationAdmin();
+    $project = allocationProject($admin);
+    $old = User::factory()->create(['isAllocation_visible' => true]);
+    $new = User::factory()->create(['isAllocation_visible' => true]);
+    allocationRow($project, $old, ['startwork_date' => '2026-11-03']);
+    Necessity::create(['project_id' => $project->id, 'assignmentrole_id' => allocationRole()->id]);
+    allocationRow($project, $new, ['startwork_date' => '2026-11-04']);
+    $this->travel(1)->days();
+    $this->actingAs($admin)->getJson('/api/allocations/summary')->assertOk()->assertJsonPath('data.open_necessities', 1);
+    $this->travel(1)->days();
+    $this->getJson('/api/allocations/summary')->assertOk()->assertJsonPath('data.open_necessities', 0);
+});
+
+test('a cancelled future assignment leaves the necessity open', function () {
+    $this->travelTo(now()->setDate(2026, 11, 2)->startOfDay());
+    $admin = allocationAdmin();
+    $project = allocationProject($admin);
+    $user = User::factory()->create(['isAllocation_visible' => true]);
+    Necessity::create(['project_id' => $project->id, 'assignmentrole_id' => allocationRole()->id]);
+    $assignment = allocationRow($project, $user, ['startwork_date' => '2026-11-03']);
+    $assignment->delete();
+    $this->travel(1)->days();
+    $this->actingAs($admin)->getJson('/api/allocations/summary')->assertOk()->assertJsonPath('data.open_necessities', 1);
+});
+
 function allocationAdmin(): User
 {
     $user = User::factory()->create(['isAllocation_visible' => false]);
