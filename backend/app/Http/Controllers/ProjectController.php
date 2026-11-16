@@ -34,8 +34,13 @@ class ProjectController extends Controller
     {
         $data = $request->validated();
 
-        $projects = Project::query()
-            ->where('is_course', false)
+        $visibleProjects = Project::query()->where('is_course', false);
+        if (! $request->user()->roles()->where('alias', 'Admin')->exists()) {
+            $visibleProjects->where('is_timesheet', false)
+                ->whereHas('currentProjectManagerAssignments', fn ($assignment) => $assignment->where('user_id', $request->user()->id));
+        }
+
+        $projects = (clone $visibleProjects)
             ->withMin('upcomingReviewSprints as next_sprint_review_date', 'end_date')
             ->with([
                 'filestorage',
@@ -104,8 +109,8 @@ class ProjectController extends Controller
         $projects->through(fn ($project) => (new ProjectResource($project))->resolve($request));
 
         $counts = [
-            'projects' => Project::where('is_course', false)->where('is_timesheet', false)->count(),
-            'timesheets' => Project::where('is_course', false)->where('is_timesheet', true)->count(),
+            'projects' => (clone $visibleProjects)->where('is_timesheet', false)->count(),
+            'timesheets' => (clone $visibleProjects)->where('is_timesheet', true)->count(),
         ];
 
         return response()->json(array_merge($projects->toArray(), [

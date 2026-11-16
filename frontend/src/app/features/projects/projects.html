@@ -9,7 +9,7 @@
       <section class="empty">
         <i class="bi bi-shield-lock" aria-hidden="true"></i>
         <h1>Accesso riservato</h1>
-        <p>La gestione progetti è disponibile per gli amministratori.</p>
+        <p>La gestione progetti è disponibile per Admin e Project Manager autorizzati.</p>
         <button (click)="router.navigate(['/home'])">Torna al profilo</button>
       </section>
     } @else {
@@ -17,9 +17,12 @@
         <nav class="tabs main-tabs" aria-label="Tipologia progetto">
           <button [class.selected]="!isTimesheet" (click)="switchTab(false)" [disabled]="busy()">
             Progetti <b>{{ page()?.counts?.projects ?? '—' }}</b></button
-          ><button [class.selected]="isTimesheet" (click)="switchTab(true)" [disabled]="busy()">
+          >
+          @if (isAdmin()) {
+          <button [class.selected]="isTimesheet" (click)="switchTab(true)" [disabled]="busy()">
             Timesheet <b>{{ page()?.counts?.timesheets ?? '—' }}</b>
           </button>
+          }
         </nav>
         <button class="primary" (click)="start()" [disabled]="busy()">
           <i class="bi bi-plus-circle" aria-hidden="true"></i>
@@ -337,9 +340,12 @@
                             @if (project.missing_csv_count) {
                               <span class="count-danger">{{ project.missing_csv_count }}</span>
                             }</button
-                          ><button class="danger" (click)="open(project, 'delete')">
+                          >
+                          @if (isAdmin()) {
+                          <button class="danger" (click)="open(project, 'delete')">
                             <i class="bi bi-trash3" aria-hidden="true"></i> Elimina
                           </button>
+                          }
                         </div>
                       }
                     </td>
@@ -466,7 +472,7 @@
                       name="projectManager"
                       [(ngModel)]="form.project_manager_id"
                       required
-                      [disabled]="managersLoading()"
+                      [disabled]="managersLoading() || !isAdmin()"
                     >
                       <option [ngValue]="null">Seleziona utente</option>
                       @for (person of managers(); track person.id) {

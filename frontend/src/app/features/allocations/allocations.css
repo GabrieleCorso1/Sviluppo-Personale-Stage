@@ -318,8 +318,8 @@ select:disabled {
     grid-column: 1 / -1;
   }
   .matrix th.sticky {
-    width: 185px;
-    min-width: 185px;
+    width: 140px;
+    min-width: 140px;
   }
   .resource-cell {
     padding: 8px;

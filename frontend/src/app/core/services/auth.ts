@@ -15,7 +15,15 @@ export interface User {
 }
 
 export function hasSettingsRole(user: User): boolean {
-  return user.roles.some(role => role === 'Admin' || role === 'Project Manager');
+  return (['projects', 'users', 'allocations'] as const).some(area => canAccessManagement(user, area));
+}
+
+export function canAccessManagement(user: User | null, area: 'projects' | 'users' | 'allocations'): boolean {
+  if (!user) return false;
+  if (area === 'users') {
+    return user.roles.some(role => role === 'Admin' || role === 'HR Manager') && user.permissions.includes('users.view');
+  }
+  return user.roles.includes('Admin') || (area === 'projects' && user.roles.includes('Project Manager'));
 }
 
 interface LoginResponse {

@@ -8,9 +8,7 @@ class IndexProjectUserRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->where('alias', 'Admin')
-            ->exists() ?? false;
+        return $this->user()?->can('manage', $this->route('project')) ?? false;
     }
 
     public function rules(): array

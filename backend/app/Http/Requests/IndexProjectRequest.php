@@ -13,9 +13,10 @@ class IndexProjectRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->roles()
-            ->where('alias', 'Admin')
-            ->exists() ?? false;
+        $roles = $this->user()?->roles()->whereIn('alias', ['Admin', 'Project Manager'])->pluck('alias');
+
+        return ($roles?->contains('Admin') ?? false)
+            || (! $this->boolean('is_timesheet') && ($roles?->contains('Project Manager') ?? false));
     }
 
     /**

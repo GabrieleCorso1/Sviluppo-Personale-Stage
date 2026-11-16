@@ -182,7 +182,7 @@
       @if (grid(); as data) {
         <section class="matrix-panel" [attr.aria-busy]="loading()">
           <div class="matrix-scroll">
-            <table class="matrix" [class.memberships]="type !== 'project'">
+            <table class="matrix" [class.memberships]="type !== 'project'" [style.--project-columns]="data.projects.length">
               <thead>
                 <tr>
                   <th class="sticky resource-heading">

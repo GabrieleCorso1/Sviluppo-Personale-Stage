@@ -17,7 +17,7 @@ import { firstValueFrom } from 'rxjs';
 import { Layout } from '../../components/layout/layout';
 import { API_URL } from '../../core/auth-http';
 import { AuthenticatedImage } from '../../core/authenticated-image';
-import { Auth } from '../../core/services/auth';
+import { Auth, canAccessManagement } from '../../core/services/auth';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
 
 type ProjectSort = 'name' | 'project_manager' | 'team_leader' | 'scrum_master' | 'status' | 'priority';
@@ -119,7 +119,8 @@ export class Projects {
   private readonly avatar = inject(ProfileAvatar);
   readonly router = inject(Router);
   readonly avatarUrl = this.avatar.url;
-  readonly allowed = computed(() => !!this.auth.currentUser()?.roles.includes('Admin'));
+  readonly isAdmin = computed(() => !!this.auth.currentUser()?.roles.includes('Admin'));
+  readonly allowed = computed(() => canAccessManagement(this.auth.currentUser(), 'projects'));
   readonly fallbackLogo = API_URL + '/images/defaults/default-project.svg';
   readonly fallbackAvatar = API_URL + '/images/defaults/default-avatar.svg';
   readonly page = signal<ProjectPage | null>(null);
@@ -387,6 +388,7 @@ export class Projects {
     }
   }
   switchTab(timesheet: boolean) {
+    if (timesheet && !this.isAdmin()) return;
     if (timesheet === this.isTimesheet) return;
     this.isTimesheet = timesheet;
     this.sortField = 'name';
@@ -447,7 +449,7 @@ export class Projects {
     this.draft = {
       alias: project?.alias ?? '',
       description: project?.description ?? '',
-      project_manager_id: project?.project_managers[0]?.id ?? null,
+      project_manager_id: project?.project_managers[0]?.id ?? (this.isAdmin() ? null : this.auth.currentUser()?.id ?? null),
       start_date: project?.start_date?.slice(0, 10) ?? '',
       status: project?.status ?? '',
       priority: project?.priority ?? '',

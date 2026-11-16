@@ -8,7 +8,7 @@ class IndexProjectManagerOptionRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return $this->user()?->roles()->where('alias', 'Admin')->exists() ?? false;
+        return $this->user()?->roles()->whereIn('alias', ['Admin', 'Project Manager'])->exists() ?? false;
     }
 
     public function rules(): array

@@ -8,6 +8,8 @@
   position: relative;
   overflow: auto;
   max-height: 65vh;
+  isolation: isolate;
+  overscroll-behavior-x: contain;
 }
 .matrix {
   width: 100%;
@@ -199,6 +201,8 @@
   border-radius: 4px;
 }
 .assignment-cell {
+  position: relative;
+  z-index: 0;
   height: 42px;
   padding: 5px 6px;
 }
@@ -281,4 +285,22 @@
 .add-allocation {
   position: relative;
   z-index: 0;
+}
+
+@media (max-width: 680px) {
+  .matrix {
+    table-layout: fixed;
+    min-width: calc(140px + var(--project-columns, 0) * 92px + 40px);
+  }
+  .matrix th, .matrix td { box-sizing: border-box; }
+  .matrix th.sticky { width: 140px; min-width: 140px; max-width: 140px; }
+  .matrix thead th.sticky { padding: 10px 8px; }
+  .matrix .project-heading { width: 92px; min-width: 92px; padding-inline: 6px; }
+  .matrix .total-heading { width: 40px; min-width: 40px; }
+  .matrix .necessities-row th.sticky { padding: 8px; }
+  .matrix .needs-label { display: block; float: none; margin-top: 4px; }
+  .matrix .resource-name { max-width: 122px; gap: 6px; overflow-wrap: anywhere; }
+  .matrix .resource-name img { flex-shrink: 0; width: 22px; height: 22px; }
+  .matrix .allocation-actions { isolation: isolate; }
+  .matrix .edit-allocation { position: static; margin-left: 3px; padding: 2px; }
 }
