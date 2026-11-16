@@ -68,13 +68,23 @@
               [queryParams]="item.data.sbi_id ? (item.data.sbi_reply ? { mandato: item.data.sbi_id } : { ricevuto: item.data.sbi_id }) : null"
               (click)="openNotification(item)">{{ item.data.message }}</a></p>
             <time [attr.datetime]="item.created_at">{{ item.created_at | date:'dd/MM/yyyy HH:mm' }}</time>
+            @if (item.calendar_request; as request) {
+              <p class="calendar-summary">
+                {{ request.requester }} · {{ request.type }} ·
+                {{ request.start_date | date:'dd/MM/yyyy' }} – {{ request.end_date | date:'dd/MM/yyyy' }}
+                @if (request.start_time) { · {{ request.start_time }}–{{ request.end_time }} }
+                · {{ request.requested_hours | duration }}
+              </p>
+            }
             @if (!preview() && item.data.calendar_request_id) {
               @switch (item.data.calendar_status) {
                 @case ('pending') {
+                  @if (item.calendar_request?.can_decide) {
                   <div class="decision">
                     <button type="button" class="primary" [disabled]="saving()" (click)="decide(item, 'approved')">Accetta</button>
                     <button type="button" class="outline-danger" [disabled]="saving()" (click)="decide(item, 'rejected')">Rifiuta</button>
                   </div>
+                  } @else { <p>In attesa di decisione da Admin o HR autorizzati.</p> }
                 }
                 @case ('approved') { <p class="approved"><i class="bi bi-check2"></i> Richiesta accettata</p> }
                 @case ('rejected') { <p class="danger">Richiesta rifiutata</p> }

@@ -7,6 +7,19 @@ export interface NotificationItem {
   id: string;
   category_label?: string;
   actor?: { avatar_url: string | null };
+  calendar_request?: {
+    requester: string;
+    type: string;
+    start_date: string;
+    end_date: string;
+    start_time: string | null;
+    end_time: string | null;
+    requested_hours: number | null;
+    balance_hours: number | null;
+    notes: string | null;
+    can_decide: boolean;
+    calculation_error: string | null;
+  };
   data: {
     category: string;
     message: string;

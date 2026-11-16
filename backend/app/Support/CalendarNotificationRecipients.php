@@ -10,6 +10,13 @@ class CalendarNotificationRecipients
 {
     public const LEADERS = ['Project Manager', 'Team Leader'];
 
+    public static function canApprove(User $user): bool
+    {
+        return $user->roles()->where('alias', 'Admin')->exists()
+            || $user->roles()->where('alias', 'HR Manager')
+                ->whereHas('permissions', fn ($permissions) => $permissions->where('name', 'users.leaves.manage'))->exists();
+    }
+
     public static function forRequester(int $requesterId): Builder
     {
         $today = ProjectCalendar::today();
@@ -23,6 +30,8 @@ class CalendarNotificationRecipients
 
         return User::query()->where(function (Builder $users) use ($active, $projects) {
             $users->whereHas('roles', fn (Builder $roles) => $roles->where('alias', 'Admin'));
+            $users->orWhereHas('roles', fn (Builder $roles) => $roles->where('alias', 'HR Manager')
+                ->whereHas('permissions', fn ($permissions) => $permissions->where('name', 'users.leaves.manage')));
 
             foreach (self::LEADERS as $role) {
                 $users->orWhere(fn (Builder $leaders) => $leaders

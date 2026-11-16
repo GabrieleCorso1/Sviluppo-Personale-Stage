@@ -5,6 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { catchError, EMPTY, Observable, Subject, switchMap, timer } from 'rxjs';
 import { RouterLink } from '@angular/router';
 import { AuthenticatedImage } from '../../core/authenticated-image';
+import { DurationPipe } from '../../core/duration.pipe';
 import { API_URL } from '../../core/auth-http';
 import { NOTIFICATION_EXAMPLES } from './notification-examples';
 import {
@@ -20,7 +21,7 @@ const CATEGORY_ICONS: Record<string, string> = {
 
 @Component({
   selector: 'app-notification-list',
-  imports: [DatePipe, RouterLink, AuthenticatedImage],
+  imports: [DatePipe, DurationPipe, RouterLink, AuthenticatedImage],
   templateUrl: './notification-list.html',
   styleUrl: './notification-list.css',
 })

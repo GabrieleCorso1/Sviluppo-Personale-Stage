@@ -147,7 +147,7 @@
           <h2>Saldo ferie e permessi</h2>
           <ul>
             @for (balance of board.leave; track balance.type) {
-              <li class="balance"><span>{{ balance.type }}</span><strong>{{ balance.hours | number:'1.0-2' }} ore</strong></li>
+              <li class="balance"><span>{{ balance.type === 'rol' ? 'R.O.L.' : balance.type }}</span><strong>{{ balance.hours | duration }}</strong></li>
             } @empty { <li class="empty">Nessun saldo disponibile.</li> }
           </ul>
         </section>

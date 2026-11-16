@@ -1,0 +1,844 @@
+{
+  "info": {
+    "name": "Stage - Gestione allocazioni - Essenziali",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Compila mini_admin_password (la password attuale dell’Admin) e, se necessario, mini_base_url. Nessun environment richiesto. Esegui una sola iterazione, in ordine, con Collection Runner; in caso di errore il flusso si ferma. Token e ID sono salvati automaticamente nelle variabili della collection. Non esportare le variabili dopo il run: contengono token. Verifica necessità, assegnazione, duplicati, difficoltà e separazione dei timesheet. Crea un utente e un progetto nuovi."
+  },
+  "variable": [
+    {
+      "key": "mini_base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "mini_admin_email",
+      "value": "mario.rossi@example.com",
+      "type": "string"
+    },
+    {
+      "key": "mini_admin_password",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "mini_run_optional",
+      "value": "false",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "00 - Preparazione automatica",
+      "description": "Eseguire in ordine nel Runner. Crea solo un nuovo utente POSTMAN; non modifica utenti esistenti.",
+      "item": [
+        {
+          "name": "01 - Login Admin",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/login",
+            "auth": {
+              "type": "noauth"
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{mini_admin_email}}\",\n  \"password\": \"{{mini_admin_password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "prerequest",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "const c = pm.collectionVariables;",
+                  "if (!c.get('mini_admin_password')) throw new Error('Compila mini_admin_password nelle variabili della collection.');",
+                  "for (const key of ['token','demo_token','admin_id','demo_id','project_id','timesheet_id','allocation_id','sbi_id','revision_id','notification_id','calendar_id','reset_token']) c.unset('mini_'+key);",
+                  "c.set('mini_run', Date.now().toString()+'-'+Math.random().toString(36).slice(2,7));",
+                  "c.set('mini_today', new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Rome',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()));",
+                  "c.set('mini_demo_email','postman.'+c.get('mini_run')+'@example.com');",
+                  "c.set('mini_demo_password','Password123!');"
+                ]
+              }
+            },
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.test(\"Token presente\", function () { pm.expect(typeof json.access_token).to.eql('string'); });",
+                  "pm.collectionVariables.set('mini_token', json.access_token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "02 - Identità e permessi Admin",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/user",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.collectionVariables.set('mini_admin_id', json.id);",
+                  "pm.test(\"Account Admin\", function () { pm.expect(json.roles.includes('Admin')).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Opzioni: ruoli, incarichi e avatar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/users/options",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "const role=json.data.roles.find(x=>x.alias==='User'); const assignment=json.data.assignment_roles.find(x=>x.alias==='Sviluppatore Front-end'); if(!role||!assignment||!json.data.default_avatar_id) throw new Error('Eseguire i seeder: mancano le opzioni.');",
+                  "pm.collectionVariables.set('mini_role_id', role.id);",
+                  "pm.collectionVariables.set('mini_assignment_id', assignment.id);",
+                  "pm.collectionVariables.set('mini_avatar_id', json.data.default_avatar_id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Crea un utente dedicato alla prova",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/users",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"Postman\",\n  \"last_name\": \"Prova {{mini_run}}\",\n  \"email\": \"{{mini_demo_email}}\",\n  \"birth_date\": \"1995-01-01\",\n  \"hiring_date\": \"2020-01-01\",\n  \"azure_email\": null,\n  \"company_email\": null,\n  \"gender\": null,\n  \"is_intern\": false,\n  \"isAllocation_visible\": true,\n  \"role_id\": \"{{mini_role_id}}\",\n  \"assignment_role_id\": \"{{mini_assignment_id}}\",\n  \"expertise\": \"junior\",\n  \"filestorage_id\": \"{{mini_avatar_id}}\",\n  \"contract_start_date\": \"2020-01-01\",\n  \"weekly_hours\": 40,\n  \"has_rol\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "if (pm.response.code !== 201) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.collectionVariables.set('mini_demo_id', json.data.id);",
+                  "pm.test(\"Password iniziale della demo\", function () { pm.expect(json.initial_password).to.eql(\"Password123!\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "01 - Preparazione progetto",
+      "description": "",
+      "item": [
+        {
+          "name": "Crea un progetto dedicato alla prova",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/projects",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"alias\": \"POSTMAN {{mini_run}}\",\n  \"is_timesheet\": false,\n  \"project_manager_id\": \"{{mini_admin_id}}\",\n  \"start_date\": \"{{mini_today}}\",\n  \"status\": \"in corso\",\n  \"priority\": \"media\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "if (pm.response.code !== 201) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.collectionVariables.set('mini_project_id', json.data.id);"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "02 - Matrice e assegnazione",
+      "description": "",
+      "item": [
+        {
+          "name": "Riepilogo globale",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations/summary",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Matrice progetti",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations?type=project",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Apri una necessità Front-end",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations/projects/{{mini_project_id}}/necessities",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"assignment_role_ids\": [\n    \"{{mini_assignment_id}}\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.test(\"Una necessità aperta\", function () { pm.expect(json.data.length).to.eql(1); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assegna l’utente di prova al progetto",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"project\",\n  \"project_id\": \"{{mini_project_id}}\",\n  \"user_id\": \"{{mini_demo_id}}\",\n  \"assignment_role_id\": \"{{mini_assignment_id}}\",\n  \"start_date\": \"{{mini_today}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 201\", function () { pm.expect(pm.response.code).to.eql(201); });",
+                  "if (pm.response.code !== 201) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.collectionVariables.set('mini_allocation_id', json.data.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "La nuova assegnazione copre la necessità",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations/projects/{{mini_project_id}}?type=project",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.test(\"Necessità chiusa\", function () { pm.expect(json.data.necessities.length).to.eql(0); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Assegnazione duplicata rifiutata",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"project\",\n  \"project_id\": \"{{mini_project_id}}\",\n  \"user_id\": \"{{mini_demo_id}}\",\n  \"assignment_role_id\": \"{{mini_assignment_id}}\",\n  \"start_date\": \"{{mini_today}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 422\", function () { pm.expect(pm.response.code).to.eql(422); });",
+                  "if (pm.response.code !== 422) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Segnala difficoltà",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations/{{mini_allocation_id}}/difficulty",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"is_difficult\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.test(\"Difficoltà salvata\", function () { pm.expect(json.data.is_difficult).to.eql(true); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Dettaglio risorsa e assegnazioni",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations/resources/{{mini_demo_id}}?type=project",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Matrice timesheet separata dai progetti",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations?type=timesheet",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;",
+                  "pm.test(\"Tipo corretto\", function () { pm.expect(json.data.type).to.eql(\"timesheet\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "03 - Chiusura",
+      "description": "",
+      "item": [
+        {
+          "name": "Rimuovi solo l’assegnazione creata",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/allocations/{{mini_allocation_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Elimina logicamente solo il progetto di prova",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/projects/{{mini_project_id}}",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Disabilita solo l’utente creato dalla prova",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/users/{{mini_demo_id}}/disable",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resignation_date\": \"{{mini_today}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout: revoca il token Admin della prova",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Accept",
+                "value": "application/json"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": "{{mini_base_url}}/api/logout",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{mini_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", function () { pm.expect(pm.response.code).to.eql(200); });",
+                  "if (pm.response.code !== 200) { pm.execution.setNextRequest(null); throw new Error('Richiesta fallita: '+pm.response.text()); }",
+                  "const json = /json/i.test(pm.response.headers.get('Content-Type') || '') ? pm.response.json() : null;"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

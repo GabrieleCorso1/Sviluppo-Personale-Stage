@@ -1,4 +1,4 @@
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, computed, inject, signal, viewChild } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -9,6 +9,7 @@ import { API_URL } from '../../core/auth-http';
 import { Auth, hasSettingsRole } from '../../core/services/auth';
 import { NotificationItem, Notifications } from '../../core/services/notifications';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
+import { DurationPipe } from '../../core/duration.pipe';
 
 type RequestType = 'Ferie' | 'Permesso';
 interface CalendarEntry {
@@ -37,7 +38,7 @@ interface DashboardData {
 }
 
 @Component({
-  imports: [DatePipe, DecimalPipe, FormsModule, Layout, RouterLink],
+  imports: [DatePipe, DurationPipe, FormsModule, Layout, RouterLink],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css',
 })

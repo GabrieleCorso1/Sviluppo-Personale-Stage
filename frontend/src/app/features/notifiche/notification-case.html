@@ -30,13 +30,35 @@
           <time [attr.datetime]="current.item.created_at">{{ current.item.created_at | date:'dd/MM/yyyy HH:mm' }}</time>
           @if (current.item.data.calendar_request_id; as requestId) {
             <h2>Richiesta di calendario n. {{ requestId }}</h2>
+            @if (current.item.calendar_request; as request) {
+              <dl class="request-details">
+                <div><dt>Richiedente</dt><dd>{{ request.requester }}</dd></div>
+                <div><dt>Tipologia</dt><dd>{{ request.type }}</dd></div>
+                <div><dt>Dal</dt><dd>{{ request.start_date | date:'dd/MM/yyyy' }}</dd></div>
+                <div><dt>Al</dt><dd>{{ request.end_date | date:'dd/MM/yyyy' }}</dd></div>
+                @if (request.start_time) {
+                  <div><dt>Fascia oraria</dt><dd>{{ request.start_time }} – {{ request.end_time }}</dd></div>
+                }
+                <div><dt>Durata richiesta</dt><dd>{{ request.requested_hours | duration }}</dd></div>
+                @if (request.balance_hours !== null) {
+                  <div><dt>Saldo attuale</dt><dd>{{ request.balance_hours | duration }}</dd></div>
+                }
+                @if (request.notes) { <div class="request-notes"><dt>Note</dt><dd>{{ request.notes }}</dd></div> }
+              </dl>
+              @if (request.calculation_error) { <p role="alert">{{ request.calculation_error }}</p> }
+              @if (request.can_decide) { <p class="balance-help">Il saldo verrà ricontrollato al momento dell’approvazione.</p> }
+            }
             @switch (current.item.data.calendar_status) {
               @case ('pending') {
                 <p>In attesa di decisione</p>
+                @if (current.item.calendar_request?.can_decide) {
                 <div class="actions">
                   <button type="button" [disabled]="sending()" (click)="decide(current.item.id, 'approved')">Accetta</button>
                   <button type="button" class="reject" [disabled]="sending()" (click)="decide(current.item.id, 'rejected')">Rifiuta</button>
                 </div>
+                } @else {
+                  <p>La richiesta viene gestita da Admin o HR autorizzati.</p>
+                }
               }
               @case ('approved') { <p>Richiesta accettata</p> }
               @case ('rejected') { <p>Richiesta rifiutata</p> }

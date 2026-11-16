@@ -6,10 +6,11 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { Subject, catchError, map, of, startWith, switchMap } from 'rxjs';
 import { Notifications } from '../../core/services/notifications';
 import { NOTIFICATION_EXAMPLES } from './notification-examples';
+import { DurationPipe } from '../../core/duration.pipe';
 
 @Component({
   selector: 'app-notification-case',
-  imports: [DatePipe, RouterLink],
+  imports: [DatePipe, DurationPipe, RouterLink],
   templateUrl: './notification-case.html',
   styleUrl: './notification-case.css',
 })

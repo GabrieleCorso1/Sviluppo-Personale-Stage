@@ -15,6 +15,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class AdminNotificationController extends Controller
@@ -57,14 +58,15 @@ class AdminNotificationController extends Controller
             ->withQueryString();
 
         $requestIds = $page->getCollection()->pluck('data.calendar_request_id')->filter()->unique();
-        $statuses = Calendar::query()->whereKey($requestIds->all())->pluck('status', 'id');
+        $entries = Calendar::query()->with(['user', 'typology'])->whereKey($requestIds->all())->get()->keyBy('id');
         $actorIds = $page->getCollection()->pluck('data.actor_id')->filter()->unique();
         $actors = User::query()->with('filestorage')->whereKey($actorIds->all())->get()->keyBy('id');
 
         $page->through(fn (DatabaseNotification $notification) => $this->notificationItem(
             $notification,
-            $statuses->get($notification->data['calendar_request_id'] ?? null),
+            $entries->get($notification->data['calendar_request_id'] ?? null),
             $actors->get($notification->data['actor_id'] ?? null),
+            $request->user(),
         ));
 
         return response()->json([
@@ -86,9 +88,9 @@ class AdminNotificationController extends Controller
     {
         $item = $this->notifications($request)->whereKey($notification)->firstOrFail();
         $calendarId = $item->data['calendar_request_id'] ?? null;
-        $status = $calendarId === null ? null : Calendar::query()->whereKey($calendarId)->value('status');
+        $entry = $calendarId === null ? null : Calendar::with(['user', 'typology'])->find($calendarId);
 
-        return response()->json($this->notificationItem($item, $status));
+        return response()->json($this->notificationItem($item, $entry, viewer: $request->user()));
     }
 
     public function avatar(Request $request, string $notification): BinaryFileResponse
@@ -104,12 +106,15 @@ class AdminNotificationController extends Controller
         ]);
     }
 
-    private function notificationItem(DatabaseNotification $notification, ?string $calendarStatus, ?User $actor = null): array
+    private function notificationItem(DatabaseNotification $notification, ?Calendar $entry, ?User $actor = null, ?User $viewer = null): array
     {
         $item = $notification->only(['id', 'data', 'read_at', 'created_at']);
         $item['category_label'] = self::CATEGORY_LABELS[$item['data']['category'] ?? ''] ?? null;
         if (isset($item['data']['calendar_request_id'])) {
-            $item['data']['calendar_status'] = $calendarStatus;
+            $item['data']['calendar_status'] = $entry?->status;
+            if ($entry !== null && $viewer !== null) {
+                $item['calendar_request'] = $this->calendarDetails($entry, $viewer);
+            }
         }
 
         if ($actor !== null) {
@@ -121,6 +126,41 @@ class AdminNotificationController extends Controller
         }
 
         return $item;
+    }
+
+    private function calendarDetails(Calendar $entry, User $viewer): array
+    {
+        $user = $entry->user;
+        $approver = CalendarNotificationRecipients::canApprove($viewer);
+        $canDecide = $approver && $user !== null
+            && CalendarNotificationRecipients::forRequester($entry->user_id)->whereKey($viewer->id)->exists();
+        $hours = null;
+        $calculationError = null;
+        if ($user !== null) {
+            try {
+                $hours = CalendarLeave::hours($user, $entry->typology->alias,
+                    $entry->start_date->toDateString(), $entry->end_date->toDateString(), $entry->start_time, $entry->end_time);
+            } catch (ValidationException $exception) {
+                $calculationError = collect($exception->errors())->flatten()->first();
+            }
+        }
+        $balance = $approver && $user !== null ? $user->leaveBalances()
+            ->where('leave_type', $entry->typology->alias === 'Ferie' ? 'ferie' : 'permesso')
+            ->orderByDesc('reference_date')->orderByDesc('reference_month')->orderByDesc('id')->first() : null;
+
+        return [
+            'requester' => $user === null ? 'Utente non più attivo' : trim($user->first_name.' '.$user->last_name),
+            'type' => $entry->typology->alias,
+            'start_date' => $entry->start_date->toDateString(),
+            'end_date' => $entry->end_date->toDateString(),
+            'start_time' => $entry->start_time === null ? null : substr($entry->start_time, 0, 5),
+            'end_time' => $entry->end_time === null ? null : substr($entry->end_time, 0, 5),
+            'requested_hours' => $hours,
+            'balance_hours' => $balance === null ? null : (float) $balance->remaining_hours,
+            'notes' => $approver ? $entry->notes : null,
+            'can_decide' => $canDecide && $entry->status === 'pending',
+            'calculation_error' => $calculationError,
+        ];
     }
 
     public function update(Request $request): JsonResponse
@@ -156,6 +196,7 @@ class AdminNotificationController extends Controller
         abort_unless($calendarRequestId !== null && $item->data['category'] === 'calendar', 404);
 
         $entry = Calendar::query()->findOrFail($calendarRequestId);
+        abort_unless(CalendarNotificationRecipients::canApprove($request->user()), 403);
         abort_unless(CalendarNotificationRecipients::forRequester($entry->user_id)
             ->whereKey($request->user()->id)->exists(), 403);
 
@@ -182,7 +223,8 @@ class AdminNotificationController extends Controller
     {
         $user = $request->user();
         if (! $request->routeIs('notifications.personal.*')) {
-            abort_unless($user->roles()->whereIn('alias', ['Admin', ...CalendarNotificationRecipients::LEADERS])->exists(), 403);
+            abort_unless($user->roles()->whereIn('alias', ['Admin', ...CalendarNotificationRecipients::LEADERS])->exists()
+                || CalendarNotificationRecipients::canApprove($user), 403);
         }
 
         return $user->notifications()->where('type', InAppNotification::class);

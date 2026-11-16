@@ -785,6 +785,17 @@ export class Users {
       this.busy.set(false);
     }
   }
+  readonly leaveTypeLabels: Record<string, string> = {
+    ferie: 'Ferie',
+    permesso: 'Permessi',
+    rol: 'R.O.L.',
+  };
+  readonly auditFieldLabels: Record<string, string> = {
+    remaining_hours: 'Ore residue',
+    accrued_hours: 'Ore maturate',
+    monthly_accrual: 'Rateo mensile',
+    reference_date: 'Data di riferimento',
+  };
   async loadHistory(page = 1) {
     if (!this.leaveUser) return;
     const sequence = ++this.leaveSequence;

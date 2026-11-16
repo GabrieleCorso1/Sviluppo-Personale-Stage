@@ -97,7 +97,7 @@ test('calendar requests notify admins and can be decided once', function () {
     expect((float) $requester->leaveBalances()->sole()->remaining_hours)->toBe(0.0);
 });
 
-test('only active project leaders receive calendar requests and can decide them', function () {
+test('active project leaders receive calendar requests for information but cannot decide them', function () {
     $requester = User::factory()->create();
     addCalendarLeaveBalance($requester);
     $project = \App\Models\Project::factory()->create();
@@ -134,7 +134,11 @@ test('only active project leaders receive calendar requests and can decide them'
         $this->getJson($url)->assertOk()->assertJsonCount(0, 'data');
         $this->patchJson("$url/$id/decision", ['status' => 'approved'])->assertNotFound();
         Sanctum::actingAs($leader);
-        $this->getJson($url)->assertOk()->assertJsonPath('data.0.id', $id);
+        $this->getJson($url)->assertOk()->assertJsonPath('data.0.id', $id)
+            ->assertJsonPath('data.0.calendar_request.can_decide', false)
+            ->assertJsonPath('data.0.calendar_request.balance_hours', null)
+            ->assertJsonPath('data.0.calendar_request.notes', null);
+        $this->patchJson("$url/$id/decision", ['status' => 'approved'])->assertForbidden();
     }
 
     [$manager, , $assignment] = $leaders['Project Manager'];
@@ -146,7 +150,62 @@ test('only active project leaders receive calendar requests and can decide them'
     [$teamLeader] = $leaders['Team Leader'];
     Sanctum::actingAs($teamLeader);
     $id = $teamLeader->notifications()->sole()->id;
-    $this->patchJson("$url/$id/decision", ['status' => 'rejected'])->assertOk()->assertJsonPath('status', 'rejected');
+    $this->patchJson("$url/$id/decision", ['status' => 'rejected'])->assertForbidden();
+});
+
+test('HR with leave permission receives details and approves with a single balance deduction', function () {
+    $hr = User::factory()->create();
+    $role = Role::create(['alias' => 'HR Manager']);
+    $permission = \App\Models\Permission::create(['name' => 'users.leaves.manage', 'description' => 'Ferie']);
+    $role->permissions()->attach($permission);
+    $hr->roles()->attach($role);
+    $requester = User::factory()->create();
+    addCalendarLeaveBalance($requester);
+    \App\Models\CalendarTypology::firstOrCreate(['alias' => 'Ferie']);
+    Sanctum::actingAs($requester);
+    $this->postJson('/api/calendar/requests', [
+        'type' => 'Ferie', 'start_date' => '2026-12-01', 'end_date' => '2026-12-01', 'notes' => 'Nota della richiesta',
+    ])->assertCreated();
+    $id = $hr->notifications()->sole()->id;
+    Sanctum::actingAs($hr);
+    $this->getJson('/api/notifications/'.$id)->assertOk()
+        ->assertJsonPath('calendar_request.requester', $requester->first_name.' '.$requester->last_name)
+        ->assertJsonPath('calendar_request.start_date', '2026-12-01')
+        ->assertJsonPath('calendar_request.end_date', '2026-12-01')
+        ->assertJsonPath('calendar_request.requested_hours', 8)
+        ->assertJsonPath('calendar_request.balance_hours', 16)
+        ->assertJsonPath('calendar_request.notes', 'Nota della richiesta')
+        ->assertJsonPath('calendar_request.can_decide', true);
+    $this->getJson('/api/admin/notifications')->assertOk()->assertJsonCount(1, 'data');
+    $this->patchJson('/api/admin/notifications/'.$id.'/decision', ['status' => 'approved'])->assertOk();
+    expect((float) $requester->leaveBalances()->sole()->remaining_hours)->toBe(8.0);
+    $this->getJson('/api/notifications/'.$id)->assertOk()
+        ->assertJsonPath('calendar_request.can_decide', false)
+        ->assertJsonPath('calendar_request.balance_hours', 8);
+    $this->patchJson('/api/admin/notifications/'.$id.'/decision', ['status' => 'approved'])->assertConflict();
+    expect((float) $requester->leaveBalances()->sole()->remaining_hours)->toBe(8.0);
+    $role->permissions()->detach($permission);
+    $this->patchJson('/api/admin/notifications/'.$id.'/decision', ['status' => 'rejected'])->assertForbidden();
+});
+
+test('notification details tolerate missing contract data without allowing an unchecked approval', function () {
+    $admin = User::factory()->create();
+    $admin->roles()->attach(Role::create(['alias' => 'Admin']));
+    $requester = User::factory()->create();
+    $type = \App\Models\CalendarTypology::create(['alias' => 'Permesso']);
+    $entry = $requester->calendarEntries()->create([
+        'typology_id' => $type->id, 'start_date' => '2026-12-01', 'end_date' => '2026-12-01',
+        'start_time' => '09:00', 'end_time' => '10:10', 'status' => 'pending',
+    ]);
+    $admin->notify(new InAppNotification('calendar', 'Permesso', $requester->id, $entry->id));
+    $id = $admin->notifications()->sole()->id;
+    Sanctum::actingAs($admin);
+    $this->getJson('/api/notifications/'.$id)->assertOk()
+        ->assertJsonPath('calendar_request.start_time', '09:00')
+        ->assertJsonPath('calendar_request.end_time', '10:10')
+        ->assertJsonPath('calendar_request.requested_hours', null);
+    $this->patchJson('/api/admin/notifications/'.$id.'/decision', ['status' => 'approved'])->assertUnprocessable();
+    $this->assertDatabaseHas('calendar', ['id' => $entry->id, 'status' => 'pending']);
 });
 
 test('authenticated users can filter and manage their own personal notifications', function () {
