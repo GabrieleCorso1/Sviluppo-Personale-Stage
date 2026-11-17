@@ -1,4 +1,6 @@
 .column-filter-popover {
+  max-height:calc(100dvh - 90px);
+  overflow-y:auto;
   position:fixed;
   z-index:30;
   width:240px;

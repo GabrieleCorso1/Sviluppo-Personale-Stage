@@ -2,15 +2,13 @@ const path = require('node:path');
 const os = require('node:os');
 const { spawn } = require('node:child_process');
 const { readDevSettings } = require('./dev-settings.cjs');
+const { selectMobileHost } = require('./mobile-host.cjs');
 
 try {
-  const { lanHost, frontendPort } = readDevSettings();
-  const addresses = Object.values(os.networkInterfaces()).flat()
-    .filter(address => address && !address.internal && address.family === 'IPv4')
-    .map(address => address.address);
-  if (!lanHost || !addresses.includes(lanHost)) {
-    throw new Error('Copia dev.local.example.json in dev.local.json e imposta lanHost con l’IPv4 attuale del PC.');
-  }
+  const { lanHost: configuredHost, frontendPort } = readDevSettings();
+  const lanHost = selectMobileHost(configuredHost, os.networkInterfaces());
+  console.log(`\nDal telefono apri: http://${lanHost}:${frontendPort}/login`);
+  if (configuredHost !== lanHost) console.log('Rilevato l’indirizzo attuale della rete. Dopo un cambio di IP riavvia questo comando.');
   const child = spawn(process.execPath, [
     path.join(__dirname, '..', 'node_modules', '@angular', 'cli', 'bin', 'ng.js'),
     'serve', '--host', lanHost, '--port', String(frontendPort),

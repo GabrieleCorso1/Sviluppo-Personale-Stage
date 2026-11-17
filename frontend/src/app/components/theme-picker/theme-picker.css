@@ -8,4 +8,14 @@ label:hover, label.selected { background:var(--surface-muted); }
 input { margin:0; accent-color:var(--brand); }
 i { width:18px; text-align:center; }
 small { display:block; padding:10px 8px 0; color:var(--muted); font-size:var(--font-xs); line-height:1.5; }
-@media (max-width: 480px) { .theme-options { position:fixed; top:64px; right:12px; } }
+@media (max-width: 680px) {
+  .theme-options {
+    position: fixed;
+    top: 72px;
+    right: 8px;
+    max-width: calc(100vw - var(--sidebar-width) - 24px);
+    max-height: calc(100dvh - 80px);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}

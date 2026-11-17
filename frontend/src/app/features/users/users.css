@@ -215,6 +215,9 @@ tbody tr:nth-child(even) {
   font-size: 18px;
 }
 .row-menu {
+  box-sizing: border-box;
+  max-height: calc(100dvh - 90px);
+  overflow-y: auto;
   position: fixed;
   width: 170px;
   z-index: 4;
@@ -349,6 +352,8 @@ th:last-child {
   border-right: 0;
 }
 .column-filter-popover {
+  max-height: calc(100dvh - 90px);
+  overflow-y: auto;
   position: fixed;
   z-index: 30;
   box-sizing: border-box;

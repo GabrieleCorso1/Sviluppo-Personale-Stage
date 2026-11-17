@@ -295,6 +295,9 @@ tbody tr:nth-child(even) {
   margin-left: auto;
 }
 .row-menu {
+  box-sizing: border-box;
+  max-height: calc(100dvh - 90px);
+  overflow-y: auto;
   position: fixed;
   z-index: 5;
   width: 175px;

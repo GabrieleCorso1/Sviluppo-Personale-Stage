@@ -15,6 +15,7 @@
 }
 
 :root {
+  --sidebar-width: 70px;
   color-scheme: light;
   --brand: #004575;
   --action: #004575;
@@ -193,5 +194,5 @@ app-theme-picker.public-appearance {
 }
 
 @media (max-width: 680px) {
-  :root { --page-x: 12px; --page-y: 16px; --modal-space: 20px; }
+  :root { --sidebar-width: 0px; --page-x: 12px; --page-y: 16px; --modal-space: 20px; }
 }

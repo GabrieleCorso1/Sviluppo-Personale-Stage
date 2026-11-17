@@ -58,6 +58,7 @@
           class="column-filter-popover"
           [style.top.px]="filterTop"
           [style.left.px]="filterLeft"
+          [style.width.px]="filterWidth"
           (ngSubmit)="applyFilter()"
         >
           <label
@@ -327,7 +328,7 @@
                         </span>
                       </button>
                       @if (menuId === project.id) {
-                        <div class="row-menu" [style.top.px]="menuTop" [style.left.px]="menuLeft">
+                        <div class="row-menu" [style.top.px]="menuTop" [style.left.px]="menuLeft" [style.width.px]="menuWidth">
                           <button (click)="start(project)">
                             <i class="bi bi-pencil" aria-hidden="true"></i> Modifica</button
                           ><button (click)="open(project, 'note')">

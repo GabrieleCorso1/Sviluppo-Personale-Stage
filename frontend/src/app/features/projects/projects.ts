@@ -18,6 +18,7 @@ import { Layout } from '../../components/layout/layout';
 import { API_URL } from '../../core/auth-http';
 import { AuthenticatedImage } from '../../core/authenticated-image';
 import { Auth, canAccessManagement } from '../../core/services/auth';
+import { floatingPanelPosition } from '../../core/floating-panel';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
 
 type ProjectSort = 'name' | 'project_manager' | 'team_leader' | 'scrum_master' | 'status' | 'priority';
@@ -110,7 +111,7 @@ class ProjectModal implements AfterViewInit {
   imports: [NgTemplateOutlet, DatePipe, FormsModule, Layout, AuthenticatedImage, ProjectModal],
   templateUrl: './projects.html',
   styleUrls: ['./projects.css', './projects-filters.css', './projects-modal.css', './projects-csv.css'],
-  host: { '(document:click)': 'closeMenu($event)' },
+  host: { '(document:click)': 'closeMenu($event)', '(window:resize)': 'closeFloatingPanels()' },
 })
 export class Projects {
   private readonly http = inject(HttpClient);
@@ -154,6 +155,7 @@ export class Projects {
   menuId: number | null = null;
   menuTop = 0;
   menuLeft = 0;
+  menuWidth = 185;
   draft: Draft | null = null;
   editing: Project | null = null;
   draftTimesheet = false;
@@ -178,6 +180,7 @@ export class Projects {
   filterDraft = '';
   filterTop = 0;
   filterLeft = 0;
+  filterWidth = 240;
   expandedSprints = new Set<number>();
   sprintChoices: Record<number, string> = {};
 
@@ -187,10 +190,16 @@ export class Projects {
       return;
     }
     const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.filterTop = Math.max(8, Math.min(bounds.bottom + 8, window.innerHeight - 210));
-    this.filterLeft = Math.max(8, Math.min(bounds.left, window.innerWidth - 260));
+    const panel = floatingPanelPosition(bounds, 240, 210);
+    this.filterTop = panel.top;
+    this.filterLeft = panel.left;
+    this.filterWidth = panel.width;
     this.columnFilter = key;
     this.filterDraft = this[key];
+  }
+  closeFloatingPanels(): void {
+    this.columnFilter = null;
+    this.menuId = null;
   }
   filterValue(key: FilterKey): string {
     return this[key];
@@ -326,8 +335,10 @@ export class Projects {
   }
   toggleMenu(project: Project, event: Event) {
     const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.menuTop = Math.max(8, Math.min(bounds.bottom + 3, window.innerHeight - 225));
-    this.menuLeft = Math.max(8, bounds.right - 185);
+    const panel = floatingPanelPosition(bounds, 185, 225, true);
+    this.menuTop = panel.top;
+    this.menuLeft = panel.left;
+    this.menuWidth = panel.width;
     this.menuId = this.menuId === project.id ? null : project.id;
   }
   closeMenu(event: Event) {

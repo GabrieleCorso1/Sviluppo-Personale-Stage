@@ -1,23 +1,29 @@
 <aside class="sidebar">
-<a class="brand" routerLink="/bacheca" title="Bacheca" aria-label="Vai alla Bacheca">
+<button class="sidebar-close" type="button" aria-label="Chiudi navigazione" (click)="closeMenu.emit()"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+<a class="brand" routerLink="/bacheca" (click)="navigated.emit()" title="Bacheca" aria-label="Vai alla Bacheca">
   <img
     src="/img/impostazioni/LogoContainer.png"
     alt="Logo Sviluppo Personale"
   />
+  <span class="nav-label">Bacheca</span>
 </a>
 
     <nav class="side-nav" aria-label="Navigazione principale">
       <button class="nav-button" aria-label="Statistiche">
         <img src="/img/impostazioni/Sidebar-item.png" alt="" />
+        <span class="nav-label">Statistiche</span>
       </button>
       <button class="nav-button" aria-label="Organizzazione">
         <img src="/img/impostazioni/Sidebar-item-1.png" alt="" />
+        <span class="nav-label">Organizzazione</span>
       </button>
-      <button class="nav-button" aria-label="SBI" title="SBI" routerLink="/sbi" routerLinkActive="active">
+      <button class="nav-button" aria-label="SBI" title="SBI" routerLink="/sbi" routerLinkActive="active" (click)="navigated.emit()">
         <img src="/img/impostazioni/Sidebar-item-2.png" alt="" />
+        <span class="nav-label">SBI</span>
       </button>
       <button class="nav-button" aria-label="Report">
         <img src="/img/impostazioni/Sidebar-item-3.png" alt="" />
+        <span class="nav-label">Report</span>
       </button>
     </nav>
 

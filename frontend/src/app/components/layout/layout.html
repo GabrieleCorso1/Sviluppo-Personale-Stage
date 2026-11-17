@@ -1,8 +1,16 @@
-<div class="dashboard">
-  <app-navbar />
+<div class="dashboard" [class.mobile-menu-open]="mobileMenuOpen()">
+  @if (isMobile() && mobileMenuOpen()) {
+    <button class="sidebar-backdrop" type="button" aria-label="Chiudi menu laterale" tabindex="-1" (click)="closeMobileMenu()"></button>
+  }
+  <app-navbar id="primary-navigation"
+    [attr.inert]="isMobile() && !mobileMenuOpen() ? '' : null"
+    [attr.aria-hidden]="isMobile() && !mobileMenuOpen() ? 'true' : null"
+    [attr.role]="isMobile() && mobileMenuOpen() ? 'dialog' : null"
+    [attr.aria-modal]="isMobile() && mobileMenuOpen() ? 'true' : null"
+    aria-label="Menu principale" (closeMenu)="closeMobileMenu()" (navigated)="closeMobileMenu()" />
 
-  <main class="main-area">
-    <app-header [avatarEditable]="avatarEditable()" [avatarUrl]="avatarUrl()" [pageTitle]="pageTitle()" [canAccessSettings]="canAccessSettings()" (openAvatar)="openAvatar.emit()" (openSettings)="openSettings.emit()" />
+  <main class="main-area" [attr.inert]="isMobile() && mobileMenuOpen() ? '' : null">
+    <app-header [menuOpen]="mobileMenuOpen()" (toggleMenu)="toggleMobileMenu()" [avatarEditable]="avatarEditable()" [avatarUrl]="avatarUrl()" [pageTitle]="pageTitle()" [canAccessSettings]="canAccessSettings()" (openAvatar)="openAvatar.emit()" (openSettings)="openSettings.emit()" />
     <ng-content />
   </main>
 </div>

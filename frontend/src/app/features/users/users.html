@@ -39,6 +39,7 @@
           class="column-filter-popover"
           [style.top.px]="filterTop"
           [style.left.px]="filterLeft"
+          [style.width.px]="filterWidth"
           (ngSubmit)="applyFilter()"
         >
           <label
@@ -233,7 +234,7 @@
                       <i aria-hidden="true" class="bi bi-three-dots-vertical"></i>
                     </button>
                     @if (menuId === person.id) {
-                      <div class="row-menu" [style.top.px]="menuTop" [style.left.px]="menuLeft">
+                      <div class="row-menu" [style.top.px]="menuTop" [style.left.px]="menuLeft" [style.width.px]="menuWidth">
                         @if (canEdit(person)) {
                           <button (click)="start(person)">
                             <i aria-hidden="true" class="bi bi-pencil"></i> Modifica

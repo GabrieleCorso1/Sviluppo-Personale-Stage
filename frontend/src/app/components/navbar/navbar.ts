@@ -1,5 +1,5 @@
 import { RouterLink, RouterLinkActive } from '@angular/router';
-import { Component } from '@angular/core';
+import { Component, output } from '@angular/core';
 
 @Component({
   selector: 'app-navbar',
@@ -7,4 +7,7 @@ import { Component } from '@angular/core';
   templateUrl: './navbar.html',
   styleUrl: './navbar.css',
 })
-export class Navbar {}
+export class Navbar {
+  readonly closeMenu = output<void>();
+  readonly navigated = output<void>();
+}

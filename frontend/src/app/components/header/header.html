@@ -1,6 +1,10 @@
 <header class="topbar">
+      <button type="button" class="header-button mobile-menu-toggle" aria-label="Apri menu di navigazione"
+        aria-controls="primary-navigation" [attr.aria-expanded]="menuOpen()" (click)="toggleMenu.emit()">
+        <i class="bi bi-list" aria-hidden="true"></i>
+      </button>
       <div class="page-heading">
-        <span>{{ pageTitle() }}</span>
+        <span [title]="pageTitle()">{{ pageTitle() }}</span>
         <i class="bi bi-info-circle"></i>
       </div>
 
@@ -32,21 +36,30 @@
             <i class="bi bi-gear"></i>
           </button>
         }
-        @if (avatarUrl(); as photo) {
-          @if (avatarEditable()) {
-          <button type="button" class="avatar avatar-button" aria-label="Gestisci foto profilo"
-            aria-haspopup="dialog" (click)="openAvatar.emit()">
-            <img class="avatar-photo" [src]="photo" alt="" />
-          </button>
-          } @else {
-            <a class="avatar avatar-static" routerLink="/home" aria-label="Vai al profilo">
+        <div class="account-menu" (focusout)="closeAccountOnBlur($event)"
+          (keydown.escape)="closeAccount(true); $event.stopPropagation()">
+          <button type="button" class="avatar avatar-button" aria-label="Apri menu account"
+            aria-controls="account-options" [attr.aria-expanded]="accountOpen()" (click)="toggleAccount()">
+            @if (avatarUrl(); as photo) {
               <img class="avatar-photo" [src]="photo" alt="" />
-            </a>
+            } @else { U }
+          </button>
+          @if (accountOpen()) {
+            <div id="account-options" class="account-popover" role="group" aria-label="Menu account" [attr.aria-busy]="loggingOut()">
+              @if (auth.currentUser(); as user) {
+                <p class="account-name">{{ user.first_name }} {{ user.last_name }}</p>
+              }
+              <div class="account-actions">
+                <button type="button" class="account-profile" [disabled]="loggingOut()" (click)="goToProfile()">
+                  <i class="bi bi-person-circle" aria-hidden="true"></i> Vai al profilo
+                </button>
+                <button type="button" class="account-logout" [disabled]="loggingOut()" (click)="logout()">
+                  <i class="bi bi-box-arrow-right" aria-hidden="true"></i> {{ loggingOut() ? 'Uscita in corso…' : 'Esci' }}
+                </button>
+              </div>
+              @if (accountError()) { <p class="account-error" role="alert">{{ accountError() }}</p> }
+            </div>
           }
-        } @else if (!avatarEditable()) {
-          <a class="avatar" routerLink="/home" aria-label="Vai al profilo">U</a>
-        } @else {
-          <div class="avatar" aria-label="Profilo utente">U</div>
-        }
+        </div>
       </div>
     </header>

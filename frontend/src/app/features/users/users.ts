@@ -19,6 +19,7 @@ import { API_URL } from '../../core/auth-http';
 import { AuthenticatedImage } from '../../core/authenticated-image';
 import { Auth } from '../../core/services/auth';
 import { ProfileAvatar } from '../../core/services/profile-avatar';
+import { floatingPanelPosition } from '../../core/floating-panel';
 
 interface Option {
   id: number;
@@ -144,7 +145,7 @@ class UserModal implements AfterViewInit {
 @Component({
   imports: [AuthenticatedImage, FormsModule, DatePipe, DecimalPipe, Layout, UserModal],
   templateUrl: './users.html',
-  host: { '(document:click)': 'closeMenu($event)' },
+  host: { '(document:click)': 'closeMenu($event)', '(window:resize)': 'closeFloatingPanels()' },
   styleUrls: ['./users.css', './users-modal.css'],
 })
 export class Users {
@@ -181,6 +182,7 @@ export class Users {
   filterDraft = '';
   filterTop = 0;
   filterLeft = 0;
+  filterWidth = 240;
   search = '';
   role = '';
   assignment = '';
@@ -192,6 +194,7 @@ export class Users {
   menuId: number | null = null;
   menuTop = 0;
   menuLeft = 0;
+  menuWidth = 180;
   draft: Draft | null = null;
   editing: Person | null = null;
   selectedContract: number | null = null;
@@ -346,8 +349,10 @@ export class Users {
   }
   toggleMenu(person: Person, event: Event) {
     const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.menuTop = Math.max(8, Math.min(bounds.bottom + 3, window.innerHeight - 180));
-    this.menuLeft = Math.max(8, bounds.right - 180);
+    const panel = floatingPanelPosition(bounds, 180, 180, true);
+    this.menuTop = panel.top;
+    this.menuLeft = panel.left;
+    this.menuWidth = panel.width;
     this.menuId = this.menuId === person.id ? null : person.id;
   }
   closeMenu(event: Event) {
@@ -355,14 +360,20 @@ export class Users {
       this.columnFilter = null;
     if (!(event.target as HTMLElement).closest('.row-actions')) this.menuId = null;
   }
+  closeFloatingPanels(): void {
+    this.columnFilter = null;
+    this.menuId = null;
+  }
   openFilter(key: UserFilter, event: Event): void {
     if (this.columnFilter === key) {
       this.columnFilter = null;
       return;
     }
     const bounds = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    this.filterTop = Math.max(8, Math.min(bounds.bottom + 8, window.innerHeight - 210));
-    this.filterLeft = Math.max(8, Math.min(bounds.left, window.innerWidth - 260));
+    const panel = floatingPanelPosition(bounds, 240, 210);
+    this.filterTop = panel.top;
+    this.filterLeft = panel.left;
+    this.filterWidth = panel.width;
     this.columnFilter = key;
     this.filterDraft = this[key];
   }
