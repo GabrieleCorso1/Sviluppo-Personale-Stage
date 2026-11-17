@@ -30,8 +30,7 @@ class DatabaseSeeder extends Seeder
             CapacitySeeder::class,
             CalendarSeeder::class,
             FeedbackSeeder::class,
+            ExpandedDemoSeeder::class,
         ]);
     }
-
-    
 }

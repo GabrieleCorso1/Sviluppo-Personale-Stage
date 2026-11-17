@@ -297,10 +297,10 @@ test('full seed creates timesheet assignments visible in allocation without putt
     $this->seed(DatabaseSeeder::class);
     $admin = User::where('email', 'mario.rossi@example.com')->firstOrFail();
     $user = User::where('email', 'giulia.neri@example.com')->firstOrFail();
-    $timesheet = Project::where('is_timesheet', true)->sole();
+    $timesheet = Project::where('alias', 'Attivita interne')->where('is_timesheet', true)->sole();
     $this->withToken($admin->createToken('test')->plainTextToken);
 
-    $this->getJson('/api/allocations?type=project')->assertOk()->assertJsonCount(2, 'data.projects');
+    $this->getJson('/api/allocations?type=project')->assertOk()->assertJsonCount(8, 'data.projects');
     $this->getJson('/api/allocations/resources/'.$user->id.'?type=timesheet')->assertOk()
         ->assertJsonPath('data.projects_count', 1)->assertJsonPath('data.is_unallocated', false)
         ->assertJsonPath('data.allocations.0.role', null);

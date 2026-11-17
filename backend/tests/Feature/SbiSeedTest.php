@@ -15,9 +15,9 @@ class SbiSeedTest extends TestCase
     {
         $this->seed(DatabaseSeeder::class);
 
-        $this->assertDatabaseCount('sbis', 3);
-        $this->assertDatabaseCount('sbi_revisions', 3);
-        $this->assertDatabaseCount('sbi_replies', 1);
+        $this->assertDatabaseCount('sbis', 16);
+        $this->assertDatabaseCount('sbi_revisions', 16);
+        $this->assertDatabaseCount('sbi_replies', 7);
 
         foreach (Sbi::with(['writer', 'receiver', 'project', 'revisions.reply'])->get() as $sbi) {
             $this->assertNotNull($sbi->writer);
@@ -38,9 +38,9 @@ class SbiSeedTest extends TestCase
         $this->assertArrayNotHasKey('personal_notes', $revision->fresh()->toArray());
 
         $this->seed(FeedbackSeeder::class);
-        $this->assertDatabaseCount('sbis', 3);
-        $this->assertDatabaseCount('sbi_revisions', 3);
-        $this->assertDatabaseCount('sbi_replies', 1);
+        $this->assertDatabaseCount('sbis', 16);
+        $this->assertDatabaseCount('sbi_revisions', 16);
+        $this->assertDatabaseCount('sbi_replies', 7);
         $this->assertSame('Nota privata di prova', $revision->fresh()->personal_notes);
     }
 }
